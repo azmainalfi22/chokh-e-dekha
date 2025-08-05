@@ -23,12 +23,12 @@
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="{{ route('reports.index') }}" class="btn btn-lg btn-primary w-100">
+                    <a href="{{ route('reports.my') }}" class="btn btn-lg btn-primary w-100">
                         <i class="fas fa-list-ul me-2"></i>My Submitted Reports
                     </a>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <a href="{{ url('/') }}" class="btn btn-lg btn-secondary w-100">
+                    <a href="{{  route('reports.index') }}" class="btn btn-lg btn-secondary w-100">
                         <i class="fas fa-home me-2"></i>Go to Homepage
                     </a>
                 </div>

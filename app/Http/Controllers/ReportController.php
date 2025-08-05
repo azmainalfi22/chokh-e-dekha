@@ -5,26 +5,34 @@ namespace App\Http\Controllers;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class ReportController extends Controller
 {
+    /**
+     * Display a list of reports, optionally filtered by city.
+     */
     public function index(Request $request)
-{
-    $city = $request->input('city_corporation');
-    $reports = Report::when($city, function ($query, $city) {
-        return $query->where('city_corporation', $city);
-    })->latest()->get();
+    {
+        $city = $request->input('city_corporation');
 
-    return view('reports.index', compact('reports', 'city'));
-}
+        $reports = Report::when($city, function ($query, $city) {
+            return $query->where('city_corporation', $city);
+        })->latest()->get();
 
+        return view('reports.index', compact('reports', 'city'));
+    }
 
+    /**
+     * Show the form to create a new report.
+     */
     public function create()
     {
         return view('reports.create');
     }
 
+    /**
+     * Store a newly submitted report.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -36,25 +44,42 @@ class ReportController extends Controller
             'photo' => 'nullable|image|max:2048',
         ]);
 
-        // Handle photo upload
+        // Upload photo if provided
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('photos', 'public');
         }
 
-        // Assign report details
-        $report = new Report($validated);
-        $report->user_id = Auth::id(); // make sure you're logged in!
-        $report->save();
+        // Assign user ID and default status
+        $validated['user_id'] = Auth::id();
+        $validated['status'] = 'pending';
 
-        return redirect('/')->with('success', 'Report submitted successfully!');
+        // Create report
+        Report::create($validated);
+
+        // ✅ Redirect to defined route
+        return redirect()->route('reports.index')->with('success', 'Report submitted successfully!');
     }
+
+    public function myReports()
+    {
+        $reports = Report::where('user_id', Auth::id())->latest()->get();
+        return view('reports.my', compact('reports'));
+    }
+
+    /**
+     * Admin can toggle a report's status.
+     */
 
     public function toggleStatus($id)
     {
         $report = Report::findOrFail($id);
 
-        // Optional: check if user is admin here
-        $report->status = !$report->status;
+        // Only admin can toggle
+        if (!Auth::user()->is_admin) {
+            abort(403, 'Unauthorized');
+        }
+
+        $report->status = $report->status === 'pending' ? 'resolved' : 'pending';
         $report->save();
 
         return redirect()->back()->with('success', 'Report status updated!');
