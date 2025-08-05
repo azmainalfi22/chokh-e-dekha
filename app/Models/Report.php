@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Report extends Model
 {
-    protected $fillable = [
-        'title',
-        'description',
-        'category',
-        'location',
-        'photo',
-        'status'
-    ];
+protected $fillable = [
+    'title',
+    'description',
+    'category',
+    'city_corporation',
+    'location',
+    'photo',
+];
 }

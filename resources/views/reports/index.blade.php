@@ -29,6 +29,7 @@
                         <img src="{{ asset("storage/{$report->photo}") }}" width="200"><br>
                     @endif
                     <p><strong>Location:</strong> {{ $report->location ?? 'Not specified' }}</p>
+                    <p><strong>City Corporation:</strong> {{ $report->city_corporation }}</p>
                     <p><strong>Status:</strong> {{ ucfirst($report->status) }}</p>
                     <p><small>Submitted on {{ $report->created_at->format('F j, Y, g:i a') }}</small></p>
                 </div>
