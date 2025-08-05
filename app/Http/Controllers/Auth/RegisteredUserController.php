@@ -29,21 +29,23 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-$request->validate([
-    'name' => 'required|string|max:255',
-    'email' => 'required|string|email|max:255|unique:users',
-    'address' => 'required|string|max:255', // ✅ add this
-    'password' => ['required', 'confirmed', Rules\Password::defaults()],
-]);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'address' => 'required|string|max:255',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
 
+        // ✅ Auto-admin logic
+        $isAdmin = str_ends_with($request->email, '@chokh.e-dekha.com');
 
-$user = User::create([
-    'name' => $request->name,
-    'email' => $request->email,
-    'address' => $request->address, // ✅ add this
-    'password' => Hash::make($request->password),
-]);
-
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'address' => $request->address,
+            'password' => Hash::make($request->password),
+            'is_admin' => $isAdmin, // ✅ auto assign admin
+        ]);
 
         event(new Registered($user));
 
