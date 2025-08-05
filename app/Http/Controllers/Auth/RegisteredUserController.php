@@ -37,7 +37,7 @@ class RegisteredUserController extends Controller
         ]);
 
         // ✅ Auto-admin logic
-        $isAdmin = str_ends_with($request->email, '@chokh.e-dekha.com');
+        $isAdmin = str_ends_with($request->email, '@chokh.e.dekha.com');
 
         $user = User::create([
             'name' => $request->name,
@@ -51,6 +51,7 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect()->intended(auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard'));
+
     }
 }
