@@ -2,16 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Report extends Model
 {
-protected $fillable = [
-    'title',
-    'description',
-    'category',
-    'city_corporation',
-    'location',
-    'photo',
-];
+    use HasFactory;
+
+    protected $fillable = [
+        'title',
+        'description',
+        'category',
+        'city_corporation',
+        'location',
+        'photo',
+        'status',
+        'user_id',
+    ];
 }
