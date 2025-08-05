@@ -42,6 +42,11 @@
             <x-primary-button class="ms-3">
                 {{ __('Log in') }}
             </x-primary-button>
+            <p class="mt-4 text-sm text-center">
+                Don't have an account?
+                <a href="{{ route('register') }}" class="text-blue-500 hover:underline">Register here</a>
+            </p>
+
         </div>
     </form>
 </x-guest-layout>

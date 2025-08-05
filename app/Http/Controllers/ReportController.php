@@ -9,11 +9,16 @@ use Illuminate\Support\Facades\Storage;
 
 class ReportController extends Controller
 {
-    public function index()
-    {
-        $reports = Report::latest()->get();
-        return view('reports.index', compact('reports'));
-    }
+    public function index(Request $request)
+{
+    $city = $request->input('city_corporation');
+    $reports = Report::when($city, function ($query, $city) {
+        return $query->where('city_corporation', $city);
+    })->latest()->get();
+
+    return view('reports.index', compact('reports', 'city'));
+}
+
 
     public function create()
     {

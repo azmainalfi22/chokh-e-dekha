@@ -10,6 +10,39 @@
 
     <a href="/report/create">+ Submit New Report</a><br><br>
 
+    {{-- City Corporation Filter --}}
+    <form method="GET" action="{{ route('home') }}" class="mb-4">
+        <label for="city_corporation"><strong>Filter by City Corporation:</strong></label>
+        <select name="city_corporation" id="city_corporation" onchange="this.form.submit()">
+            <option value="">-- All --</option>
+            @php
+                $cities = [
+                    'Dhaka North City Corporation',
+                    'Dhaka South City Corporation',
+                    'Chittagong City Corporation',
+                    'Rajshahi City Corporation',
+                    'Khulna City Corporation',
+                    'Sylhet City Corporation',
+                    'Barisal City Corporation',
+                    'Rangpur City Corporation',
+                    'Mymensingh City Corporation',
+                    'Narayanganj City Corporation',
+                    'Comilla City Corporation',
+                    'Bogura City Corporation',
+                ];
+            @endphp
+            @foreach ($cities as $cityName)
+                <option value="{{ $cityName }}" {{ request('city_corporation') == $cityName ? 'selected' : '' }}>
+                    {{ $cityName }}
+                </option>
+            @endforeach
+        </select>
+    </form>
+
+    @if(request('city_corporation'))
+        <p>Showing reports for: <strong>{{ request('city_corporation') }}</strong></p>
+    @endif
+
     @if(Auth::check())
         <form method="POST" action="/logout" style="margin-bottom: 20px;">
             @csrf
