@@ -1,108 +1,66 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('content')
-<div class="container py-5">
-    <h2 class="mb-4 text-center fw-bold text-primary">🛠️ Admin Dashboard</h2>
+<div class="text-2xl font-bold text-blue-600 mb-4">Welcome, Admin 👋</div>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-3">
-            <div class="card text-white bg-primary shadow h-100" style="border-radius:1rem;">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-bar-chart-fill display-4 mb-2"></i>
-                    <div class="fw-bold fs-3">{{ $totalReports }}</div>
-                    <div>Total Reports</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-warning shadow h-100" style="border-radius:1rem;">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-hourglass-split display-4 mb-2"></i>
-                    <div class="fw-bold fs-3">{{ $pendingReports }}</div>
-                    <div>Pending Reports</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-success shadow h-100" style="border-radius:1rem;">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-check-circle-fill display-4 mb-2"></i>
-                    <div class="fw-bold fs-3">{{ $resolvedReports }}</div>
-                    <div>Resolved Reports</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-dark shadow h-100" style="border-radius:1rem;">
-                <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                    <i class="bi bi-people-fill display-4 mb-2"></i>
-                    <div class="fw-bold fs-3">{{ $totalUsers }}</div>
-                    <div>Total Users</div>
-                </div>
-            </div>
-        </div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-500 text-white p-6 rounded-lg shadow text-center">
+        <div class="text-4xl font-bold">{{ $totalReports }}</div>
+        <div>Total Reports</div>
     </div>
-
-    <h4 class="text-primary fw-bold mb-3">📊 Reports by City Corporation</h4>
-    <div class="row mb-5">
-        @forelse($reportsByCity as $cityStat)
-            <div class="col-md-3 mb-3">
-                <div class="card border-info h-100">
-                    <div class="card-body text-center">
-                        <span class="fw-bold">{{ $cityStat->city_corporation }}</span>
-                        <br>
-                        <span class="badge bg-info text-dark fs-5">{{ $cityStat->count }}</span>
-                    </div>
-                </div>
-            </div>
-        @empty
-            <p class="text-muted">No city corporation data available.</p>
-        @endforelse
+    <div class="bg-yellow-400 text-white p-6 rounded-lg shadow text-center">
+        <div class="text-4xl font-bold">{{ $pendingReports }}</div>
+        <div>Pending</div>
     </div>
+    <div class="bg-green-500 text-white p-6 rounded-lg shadow text-center">
+        <div class="text-4xl font-bold">{{ $resolvedReports }}</div>
+        <div>Resolved</div>
+    </div>
+    <div class="bg-gray-800 text-white p-6 rounded-lg shadow text-center">
+        <div class="text-4xl font-bold">{{ $totalUsers }}</div>
+        <div>Users</div>
+    </div>
+</div>
 
-    <h4 class="text-primary fw-bold mb-3">🆕 Recent Reports</h4>
-    <div class="table-responsive">
-        <table class="table table-hover shadow-sm">
-            <thead class="table-primary">
-                <tr>
-                    <th>Title</th>
-                    <th>User</th>
-                    <th>City</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($recentReports as $report)
-                <tr>
-                    <td>{{ $report->title }}</td>
-                    <td>{{ $report->user->name ?? 'Unknown' }}</td>
-                    <td>{{ $report->city_corporation }}</td>
-                    <td>
-                        <span class="badge {{ $report->status == 'resolved' ? 'bg-success' : 'bg-warning text-dark' }}">
+<div class="bg-white p-6 rounded-lg shadow mb-6">
+    <h2 class="text-xl font-semibold mb-4">📍 Reports by City</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        @foreach($reportsByCity as $item)
+            <div class="border rounded p-4 text-center text-blue-700 bg-blue-50 font-semibold">
+                <div>{{ $item->city_corporation }}</div>
+                <div class="text-2xl">{{ $item->count }}</div>
+            </div>
+        @endforeach
+    </div>
+</div>
+
+<div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-semibold mb-4">🆕 Recent Reports</h2>
+    <table class="table-auto w-full text-sm">
+        <thead>
+            <tr class="bg-blue-100 text-left">
+                <th class="p-2">Title</th>
+                <th class="p-2">User</th>
+                <th class="p-2">City</th>
+                <th class="p-2">Status</th>
+                <th class="p-2">Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($recentReports as $report)
+                <tr class="border-b">
+                    <td class="p-2">{{ $report->title }}</td>
+                    <td class="p-2">{{ $report->user->name ?? 'N/A' }}</td>
+                    <td class="p-2">{{ $report->city_corporation }}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 text-xs rounded {{ $report->status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">
                             {{ ucfirst($report->status) }}
                         </span>
                     </td>
-                    <td>{{ $report->created_at->format('M d, Y h:i a') }}</td>
+                    <td class="p-2">{{ $report->created_at->format('M d, Y h:i a') }}</td>
                 </tr>
-                @empty
-                <tr>
-                    <td colspan="5" class="text-center text-muted">No recent reports.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="text-end mt-4">
-        <a href="{{ route('admin.reports.index') }}" class="btn btn-outline-primary btn-lg">
-            <i class="bi bi-card-list"></i> View All Reports
-        </a>
-    </div>
+            @endforeach
+        </tbody>
+    </table>
 </div>
 @endsection
-
-@push('styles')
-<!-- Bootstrap Icons CDN -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-@endpush
