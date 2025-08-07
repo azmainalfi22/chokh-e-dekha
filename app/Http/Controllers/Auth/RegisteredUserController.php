@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Illuminate\Support\Str;
+use Illuminate\Support\Carbon; // <-- Add this for date/time
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
@@ -36,15 +38,16 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // ✅ Auto-admin logic
-        $isAdmin = str_ends_with($request->email, '@chokh.e.dekha.com');
+        // ✅ Case-insensitive auto-admin logic
+        $isAdmin = Str::endsWith(Str::lower($request->email), '@chokh.e-dekha.com');
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'address' => $request->address,
             'password' => Hash::make($request->password),
-            'is_admin' => $isAdmin, // ✅ auto assign admin
+            'is_admin' => $isAdmin,
+            'email_verified_at' => Carbon::now(), // ✅ Instantly verify!
         ]);
 
         event(new Registered($user));
@@ -52,6 +55,5 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect()->intended(auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard'));
-
     }
 }
