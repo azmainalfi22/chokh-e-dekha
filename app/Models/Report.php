@@ -18,6 +18,7 @@ class Report extends Model
         'photo',
         'status',
         'user_id',
+        'admin_note',
     ];
     public function user()
 {

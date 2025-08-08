@@ -98,3 +98,15 @@
         </div>
     </div>
 </nav>
+@guest
+    <div class="flex items-center gap-3">
+        <a href="{{ route('login') }}" class="px-4 py-2 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 shadow">
+            Login
+        </a>
+        @if (Route::has('register'))
+            <a href="{{ route('register') }}" class="px-4 py-2 rounded-md text-sm font-medium border border-stone-200 bg-white hover:bg-stone-50 shadow">
+                Register
+            </a>
+        @endif
+    </div>
+@endguest

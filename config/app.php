@@ -13,7 +13,8 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+// config/app.php
+'name' => env('APP_NAME', 'Chokh-e-Dekha'),
 
     /*
     |--------------------------------------------------------------------------

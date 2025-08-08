@@ -8,80 +8,115 @@ use Illuminate\Support\Facades\Auth;
 
 class ReportController extends Controller
 {
-    /**
-     * Display a list of reports, optionally filtered by city.
-     */
     public function index(Request $request)
     {
-        $city = $request->input('city_corporation');
+        $city = $request->query('city_corporation');
 
-        $reports = Report::when($city, function ($query, $city) {
-            return $query->where('city_corporation', $city);
-        })->latest()->get();
+        $reports = Report::query()
+            ->when($city, fn ($q) => $q->where('city_corporation', $city))
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
 
         return view('reports.index', compact('reports', 'city'));
     }
 
-    /**
-     * Show the form to create a new report.
-     */
     public function create()
     {
+        if (Auth::user()?->is_admin) {
+            abort(403, 'Admins cannot submit reports.');
+        }
+
         return view('reports.create');
     }
 
-    /**
-     * Store a newly submitted report.
-     */
     public function store(Request $request)
     {
+        if (Auth::user()?->is_admin) {
+            abort(403, 'Admins cannot submit reports.');
+        }
+
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category' => 'required|string',
+            'title'            => 'required|string|max:255',
+            'description'      => 'required|string',
+            'category'         => 'required|string',
             'city_corporation' => 'required|string',
-            'location' => 'nullable|string',
-            'photo' => 'nullable|image|max:2048',
+            'location' => 'required|string',
+            'photo'            => 'nullable|image|max:2048',
         ]);
 
-        // Upload photo if provided
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('photos', 'public');
         }
 
-        // Assign user ID and default status
         $validated['user_id'] = Auth::id();
-        $validated['status'] = 'pending';
+        $validated['status']  = 'pending';
 
-        // Create report
         Report::create($validated);
 
-        // ✅ Redirect to defined route
         return redirect()->route('reports.index')->with('success', 'Report submitted successfully!');
     }
 
-    public function myReports()
+    public function myReports(Request $request)
     {
-        $reports = Report::where('user_id', Auth::id())->latest()->get();
+        $reports = Report::with('user')
+            ->where('user_id', $request->user()->id)
+            ->when(
+                $request->filled('city_corporation'),
+                fn ($q) => $q->where('city_corporation', $request->city_corporation)
+            )
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        // FIX: point to user-facing view
         return view('reports.my', compact('reports'));
     }
 
-    /**
-     * Admin can toggle a report's status.
-     */
-
-    public function toggleStatus($id)
+    public function show(Report $report)
     {
-        $report = Report::findOrFail($id);
+        abort_unless(
+            $report->user_id === Auth::id() || (Auth::check() && Auth::user()->is_admin),
+            403
+        );
 
-        // Only admin can toggle
-        if (!Auth::user()->is_admin) {
-            abort(403, 'Unauthorized');
-        }
+        $report->load('user');
+
+        // FIX: point to user-facing view
+        return view('reports.show', compact('report'));
+    }
+
+    public function adminShow(Report $report)
+    {
+        abort_unless(Auth::check() && Auth::user()->is_admin, 403);
+
+        $report->load('user');
+
+        return view('admin.reports.show', compact('report'));
+    }
+
+    public function update(Request $request, Report $report)
+    {
+        abort_unless(Auth::check() && Auth::user()->is_admin, 403);
+
+        // FIX: expanded allowed statuses
+        $validated = $request->validate([
+            'status'     => 'required|in:pending,in_progress,resolved,rejected',
+            'admin_note' => 'nullable|string|max:5000',
+        ]);
+
+        $report->update($validated);
+
+        return back()->with('success', 'Report updated successfully.');
+    }
+
+    public function toggleStatus(Report $report)
+    {
+        abort_unless(Auth::check() && Auth::user()->is_admin, 403);
 
         $report->status = $report->status === 'pending' ? 'resolved' : 'pending';
         $report->save();
 
-        return redirect()->back()->with('success', 'Report status updated!');
+        return back()->with('success', 'Report status updated!');
     }
 }

@@ -1,96 +1,94 @@
-@extends('layouts.app')
+@extends(auth()->user()->is_admin ? 'layouts.admin' : 'layouts.app')
+
+@section('title', 'All Reports')
 
 @section('content')
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-primary">📋 All Submitted City Issue Reports</h2>
-        <a href="{{ route('report.create') }}" class="btn btn-success">+ Submit New Report</a>
-    </div>
+<div class="relative">
+  <div class="pointer-events-none absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300"></div>
+  <div class="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
+
+  <div class="max-w-7xl mx-auto p-4 md:p-8 relative">
+    <header class="mb-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">All Reports</h1>
+          <p class="text-sm text-amber-900/70">Here’s the latest from city issue reports.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          @if(Route::has('report.create') && !auth()->user()->is_admin)
+          <a href="{{ route('report.create') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl shadow hover:shadow-md bg-amber-600 text-white hover:bg-amber-700 transition">
+            <span class="text-lg">＋</span><span>New Report</span>
+          </a>
+          @endif
+        </div>
+      </div>
+    </header>
 
     @if(session('success'))
-        <div class="alert alert-success">
-            ✅ {{ session('success') }}
-        </div>
+      <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 shadow-sm">✅ {{ session('success') }}</div>
     @endif
 
-    {{-- 🔍 City Corporation Filter --}}
-<form method="GET" action="{{ route('reports.index') }}" class="row g-3 mb-4">
-        <div class="col-md-6">
-            <label for="city_corporation" class="form-label">🏙️ Filter by City Corporation:</label>
-            <select name="city_corporation" id="city_corporation" class="form-select" onchange="this.form.submit()">
-                <option value="">-- Show All --</option>
-                @php
-                    $cities = [
-                        'Dhaka North City Corporation',
-                        'Dhaka South City Corporation',
-                        'Chittagong City Corporation',
-                        'Rajshahi City Corporation',
-                        'Khulna City Corporation',
-                        'Sylhet City Corporation',
-                        'Barisal City Corporation',
-                        'Rangpur City Corporation',
-                        'Mymensingh City Corporation',
-                        'Narayanganj City Corporation',
-                        'Comilla City Corporation',
-                        'Bogura City Corporation',
-                    ];
-                @endphp
-                @foreach ($cities as $cityName)
-                    <option value="{{ $cityName }}" {{ request('city_corporation') == $cityName ? 'selected' : '' }}>
-                        {{ $cityName }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-    </form>
-
-    @if(request('city_corporation'))
-        <p class="mb-3">📍 Showing reports for: <strong>{{ request('city_corporation') }}</strong></p>
-    @endif
-
-    @if(Auth::check())
-        <form method="POST" action="{{ route('logout') }}" class="mb-4">
-            @csrf
-            <button type="submit" class="btn btn-outline-danger">Logout</button>
-        </form>
-    @endif
+    @php
+      $badge = function($report) {
+        $status = $report->status ?? 'pending';
+        $map = [
+          'pending' => 'bg-amber-100 text-amber-800 ring-amber-200',
+          'in_progress' => 'bg-blue-100 text-blue-800 ring-blue-200',
+          'resolved' => 'bg-emerald-100 text-emerald-800 ring-emerald-200',
+          'rejected' => 'bg-rose-100 text-rose-800 ring-rose-200',
+        ];
+        $cls = $map[$status] ?? 'bg-gray-100 text-gray-800 ring-gray-200';
+        return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset '.$cls.'">'.str($status)->headline().'</span>';
+      };
+    @endphp
 
     @if($reports->isEmpty())
-        <div class="alert alert-info">
-            No reports submitted yet.
-        </div>
+      <div class="rounded-2xl border border-dashed border-amber-300 bg-white/60 backdrop-blur px-6 py-12 text-center shadow">
+        <div class="text-4xl mb-2">🗂️</div>
+        <h3 class="text-lg font-semibold text-amber-800">No reports yet</h3>
+        <p class="text-sm text-amber-900/70 mt-1">When people submit issues, they’ll show up here.</p>
+        @if(Route::has('report.create') && !auth()->user()->is_admin)
+        <a href="{{ route('report.create') }}" class="mt-4 inline-flex px-4 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700">Create your first report</a>
+        @endif
+      </div>
     @else
-        <div class="row row-cols-1 row-cols-md-2 g-4">
-            @foreach($reports as $report)
-                <div class="col">
-                    <div class="card shadow-sm h-100 border-primary">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary">
-                                📝 {{ $report->title }} 
-                                <span class="badge bg-secondary">{{ $report->category }}</span>
-                            </h5>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        @foreach($reports as $report)
+          <div class="group rounded-2xl bg-white/80 backdrop-blur shadow hover:shadow-lg transition overflow-hidden ring-1 ring-amber-100">
+            <div class="p-5 flex flex-col gap-3">
+              <div class="flex items-start justify-between gap-3">
+                <h3 class="text-lg font-bold text-gray-900 leading-snug line-clamp-2">{{ $report->title }}</h3>
+                {!! $badge($report) !!}
+              </div>
 
-                            <p class="card-text"><strong>🧾 Description:</strong> {{ $report->description }}</p>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>📍 <span class="font-medium">{{ $report->location ?? 'N/A' }}</span></li>
+                <li>🏷️ <span>{{ $report->category ?? 'General' }}</span></li>
+                <li>🏛️ <span>{{ $report->city_corporation ?? '—' }}</span></li>
+                <li>👤 <span>{{ $report->user->name ?? 'Unknown' }}</span></li>
+                <li>📅 <span>{{ $report->created_at?->format('M d, Y h:i a') }}</span></li>
+              </ul>
 
-                            @if ($report->photo)
-                                <img src="{{ asset("storage/{$report->photo}") }}" class="img-fluid rounded mb-2" alt="Report Photo">
-                            @endif
+              <div class="mt-3 flex items-center justify-between">
+                <a href="{{ route('reports.show', $report) }}" class="inline-flex items-center gap-1 text-amber-700 hover:text-amber-800 font-medium">
+                  View details <span>→</span>
+                </a>
+                @if(!auth()->user()->is_admin && Route::has('reports.my'))
+                  <a href="{{ route('reports.my') }}" class="text-sm text-gray-500 hover:text-gray-700">My reports</a>
+                @endif
+              </div>
+            </div>
+          </div>
+        @endforeach
+      </div>
 
-                            <ul class="list-unstyled mb-3">
-                                <li><strong>📍 Location:</strong> {{ $report->location ?? 'Not specified' }}</li>
-                                <li><strong>🏙️ City:</strong> {{ $report->city_corporation }}</li>
-                                <li><strong>📌 Status:</strong> 
-                                    <span class="badge {{ $report->status === 'resolved' ? 'bg-success' : 'bg-warning text-dark' }}">
-                                        {{ ucfirst($report->status) }}
-                                    </span>
-                                </li>
-                                <li><small>📅 Submitted on {{ $report->created_at->format('F j, Y, g:i a') }}</small></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
+      @if(method_exists($reports,'links'))
+        <div class="mt-6">
+          {{ $reports->links() }}
         </div>
+      @endif
     @endif
+
+  </div>
 </div>
 @endsection
