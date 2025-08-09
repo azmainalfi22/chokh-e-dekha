@@ -80,6 +80,18 @@
             @endif
         </div>
     </div>
+    @if ($report->photo_url)
+    <img src="{{ $report->photo_url }}"
+        alt="Attachment"
+        class="w-full h-64 object-cover rounded-xl ring-1 ring-amber-900/10 shadow"
+        loading="lazy">
+    @else
+    <div class="w-full h-64 grid place-items-center rounded-xl ring-1 ring-amber-900/10 text-amber-900/60">
+        No attachment
+    </div>
+    @endif
+
+    {{-- Description --}}
 
     {{-- Timeline / comments (optional placeholder) --}}
     @if(isset($comments))

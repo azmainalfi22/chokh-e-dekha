@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage; // <-- add
 
 class ReportController extends Controller
 {
@@ -41,12 +42,13 @@ class ReportController extends Controller
             'description'      => 'required|string',
             'category'         => 'required|string',
             'city_corporation' => 'required|string',
-            'location' => 'required|string',
-            'photo'            => 'nullable|image|max:2048',
+            'location'         => 'required|string',
+            'photo'            => 'nullable|image|max:4096', // 4MB and image mime
         ]);
 
+        // ✅ Save to the *public* disk so we can serve it
         if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('photos', 'public');
+            $validated['photo'] = $request->file('photo')->store('reports', 'public'); // e.g. reports/abc.jpg
         }
 
         $validated['user_id'] = Auth::id();
@@ -61,15 +63,12 @@ class ReportController extends Controller
     {
         $reports = Report::with('user')
             ->where('user_id', $request->user()->id)
-            ->when(
-                $request->filled('city_corporation'),
-                fn ($q) => $q->where('city_corporation', $request->city_corporation)
-            )
+            ->when($request->filled('city_corporation'),
+                fn ($q) => $q->where('city_corporation', $request->city_corporation))
             ->latest()
             ->paginate(10)
             ->withQueryString();
 
-        // FIX: point to user-facing view
         return view('reports.my', compact('reports'));
     }
 
@@ -82,7 +81,6 @@ class ReportController extends Controller
 
         $report->load('user');
 
-        // FIX: point to user-facing view
         return view('reports.show', compact('report'));
     }
 
@@ -99,7 +97,6 @@ class ReportController extends Controller
     {
         abort_unless(Auth::check() && Auth::user()->is_admin, 403);
 
-        // FIX: expanded allowed statuses
         $validated = $request->validate([
             'status'     => 'required|in:pending,in_progress,resolved,rejected',
             'admin_note' => 'nullable|string|max:5000',

@@ -54,6 +54,22 @@
       <div class="mt-8 flex items-center justify-between">
         <a href="{{ auth()->id() === ($report->user_id ?? null) ? route('reports.my') : route('reports.index') }}" class="text-gray-600 hover:text-gray-800">← Back</a>
 
+
+    @if ($report->photo_url)
+      <img src="{{ $report->photo_url }}"
+          alt="Attachment"
+          class="w-full h-64 object-cover rounded-xl ring-1 ring-amber-900/10 shadow"
+          loading="lazy">
+    @else
+      <div class="w-full h-64 grid place-items-center rounded-xl ring-1 ring-amber-900/10 text-amber-900/60">
+        No attachment
+      </div>
+    @endif
+
+
+
+
+
         @if(auth()->user()->is_admin && isset($report->id) && Route::has('admin.reports.update'))
           <form action="{{ route('admin.reports.update', $report->id) }}" method="POST" class="inline-flex items-center gap-2">
             @csrf

@@ -36,6 +36,7 @@ class RegisteredUserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'address' => 'required|string|max:255',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'terms'    => ['accepted'],
         ]);
 
         // ✅ Case-insensitive auto-admin logic
@@ -57,3 +58,4 @@ class RegisteredUserController extends Controller
         return redirect()->intended(auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard'));
     }
 }
+
