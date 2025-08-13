@@ -2,3 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Soft dotted-grid (sits above gradients, below content) */
+  .grain-overlay::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;                /* below content wrappers you’ll set to z-10 */
+    /* tiny dot grid – crisp and fast */
+    background-image:
+      radial-gradient(rgba(17, 24, 39, 0.08) 1px, transparent 1px);
+    background-size: 6px 6px;  /* density of dots */
+    mix-blend-mode: multiply;  /* lets the gradient colors show through */
+    opacity: .35;              /* strength of the dots */
+  }
+
+  /* Optional: stronger variant for auth/landing pages */
+  .grain-overlay-strong::before {
+    opacity: 80;
+    background-size: 5px 5px;
+  }
+}

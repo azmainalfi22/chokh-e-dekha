@@ -53,5 +53,9 @@ class Report extends Model
             }
         });
     }
+    public function notes() {
+    return $this->hasMany(\App\Models\ReportNote::class)->latest();
+}
+
 }
 

@@ -7,7 +7,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
+<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 grain-overlay">
+
 
     {{-- Background blobs --}}
     <div class="pointer-events-none absolute -top-28 -left-24 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300"></div>
@@ -54,7 +55,7 @@
         </div>
     </header>
 
-    {{-- Shell: sidebar + content --}}
+    {{-- Shell --}}
     <div class="mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
         {{-- Sidebar --}}
         <aside id="sidebar" class="md:sticky md:top-20 h-max md:h-[calc(100vh-7rem)] md:overflow-y-auto bg-white/80 backdrop-blur rounded-2xl ring-1 ring-white/60 shadow p-4 md:block hidden">
@@ -85,11 +86,52 @@
             </div>
         </aside>
 
-        {{-- Main content --}}
-        <main class="min-w-0">
-            @if (session('status'))
-                <div class="mb-4 rounded-xl px-4 py-3 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200">
-                    {{ session('status') }}
+        {{-- Main --}}
+        <main class="min-w-0 relative z-10">
+            {{-- Global flashes --}}
+            @php
+                $flashSuccess = session('success');
+                $flashError   = session('error') ?? ($errors->any() ? 'There were some problems with your request.' : null);
+                $flashStatus  = session('status');
+            @endphp
+            @if($flashSuccess || $flashError || $flashStatus)
+                <div class="mb-4 space-y-2">
+                    @if($flashSuccess)
+                        <div class="rounded-xl px-4 py-3 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200">{{ $flashSuccess }}</div>
+                    @endif
+                    @if($flashError)
+                        <div class="rounded-xl px-4 py-3 bg-rose-50 text-rose-800 ring-1 ring-rose-200">
+                            {{ $flashError }}
+                            @if($errors->any())
+                                <ul class="mt-2 list-disc pl-5 text-sm">
+                                    @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
+                                </ul>
+                            @endif
+                        </div>
+                    @endif
+                    @if($flashStatus)
+                        <div class="rounded-xl px-4 py-3 bg-amber-50 text-amber-900 ring-1 ring-amber-200">{{ $flashStatus }}</div>
+                    @endif
+                </div>
+            @endif
+
+            {{-- Page header slots (optional) --}}
+            @if(View::hasSection('page_title') || View::hasSection('page_actions'))
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <div>
+                        @hasSection('page_title')
+                            <h1 class="text-xl sm:text-2xl font-extrabold bg-clip-text text-transparent
+                                       bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
+                                @yield('page_title')
+                            </h1>
+                        @endif
+                        @hasSection('page_subtitle')
+                            <p class="text-sm text-amber-900/70 mt-0.5">@yield('page_subtitle')</p>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @yield('page_actions')
+                    </div>
                 </div>
             @endif
 
@@ -113,6 +155,18 @@
                 if (!userBtn.contains(e.target) && !userMenu.contains(e.target)) userMenu.classList.add('hidden');
             }, { capture: true });
         }
+
+        // tiny confirm helper
+        document.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-confirm]');
+            if (el) {
+                const msg = el.getAttribute('data-confirm') || 'Are you sure?';
+                if (!window.confirm(msg)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+        });
     })();
     </script>
 </body>

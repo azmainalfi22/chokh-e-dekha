@@ -5,21 +5,78 @@ namespace App\Http\Controllers;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage; // <-- add
+use Illuminate\Support\Facades\Storage; // keep
+use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        $city = $request->query('city_corporation');
+        $q        = trim((string) $request->query('q', ''));
+        $city     = $request->query('city_corporation');
+        $category = $request->query('category');
+        $status   = $request->query('status');
+        $perPage  = max(6, min(48, (int) $request->integer('per_page', 12)));
+
+        // NEW: sorting
+        $sort      = $request->query('sort', 'newest');
+        $sortAllow = ['newest','oldest','status','city','category'];
+        if (!in_array($sort, $sortAllow, true)) {
+            $sort = 'newest';
+        }
+
+        // Allowed statuses for dropdown + validation
+        $statuses = ['pending','in_progress','resolved','rejected'];
+        if ($status && !in_array($status, $statuses, true)) {
+            $status = null; // ignore unknown values
+        }
+
+        // Distinct lists for filter dropdowns
+        $cities = Report::query()
+            ->whereNotNull('city_corporation')
+            ->distinct()
+            ->orderBy('city_corporation')
+            ->pluck('city_corporation');
+
+        $categories = Report::query()
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
+        $like = fn(string $s) => '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s) . '%';
 
         $reports = Report::query()
-            ->when($city, fn ($q) => $q->where('city_corporation', $city))
-            ->latest()
-            ->paginate(12)
-            ->withQueryString();
+            ->with('user:id,name')
+            ->when($q !== '', function ($qb) use ($q, $like) {
+                $qb->where(function ($x) use ($q, $like) {
+                    $x->where('title', 'like', $like($q))
+                      ->orWhere('description', 'like', $like($q));
+                });
+            })
+            ->when($city, fn ($qb, $v) => $qb->where('city_corporation', $v))
+            ->when($category, fn ($qb, $v) => $qb->where('category', $v))
+            ->when($status, fn ($qb, $v) => $qb->where('status', $v));
 
-        return view('reports.index', compact('reports', 'city'));
+        // NEW: apply sort
+        $reports = match ($sort) {
+            'oldest'   => $reports->oldest(), // created_at asc
+            'status'   => $reports->orderBy('status')->latest('id'),
+            'city'     => $reports->orderBy('city_corporation')->latest('id'),
+            'category' => $reports->orderBy('category')->latest('id'),
+            default    => $reports->latest(), // newest first
+        };
+
+        $reports = $reports->paginate($perPage)->withQueryString();
+
+        // For Blade compatibility
+        $cat = $category;
+
+        return view('reports.index', compact(
+            'reports', 'q', 'city', 'category', 'cat',
+            'cities', 'categories', 'status', 'statuses',
+            'sort' // NEW
+        ));
     }
 
     public function create()
@@ -43,12 +100,11 @@ class ReportController extends Controller
             'category'         => 'required|string',
             'city_corporation' => 'required|string',
             'location'         => 'required|string',
-            'photo'            => 'nullable|image|max:4096', // 4MB and image mime
+            'photo'            => 'nullable|image|max:4096',
         ]);
 
-        // ✅ Save to the *public* disk so we can serve it
         if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('reports', 'public'); // e.g. reports/abc.jpg
+            $validated['photo'] = $request->file('photo')->store('reports', 'public');
         }
 
         $validated['user_id'] = Auth::id();
@@ -74,12 +130,17 @@ class ReportController extends Controller
 
     public function show(Report $report)
     {
-        abort_unless(
-            $report->user_id === Auth::id() || (Auth::check() && Auth::user()->is_admin),
-            403
-        );
+        // Anyone logged in may view any report (read-only)
+        if (!auth()->check()) {
+            abort(403);
+        }
 
-        $report->load('user');
+        // Load relations; guard notes if table isn't migrated yet
+        if (Schema::hasTable('report_notes')) {
+            $report->load(['user', 'notes.admin']);
+        } else {
+            $report->load('user');
+        }
 
         return view('reports.show', compact('report'));
     }

@@ -7,7 +7,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50">
+<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 grain-overlay">
+
 
     {{-- Background blobs --}}
     <div class="pointer-events-none absolute -top-24 -left-24 h-[26rem] w-[26rem] rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300"></div>
@@ -55,7 +56,7 @@
     </header>
 
     {{-- Main container --}}
-    <main class="mx-auto max-w-7xl px-4 py-6">
+    <main class="mx-auto max-w-7xl px-4 py-6 relative z-10">
         @if (session('status'))
             <div class="mb-4 rounded-xl px-4 py-3 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200">
                 {{ session('status') }}
