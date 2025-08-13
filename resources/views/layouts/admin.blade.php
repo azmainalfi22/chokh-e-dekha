@@ -15,7 +15,9 @@
     <div class="pointer-events-none absolute -bottom-32 -right-24 h-[32rem] w-[32rem] rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
 
     {{-- Top bar --}}
-    <header class="sticky top-0 z-40 backdrop-blur bg-white/70 ring-1 ring-white/60 shadow-sm">
+    <header class="w-full sticky top-0 z-40 backdrop-blur 
+               bg-gradient-to-r from-amber-100 via-orange-100 to-rose-200
+               ring-1 ring-amber-900/20 shadow-md">
         <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <button id="sidebarToggle" class="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg ring-1 ring-amber-900/10 bg-white hover:shadow transition" aria-label="Toggle sidebar">

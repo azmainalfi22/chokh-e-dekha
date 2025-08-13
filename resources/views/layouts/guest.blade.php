@@ -31,37 +31,46 @@
     </a>
 
     {{-- Header --}}
-    <header class="w-full sticky top-0 z-40 backdrop-blur bg-white/70 ring-1 ring-white/60 shadow-sm">
-        <div class="mx-auto max-w-7xl px-4 py-4 flex items-center justify-between">
-            <a href="{{ url('/') }}" class="flex items-center gap-2" aria-label="{{ config('app.name') }} home">
+{{-- Header --}}
+<header class="w-full sticky top-0 z-40 backdrop-blur 
+               bg-gradient-to-r from-amber-100 via-orange-100 to-rose-200
+               ring-1 ring-amber-900/20 shadow-md">
+        <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
                 <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 text-white shadow">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5C6.5 5 2 9.5 2 12s4.5 7 10 7 10-4.5 10-7-4.5-7-10-7z"/></svg>
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5C6.5 5 2 9.5 2 12s4.5 7 10 7 10-4.5 10-7-4.5-7-10-7zm0 11a 4 4 0 110-8 4 4 0 010 8z"/></svg>
                 </span>
                 <span class="font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
                     {{ config('app.name', 'Chokh-e-Dekha') }}
                 </span>
             </a>
 
-            <nav class="flex items-center gap-3 text-sm">
-                @auth
-                    <a href="{{ auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard') }}"
-                       class="px-3 py-2 rounded-xl bg-white ring-1 ring-amber-900/10 text-amber-900/90 shadow hover:shadow-md">
-                       Go to app
+        <nav class="flex items-center gap-3 text-sm">
+            @auth
+                <a href="{{ auth()->user()->is_admin ? route('admin.dashboard') : route('dashboard') }}"
+                   class="px-3 py-2 rounded-xl bg-white/80 ring-1 ring-amber-900/10 text-amber-900/90 shadow hover:shadow-md">
+                   Go to app
+                </a>
+            @else
+                @if (Route::has('login'))
+                    <a href="{{ route('login') }}" class="px-3 py-2 rounded-xl text-amber-900/90 hover:bg-amber-100/60">
+                        Sign in
                     </a>
-                @else
-                    @if (Route::has('login'))
-                        <a href="{{ route('login') }}" class="px-3 py-2 rounded-xl text-amber-900/80 hover:bg-amber-50">Sign in</a>
-                    @endif
-                    @if (Route::has('register'))
-                        <a href="{{ route('register') }}"
-                           class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-white font-medium bg-gradient-to-r from-amber-600 to-rose-600 shadow hover:shadow-md hover:-translate-y-0.5 transition">
-                            Get started
-                        </a>
-                    @endif
-                @endauth
-            </nav>
-        </div>
-    </header>
+                @endif
+                @if (Route::has('register'))
+                    <a href="{{ route('register') }}"
+                       class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-white font-medium 
+                              bg-gradient-to-r from-orange-600 via-amber-500 to-rose-600 
+                              shadow hover:shadow-lg hover:-translate-y-0.5 transition">
+                        Get started
+                    </a>
+                @endif
+            @endauth
+        </nav>
+    </div>
+</header>
+
+
 
     {{-- Main --}}
     <main id="main" class="relative z-10">
