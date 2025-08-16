@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
                 Reports
             </h1>
-            <p class="text-sm text-amber-900/70">Search, filter and review all incoming reports.</p>
+            <p class="text-sm text-amber-600">Search, filter and review all incoming reports.</p>
         </div>
     </div>
 

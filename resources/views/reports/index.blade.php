@@ -29,7 +29,7 @@
           <h1 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
             All Reports
           </h1>
-          <p class="text-sm text-amber-900/70">Search and filter reports submitted across all city corporations.</p>
+          <p class="text-sm text-amber-600">Search and filter reports submitted across all city corporations.</p>
         </div>
 
         @if(Route::has('report.create') && !auth()->user()->is_admin)
@@ -49,19 +49,19 @@
       </div>
     @endif
 
-    {{-- Filters + Actions (one box) --}}
+    {{-- Filters + Actions --}}
     <div class="mb-6 rounded-2xl bg-white/85 backdrop-blur ring-1 ring-amber-900/10 shadow p-4">
       <form method="GET" action="{{ route('reports.index') }}"
             class="grid gap-3 items-center
                    grid-cols-1
                    sm:grid-cols-2
                    lg:grid-cols-6
-                   xl:grid-cols-8">
+                   xl:grid-cols-9">
 
         {{-- Search --}}
         <div class="flex items-center gap-2 col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3">
           <svg class="h-5 w-5 flex-none text-amber-900/60" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4a6 6 0 104.47 10.03l3.75 3.75 1.41-1.41-3.75-3.75A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/></svg>
-          <input type="search" name="q" value="{{ $q ?? '' }}" placeholder="Search title or description…"
+          <input type="search" name="q" value="{{ $q ?? '' }}" placeholder="Search title, description, or address…"
                  class="w-full rounded-xl border border-amber-200 px-3 py-2 focus:ring-2 focus:ring-amber-300">
         </div>
 
@@ -92,6 +92,30 @@
           @endforeach
         </select>
 
+        {{-- Near me cluster --}}
+        <div class="col-span-1 sm:col-span-2 xl:col-span-3 flex flex-wrap items-center gap-2">
+          <button type="button" id="nearMeBtn"
+                  class="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-amber-600 text-white hover:bg-amber-700 shadow">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 4.2L18 8l-4.2 1.8L12 14l-1.8-4.2L6 8l4.2-1.8z"/></svg>
+            Near me
+          </button>
+
+          <label for="radius_km" class="text-sm text-amber-900/70">Radius</label>
+          @php $radiusKm = (int)($radiusKm ?? request('radius_km', 0)); @endphp
+          <select id="radius_km" name="radius_km"
+                  class="rounded-xl border border-amber-200 px-3 py-2 focus:ring-2 focus:ring-amber-300">
+            <option value="0"  @selected($radiusKm===0)>Any</option>
+            <option value="3"  @selected($radiusKm===3)>3 km</option>
+            <option value="5"  @selected($radiusKm===5)>5 km</option>
+            <option value="10" @selected($radiusKm===10)>10 km</option>
+            <option value="20" @selected($radiusKm===20)>20 km</option>
+          </select>
+
+          {{-- Hidden near-me fields --}}
+          <input type="hidden" id="near_lat" name="near_lat" value="{{ $nearLat ?? request('near_lat') }}">
+          <input type="hidden" id="near_lng" name="near_lng" value="{{ $nearLng ?? request('near_lng') }}">
+        </div>
+
         {{-- Actions cluster --}}
         <div class="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 flex flex-wrap items-center justify-end gap-2">
           {{-- Per page --}}
@@ -104,7 +128,7 @@
           </select>
 
           {{-- Sort --}}
-          @php $sort = request('sort','newest'); @endphp
+          @php $sort = request('sort', $nearLat && $nearLng ? 'nearest' : 'newest'); @endphp
           <label for="sort" class="sr-only">Sort by</label>
           <select id="sort" name="sort"
                   class="w-full sm:w-auto rounded-xl border border-amber-200 px-3 py-2 focus:ring-2 focus:ring-amber-300">
@@ -113,6 +137,7 @@
             <option value="status"   @selected($sort==='status')>Status (A→Z)</option>
             <option value="city"     @selected($sort==='city')>City (A→Z)</option>
             <option value="category" @selected($sort==='category')>Category (A→Z)</option>
+            <option value="nearest"  @selected($sort==='nearest')>Nearest</option>
           </select>
 
           {{-- Apply --}}
@@ -134,15 +159,18 @@
           </button>
         </div>
 
-        {{-- Active chips (full width row) --}}
-        @if(($q ?? '') || ($city ?? '') || (($category ?? $cat ?? '') !== '') || (($status ?? '') !== ''))
-          <div class="sm:col-span-2 lg:col-span-6 xl:col-span-8 mt-1 flex flex-wrap items-center gap-2 text-sm">
+        {{-- Active chips --}}
+        @if(($q ?? '') || ($city ?? '') || (($category ?? $cat ?? '') !== '') || (($status ?? '') !== '') || (($nearLat ?? request('near_lat')) && ($nearLng ?? request('near_lng'))))
+          <div class="sm:col-span-2 lg:col-span-6 xl:col-span-9 mt-1 flex flex-wrap items-center gap-2 text-sm">
             <span class="text-amber-900/70">Active:</span>
             @if($q)    <span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-900">Search: “{{ $q }}”</span>@endif
             @if($city) <span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-900">City: {{ $city }}</span>@endif
             @php $showCat = ($category ?? $cat ?? ''); @endphp
             @if($showCat !== '') <span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-900">Category: {{ $showCat }}</span>@endif
             @if(($status ?? '') !== '') <span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-900">Status: {{ \Illuminate\Support\Str::headline($status) }}</span>@endif
+            @if(($nearLat ?? request('near_lat')) && ($nearLng ?? request('near_lng')))
+              <span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-900">Near me{{ $radiusKm ? " ({$radiusKm} km)" : '' }}</span>
+            @endif
           </div>
         @endif
       </form>
@@ -175,6 +203,17 @@
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         @foreach($reports as $report)
           <div class="group rounded-2xl bg-white/80 backdrop-blur shadow hover:shadow-lg transition overflow-hidden ring-1 ring-amber-100">
+            {{-- Static map header (if coords) --}}
+            @if($report->static_map_url)
+              <a href="@if($report->has_coords) https://www.google.com/maps/search/?api=1&query={{ $report->latitude }},{{ $report->longitude }} @else {{ route('reports.show', $report) }} @endif"
+                 target="_blank" rel="noopener"
+                 class="block">
+                <img src="{{ $report->static_map_url }}"
+                     alt="Map preview"
+                     class="w-full h-40 object-cover">
+              </a>
+            @endif
+
             <div class="p-5 flex flex-col gap-3">
               <div class="flex items-start justify-between gap-3">
                 <h3 class="text-lg font-bold text-gray-900 leading-snug line-clamp-2">
@@ -186,7 +225,16 @@
               <ul class="text-sm text-gray-700 space-y-1">
                 <li class="flex items-center gap-2">
                   <svg class="h-4 w-4 text-amber-800/80" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
-                  <span class="font-medium">{{ $report->location ?? 'N/A' }}</span>
+                  <span class="font-medium">
+                    {{ $report->short_address ?? $report->location ?? 'N/A' }}
+                  </span>
+                  @if($report->has_coords)
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ $report->latitude }},{{ $report->longitude }}"
+                       target="_blank" rel="noopener"
+                       class="ml-2 text-xs text-amber-700 hover:text-amber-900 underline">
+                      Open in Maps
+                    </a>
+                  @endif
                 </li>
                 <li class="flex items-center gap-2">
                   <svg class="h-4 w-4 text-amber-800/80" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 10h16v8H4z"/></svg>
@@ -234,11 +282,14 @@
 <script>
   (function () {
     const form = document.querySelector('form[action="{{ route('reports.index') }}"]');
-    ['per_page','sort'].forEach(id => {
+
+    // Auto-submit on per_page / sort / radius change
+    ['per_page','sort','radius_km'].forEach(id => {
       const el = document.getElementById(id);
       if (el && form) el.addEventListener('change', () => form.requestSubmit());
     });
 
+    // Copy link
     const copyBtn = document.getElementById('copyLinkBtn');
     copyBtn?.addEventListener('click', async () => {
       try {
@@ -247,6 +298,36 @@
         copyBtn.textContent = 'Copied!';
         setTimeout(() => (copyBtn.textContent = old), 1200);
       } catch {}
+    });
+
+    // Near me: fill lat/lng + default sort=nearest if not set
+    const nearBtn = document.getElementById('nearMeBtn');
+    const nearLat = document.getElementById('near_lat');
+    const nearLng = document.getElementById('near_lng');
+    const sortSel = document.getElementById('sort');
+
+    nearBtn?.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation not supported on this device/browser.');
+        return;
+      }
+      nearBtn.disabled = true;
+      nearBtn.classList.add('opacity-70');
+      nearBtn.textContent = 'Locating…';
+
+      navigator.geolocation.getCurrentPosition(pos => {
+        nearLat.value = pos.coords.latitude.toFixed(6);
+        nearLng.value = pos.coords.longitude.toFixed(6);
+        if (sortSel && ![...sortSel.options].some(o => o.selected && o.value === 'nearest')) {
+          sortSel.value = 'nearest';
+        }
+        form.requestSubmit();
+      }, err => {
+        alert('Unable to get location. Please allow location access and try again.');
+        nearBtn.disabled = false;
+        nearBtn.classList.remove('opacity-70');
+        nearBtn.textContent = 'Near me';
+      }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
     });
   })();
 </script>

@@ -11,7 +11,7 @@
     <style>
       .grain-overlay-strong::before{
         content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
-        background-image: radial-gradient(rgba(17,24,39,.08) 1px, transparent 1px);
+        background-image: radial-gradient(rgba(17,24,39,.08) 1px, transparent 2px);
         background-size: 5px 6px; mix-blend-mode: multiply; opacity: 10;
       }
       @media (max-width: 480px){
