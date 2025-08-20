@@ -15,6 +15,11 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ReportMapController;
 
+// Engagement controllers
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\EndorsementController;
+use App\Http\Controllers\RatingController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -22,7 +27,9 @@ use App\Http\Controllers\Admin\ReportMapController;
 */
 
 Route::get('/', function () {
-    if (! Auth::check()) return redirect()->route('login');
+    if (! Auth::check()) {
+        return redirect()->route('login');
+    }
 
     return Auth::user()->is_admin
         ? redirect()->route('admin.dashboard')
@@ -30,23 +37,32 @@ Route::get('/', function () {
 })->name('home');
 
 /* ---------------------------
- | User (non-admin)
+ | Public browsing (no auth)
+ * --------------------------- */
+// List (public)
+Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+// Map markers JSON (public; same filters as index)
+Route::get('/reports/map.json', [ReportController::class, 'mapData'])->name('reports.map.json');
+
+/* ---------------------------
+ | Authenticated user (non-admin flows)
  * --------------------------- */
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Reports (list, mine, show)
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/my-reports', [ReportController::class, 'myReports'])->name('reports.my');
+    // Show a single report (controller also checks auth)
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
+
+    // My reports
+    Route::get('/my-reports', [ReportController::class, 'myReports'])->name('reports.my');
 
     // Create/store (prevent admins from posting)
     Route::middleware('prevent-admin-report-create')->group(function () {
-        // Preferred RESTful names
         Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
         Route::post('/reports',        [ReportController::class, 'store'])->name('reports.store');
 
-        // Backwards-compat aliases (can be removed after views updated)
+        // Back-compat aliases (optional; remove when views updated)
         Route::get('/report/create', [ReportController::class, 'create'])->name('report.create');
         Route::post('/report',       [ReportController::class, 'store'])->name('report.store');
     });
@@ -55,6 +71,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile',[ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Engagement
+    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])->name('reports.comments.store');
+    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])->name('reports.comments.destroy');
+
+    Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])->name('reports.endorse.toggle');
+
+    Route::post('/reports/{report}/ratings', [RatingController::class, 'store'])->name('reports.ratings.store');
 });
 
 /* ---------------------------
@@ -73,30 +97,19 @@ Route::prefix('admin')
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
 
         // Reports (admin views)
-        Route::get('/reports',           [AdminReportController::class, 'index'])->name('reports.index');
-        Route::get('/reports/{report}',  [AdminReportController::class, 'show'])->name('reports.show');
+        Route::get('/reports',          [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/{report}', [AdminReportController::class, 'show'])->name('reports.show');
 
         // Status update (PUT/PATCH)
         Route::match(['put','patch'], '/reports/{report}/status', [AdminReportController::class, 'updateStatus'])
             ->name('reports.status');
 
         // Notes
-        Route::post('/reports/{report}/notes',            [AdminReportController::class, 'storeNote'])->name('reports.notes.store');
-        Route::delete('/reports/{report}/notes/{note}',   [AdminReportController::class, 'destroyNote'])->name('reports.notes.destroy');
+        Route::post('/reports/{report}/notes',          [AdminReportController::class, 'storeNote'])->name('reports.notes.store');
+        Route::delete('/reports/{report}/notes/{note}', [AdminReportController::class, 'destroyNote'])->name('reports.notes.destroy');
 
         // LIVE map data (JSON for dashboard map)
         Route::get('/reports/map', [ReportMapController::class, 'index'])->name('reports.map');
     });
-use App\Http\Controllers\CommentController;
-use App\Http\Controllers\EndorsementController;
 
-Route::middleware(['auth','verified'])->group(function () {
-    // Comments
-    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])->name('reports.comments.store');
-    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])->name('reports.comments.destroy');
-
-    // Endorsements
-    Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])->name('reports.endorse.toggle');
-});
-
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

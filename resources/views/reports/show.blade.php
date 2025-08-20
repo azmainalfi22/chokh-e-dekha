@@ -81,6 +81,41 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Left: Details + Attachment + Admin Notes --}}
         <div class="lg:col-span-2 space-y-6">
+{{-- Engagement: Endorse + Rating + Comments --}}
+<section class="rounded-2xl bg-white/85 backdrop-blur ring-1 ring-amber-900/10 shadow p-6 space-y-5">
+  {{-- Endorse + Rating header --}}
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      @include('reports.partials._endorse_button', ['report' => $report])
+      <div class="text-sm text-amber-900/80">
+        <span class="font-semibold">{{ $report->endorsements_count ?? ($report->endorsements_count ?? 0) }}</span> endorsements
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      @include('reports.partials._rating_stars', ['report' => $report])
+      <div class="text-sm text-amber-900/80">
+        Avg: <span class="font-semibold">{{ number_format($report->avg_rating ?? 0, 1) }}</span> / 5
+        <span class="opacity-70">({{ $report->ratings_count ?? 0 }})</span>
+      </div>
+    </div>
+  </div>
+
+  {{-- Comments --}}
+  <h2 class="text-lg font-semibold text-amber-800">Comments</h2>
+
+  @auth
+    @include('reports.partials._comment_form', ['report' => $report])
+  @endauth
+
+  <div class="divide-y divide-amber-100">
+    @forelse($report->comments as $comment)
+      @include('reports.partials._comment', ['comment' => $comment])
+    @empty
+      <p class="text-sm text-amber-900/70 py-3">No comments yet. Be the first to comment.</p>
+    @endforelse
+  </div>
+</section>
 
           {{-- Details --}}
           <div class="rounded-2xl bg-white/85 dark:bg-white/5 backdrop-blur ring-1 ring-amber-900/10 dark:ring-white/10 shadow p-6">

@@ -66,7 +66,7 @@ class Report extends Model
         'photo_name',
         'short_address',
         'has_coords',
-        // 'static_map_url', // uncomment if you want thumbnails in lists
+        'static_map_url', // used in cards
     ];
 
     /* ----------------------------
@@ -95,6 +95,12 @@ class Report extends Model
         return $this->hasMany(Endorsement::class);
     }
 
+    /** Ratings (score: 1–5) */
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(Rating::class);
+    }
+
     /* ----------------------------
      | Accessors
      * ---------------------------- */
@@ -111,12 +117,13 @@ class Report extends Model
 
     public function getShortAddressAttribute(): ?string
     {
-        if (!$this->formatted_address) return null;
-
-        // Keep last 2–3 parts for a compact label
-        $parts = array_map('trim', explode(',', $this->formatted_address));
-        $take  = count($parts) >= 3 ? 3 : 2;
-        return implode(', ', array_slice($parts, -$take));
+        // Prefer a concise label from formatted address,
+        // else fall back to the manual location field.
+        if ($this->formatted_address) {
+            // Use the first segment for a short label (e.g., street or place)
+            return trim(strtok($this->formatted_address, ','));
+        }
+        return $this->location ?: null;
     }
 
     public function getHasCoordsAttribute(): bool
@@ -136,14 +143,13 @@ class Report extends Model
 
         $lat = $this->latitude;
         $lng = $this->longitude;
-        $marker = "color:red|{$lat},{$lng}";
         $params = http_build_query([
             'center'   => "{$lat},{$lng}",
             'zoom'     => 15,
-            'size'     => '400x220',
+            'size'     => '600x220',
             'scale'    => 2,
             'maptype'  => 'roadmap',
-            'markers'  => $marker,
+            'markers'  => "color:red|{$lat},{$lng}",
             'key'      => $key,
         ]);
         return "https://maps.googleapis.com/maps/api/staticmap?{$params}";
@@ -290,7 +296,9 @@ class Report extends Model
             )
         )";
 
-        return $q->select($this->getTable().'.*')
+        $table = $q->getModel()->getTable();
+
+        return $q->select($table.'.*')
                  ->selectRaw("$expr as distance_km", [$lat, $lng, $lat]);
     }
 
@@ -302,4 +310,13 @@ class Report extends Model
     }
 
     /** Scope: order by distance if present; otherwise newest */
-    public function scopeOrderB
+    public function scopeOrderByDistance($q, float $lat, float $lng)
+    {
+        if (!self::geoColumnsExist()) return $q->latest();
+
+        // Ensure the distance column is selected (idempotent)
+        $q->withDistance($lat, $lng);
+
+        return $q->orderBy('distance_km')->orderByDesc('id');
+    }
+}

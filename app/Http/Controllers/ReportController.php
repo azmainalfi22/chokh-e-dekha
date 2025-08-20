@@ -9,20 +9,39 @@ use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
-    /** Helpers */
+    /* ----------------------------
+     | Lightweight schema guards
+     * ---------------------------- */
     protected function hasGeoColumns(): bool
     {
-        return Schema::hasColumns('reports', ['latitude','longitude']);
+        return Schema::hasColumns('reports', ['latitude', 'longitude']);
     }
+
     protected function hasComments(): bool
     {
         return Schema::hasTable('comments');
     }
+
     protected function hasEndorsements(): bool
     {
-        return Schema::hasTable('endorsements'); // planned upvotes table
+        return Schema::hasTable('endorsements');
     }
 
+    protected function hasRatings(): bool
+    {
+        return Schema::hasTable('ratings') && Schema::hasColumn('ratings', 'score');
+    }
+
+    protected function validPoint($lat, $lng): bool
+    {
+        return is_numeric($lat) && is_numeric($lng)
+            && $lat >= -90 && $lat <= 90
+            && $lng >= -180 && $lng <= 180;
+    }
+
+    /* ----------------------------
+     | Public listing
+     * ---------------------------- */
     public function index(Request $request)
     {
         $q        = trim((string) $request->query('q', ''));
@@ -31,25 +50,25 @@ class ReportController extends Controller
         $status   = $request->query('status');
         $perPage  = max(6, min(48, (int) $request->integer('per_page', 12)));
 
-        // Optional geo filters (only if columns exist)
+        // Optional geo filters (enabled only if columns exist)
         $geoOk    = $this->hasGeoColumns();
         $nearLat  = $geoOk ? $request->float('near_lat') : null;
         $nearLng  = $geoOk ? $request->float('near_lng') : null;
         $radiusKm = $geoOk ? (float) $request->query('radius_km', 0) : 0;
 
         // Sorting
-        $sortAllow = ['newest','oldest','status','city','category','nearest','popular','discussed'];
-        $sort      = $request->query('sort', ($geoOk && is_finite($nearLat) && is_finite($nearLng)) ? 'nearest' : 'newest');
+        $sortAllow = ['newest', 'oldest', 'status', 'city', 'category', 'nearest', 'popular', 'discussed'];
+        $sort      = $request->query('sort', ($geoOk && $this->validPoint($nearLat, $nearLng)) ? 'nearest' : 'newest');
         if (!in_array($sort, $sortAllow, true)) $sort = 'newest';
         if ($sort === 'nearest' && !$geoOk)     $sort = 'newest';
 
         // Allowed statuses
-        $statuses = ['pending','in_progress','resolved','rejected'];
+        $statuses = ['pending', 'in_progress', 'resolved', 'rejected'];
         if ($status && !in_array($status, $statuses, true)) {
             $status = null;
         }
 
-        // Filter dropdown sources
+        // Dropdown sources
         $cities = Report::query()
             ->whereNotNull('city_corporation')
             ->distinct()
@@ -62,20 +81,22 @@ class ReportController extends Controller
             ->orderBy('category')
             ->pluck('category');
 
-        $like = fn(string $s) => '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s) . '%';
+        $like = fn(string $s) => '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $s) . '%';
 
-        $reports = Report::query()
-            ->with('user:id,name');
+        $reports = Report::query()->with('user:id,name');
 
-        // Optional counts (don’t break if tables aren’t there yet)
+        // Optional aggregates (don’t break if tables don’t exist)
         if ($this->hasComments()) {
             $reports->withCount('comments');
         }
         if ($this->hasEndorsements()) {
             $reports->withCount('endorsements');
         }
+        if ($this->hasRatings()) {
+            $reports->withCount('ratings')->withAvg('ratings', 'score'); // ratings_count, ratings_avg_score
+        }
 
-        // Filters
+        // Text/field filters
         $reports->when($q !== '', function ($qb) use ($q, $like) {
                 $qb->where(function ($x) use ($q, $like) {
                     $x->where('title', 'like', $like($q))
@@ -88,10 +109,9 @@ class ReportController extends Controller
             ->when($category, fn ($qb, $v) => $qb->where('category', $v))
             ->when($status, fn ($qb, $v) => $qb->where('status', $v));
 
-        // Geo filtering / sorting only if geo columns exist
-        if ($geoOk && is_finite($nearLat) && is_finite($nearLng)) {
+        // Geo filtering / distance (only if geo columns exist)
+        if ($geoOk && $this->validPoint($nearLat, $nearLng)) {
             if ($radiusKm > 0) {
-                // needs your Report scopes
                 $reports = $reports->withinRadiusKm($nearLat, $nearLng, $radiusKm);
             } else {
                 $reports = $reports->withDistance($nearLat, $nearLng);
@@ -100,20 +120,21 @@ class ReportController extends Controller
 
         // Sorting
         $reports = match ($sort) {
-            'oldest'     => $reports->oldest(), // created_at asc
-            'status'     => $reports->orderBy('status')->latest('id'),
-            'city'       => $reports->orderBy('city_corporation')->latest('id'),
-            'category'   => $reports->orderBy('category')->latest('id'),
-            'nearest'    => ($geoOk && is_finite($nearLat) && is_finite($nearLng))
-                                ? $reports->orderByDistance($nearLat, $nearLng)
-                                : $reports->latest(),
-            'popular'    => ($this->hasEndorsements() ? $reports->orderByDesc('endorsements_count') : $reports)
-                                ->when($this->hasComments(), fn($q)=>$q->orderByDesc('comments_count'))
-                                ->latest('id'),
-            'discussed'  => $this->hasComments()
-                                ? $reports->orderByDesc('comments_count')->latest('id')
-                                : $reports->latest(),
-            default      => $reports->latest(), // newest first
+            'oldest'    => $reports->oldest(), // created_at asc
+            'status'    => $reports->orderBy('status')->latest('id'),
+            'city'      => $reports->orderBy('city_corporation')->latest('id'),
+            'category'  => $reports->orderBy('category')->latest('id'),
+            'nearest'   => ($geoOk && $this->validPoint($nearLat, $nearLng))
+                               ? $reports->orderByDistance($nearLat, $nearLng)
+                               : $reports->latest(),
+            'popular'   => ($this->hasEndorsements() ? $reports->orderByDesc('endorsements_count') : $reports)
+                               ->when($this->hasComments(), fn($q)=>$q->orderByDesc('comments_count'))
+                               ->when($this->hasRatings(),  fn($q)=>$q->orderByDesc('ratings_count'))
+                               ->latest('id'),
+            'discussed' => $this->hasComments()
+                               ? $reports->orderByDesc('comments_count')->latest('id')
+                               : $reports->latest(),
+            default     => $reports->latest(), // newest first
         };
 
         $reports = $reports->paginate($perPage)->withQueryString();
@@ -128,6 +149,9 @@ class ReportController extends Controller
         ));
     }
 
+    /* ----------------------------
+     | Create + Store
+     * ---------------------------- */
     public function create()
     {
         if (Auth::user()?->is_admin) {
@@ -146,26 +170,25 @@ class ReportController extends Controller
         }
 
         $validated = $request->validate([
-            'title'            => ['required','string','max:255'],
-            'description'      => ['required','string'],
-            'category'         => ['required','string'],
-            'city_corporation' => ['required','string'],
-            'location'         => ['required','string'],
+            'title'            => ['required', 'string', 'max:255'],
+            'description'      => ['required', 'string'],
+            'category'         => ['required', 'string'],
+            'city_corporation' => ['required', 'string'],
+            'location'         => ['required', 'string'],
 
             // Google Maps fields (from the map form)
-            'latitude'          => ['nullable','numeric','between:-90,90'],
-            'longitude'         => ['nullable','numeric','between:-180,180'],
-            'place_id'          => ['nullable','string','max:128'],
-            'formatted_address' => ['nullable','string','max:255'],
+            'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
+            'place_id'          => ['nullable', 'string', 'max:128'],
+            'formatted_address' => ['nullable', 'string', 'max:255'],
 
-            'photo'             => ['nullable','image','mimes:jpeg,jpg,png,webp,gif','max:4096'],
+            'photo'             => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:4096'],
         ]);
 
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('reports', 'public');
         }
 
-        // Normalize geo
         $validated['user_id'] = Auth::id();
         $validated['status']  = 'pending';
         $validated = $this->normalizeGeo($validated);
@@ -177,43 +200,58 @@ class ReportController extends Controller
             ->with('success', 'Report submitted successfully!');
     }
 
+    /* ----------------------------
+     | My reports
+     * ---------------------------- */
     public function myReports(Request $request)
     {
-        $statuses = ['pending','in_progress','resolved','rejected'];
-        $q        = trim((string)$request->query('q',''));
+        $statuses = ['pending', 'in_progress', 'resolved', 'rejected'];
+        $q        = trim((string) $request->query('q', ''));
         $city     = $request->query('city_corporation');
         $category = $request->query('category');
         $status   = $request->query('status');
-        if ($status && !in_array($status,$statuses,true)) $status = null;
+        if ($status && !in_array($status, $statuses, true)) $status = null;
 
         $like = fn($s) => '%'.str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s).'%';
 
-        $reports = Report::with('user')
-            ->where('user_id',$request->user()->id);
+        $reports = Report::with('user')->where('user_id', $request->user()->id);
 
         if ($this->hasComments())     $reports->withCount('comments');
         if ($this->hasEndorsements()) $reports->withCount('endorsements');
+        if ($this->hasRatings())      $reports->withCount('ratings')->withAvg('ratings', 'score');
 
         $reports = $reports
-            ->when($q !== '', fn($qrb) => $qrb->where(function($x) use($q,$like){
-                $x->where('title','like',$like($q))
-                  ->orWhere('description','like',$like($q))
-                  ->orWhere('formatted_address','like',$like($q))
-                  ->orWhere('location','like',$like($q));
+            ->when($q !== '', fn($qrb) => $qrb->where(function ($x) use ($q, $like) {
+                $x->where('title', 'like', $like($q))
+                  ->orWhere('description', 'like', $like($q))
+                  ->orWhere('formatted_address', 'like', $like($q))
+                  ->orWhere('location', 'like', $like($q));
             }))
-            ->when($city,     fn($qrb,$v) => $qrb->where('city_corporation',$v))
-            ->when($category, fn($qrb,$v) => $qrb->where('category',$v))
-            ->when($status,   fn($qrb,$v) => $qrb->where('status',$v))
+            ->when($city,     fn($qrb, $v) => $qrb->where('city_corporation', $v))
+            ->when($category, fn($qrb, $v) => $qrb->where('category', $v))
+            ->when($status,   fn($qrb, $v) => $qrb->where('status', $v))
             ->latest()
             ->paginate(12)
             ->withQueryString();
 
-        $cities     = Report::where('user_id',$request->user()->id)->whereNotNull('city_corporation')->distinct()->orderBy('city_corporation')->pluck('city_corporation');
-        $categories = Report::where('user_id',$request->user()->id)->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
+        $cities = Report::where('user_id', $request->user()->id)
+            ->whereNotNull('city_corporation')
+            ->distinct()
+            ->orderBy('city_corporation')
+            ->pluck('city_corporation');
 
-        return view('reports.my', compact('reports','cities','categories'));
+        $categories = Report::where('user_id', $request->user()->id)
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
+        return view('reports.my', compact('reports', 'cities', 'categories'));
     }
 
+    /* ----------------------------
+     | Show (public) + Admin Show
+     * ---------------------------- */
     public function show(Report $report, Request $request)
     {
         abort_unless(auth()->check(), 403);
@@ -223,10 +261,11 @@ class ReportController extends Controller
 
         // Optionally load notes (admin side-table)
         if (Schema::hasTable('report_notes')) {
+            // if you have a notes->admin relation, this will eager-load it
             $report->loadMissing('notes.admin');
         }
 
-        // OPTIONAL: comments (if/when table exists)
+        // Optional comments
         $comments = null;
         if ($this->hasComments()) {
             $comments = $report->comments()
@@ -236,7 +275,7 @@ class ReportController extends Controller
                 ->withQueryString();
         }
 
-        return view('reports.show', compact('report','comments'));
+        return view('reports.show', compact('report', 'comments'));
     }
 
     public function adminShow(Report $report)
@@ -247,27 +286,29 @@ class ReportController extends Controller
         return view('admin.reports.show', compact('report'));
     }
 
+    /* ----------------------------
+     | Admin update/toggle
+     * ---------------------------- */
     public function update(Request $request, Report $report)
     {
         abort_unless(Auth::check() && Auth::user()->is_admin, 403);
 
         $validated = $request->validate([
-            'status'     => ['required','in:pending,in_progress,resolved,rejected'],
-            'admin_note' => ['nullable','string','max:5000'],
+            'status'     => ['required', 'in:pending,in_progress,resolved,rejected'],
+            'admin_note' => ['nullable', 'string', 'max:5000'],
 
             // Allow admins to correct location if needed (optional)
-            'latitude'          => ['nullable','numeric','between:-90,90'],
-            'longitude'         => ['nullable','numeric','between:-180,180'],
-            'place_id'          => ['nullable','string','max:128'],
-            'formatted_address' => ['nullable','string','max:255'],
+            'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
+            'place_id'          => ['nullable', 'string', 'max:128'],
+            'formatted_address' => ['nullable', 'string', 'max:255'],
         ]);
 
         $validated['status'] = strtolower(trim($validated['status']));
 
         // If any geo field provided, re-normalize
         if ($request->filled('latitude') || $request->filled('longitude') || $request->filled('place_id')) {
-            $normalized = $this->normalizeGeo($validated);
-            $validated  = array_merge($validated, $normalized);
+            $validated = $this->normalizeGeo($validated);
         }
 
         $report->update($validated);
@@ -285,6 +326,9 @@ class ReportController extends Controller
         return back()->with('success', 'Report status updated!');
     }
 
+    /* ----------------------------
+     | Geolocation normalization
+     * ---------------------------- */
     /**
      * Normalize geolocation fields.
      * - If place_id is present, try Place Details.
@@ -293,7 +337,6 @@ class ReportController extends Controller
      */
     protected function normalizeGeo(array $data): array
     {
-        // Helpers
         $hasGeocodedAt = Schema::hasColumn('reports', 'geocoded_at');
 
         $setIf = function (&$arr, string $key, $value) {
@@ -303,19 +346,19 @@ class ReportController extends Controller
         };
 
         // Normalize basic types from client
-        if (isset($data['latitude'])) {
-            $lat = is_numeric($data['latitude']) ? max(-90, min(90, (float)$data['latitude'])) : null;
+        if (array_key_exists('latitude', $data)) {
+            $lat = is_numeric($data['latitude']) ? max(-90, min(90, (float) $data['latitude'])) : null;
             $setIf($data, 'latitude', $lat !== null ? round($lat, 7) : null);
         }
-        if (isset($data['longitude'])) {
-            $lng = is_numeric($data['longitude']) ? max(-180, min(180, (float)$data['longitude'])) : null;
+        if (array_key_exists('longitude', $data)) {
+            $lng = is_numeric($data['longitude']) ? max(-180, min(180, (float) $data['longitude'])) : null;
             $setIf($data, 'longitude', $lng !== null ? round($lng, 7) : null);
         }
-        if (isset($data['place_id'])) {
-            $setIf($data, 'place_id', trim((string)$data['place_id']));
+        if (array_key_exists('place_id', $data)) {
+            $setIf($data, 'place_id', trim((string) $data['place_id']));
         }
-        if (isset($data['formatted_address'])) {
-            $setIf($data, 'formatted_address', trim((string)$data['formatted_address']));
+        if (array_key_exists('formatted_address', $data)) {
+            $setIf($data, 'formatted_address', trim((string) $data['formatted_address']));
         }
 
         $serviceClass = 'App\\Services\\GoogleMapsService';
@@ -336,16 +379,16 @@ class ReportController extends Controller
             if (!empty($data['place_id'])) {
                 $d = $maps->placeDetails($data['place_id']) ?? [];
 
-                $setIf($data, 'latitude',  isset($d['lat']) ? round((float)$d['lat'], 7) : null);
-                $setIf($data, 'longitude', isset($d['lng']) ? round((float)$d['lng'], 7) : null);
+                $setIf($data, 'latitude',  isset($d['lat']) ? round((float) $d['lat'], 7) : null);
+                $setIf($data, 'longitude', isset($d['lng']) ? round((float) $d['lng'], 7) : null);
                 $setIf($data, 'formatted_address', $d['formatted_address'] ?? null);
 
                 if ($hasGeocodedAt) $data['geocoded_at'] = now();
             }
             // Else if we have coords → reverse geocode
             elseif (!empty($data['latitude']) && !empty($data['longitude'])) {
-                $lat = (float)$data['latitude'];
-                $lng = (float)$data['longitude'];
+                $lat = (float) $data['latitude'];
+                $lng = (float) $data['longitude'];
 
                 $d = $maps->reverseGeocode($lat, $lng) ?? [];
 
@@ -361,4 +404,49 @@ class ReportController extends Controller
 
         return $data;
     }
+    public function mapData(Request $request)
+{
+    // Reuse the same filter logic as index()
+    $q        = trim((string) $request->query('q', ''));
+    $city     = $request->query('city_corporation');
+    $category = $request->query('category');
+    $status   = $request->query('status');
+
+    $like = fn(string $s) => '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s) . '%';
+
+    $query = \App\Models\Report::query()
+        ->withCoords()
+        ->when($q !== '', function ($qb) use ($q, $like) {
+            $qb->where(function ($x) use ($q, $like) {
+                $x->where('title', 'like', $like($q))
+                  ->orWhere('description', 'like', $like($q))
+                  ->orWhere('formatted_address', 'like', $like($q))
+                  ->orWhere('location', 'like', $like($q));
+            });
+        })
+        ->when($city, fn ($qb, $v) => $qb->where('city_corporation', $v))
+        ->when($category, fn ($qb, $v) => $qb->where('category', $v))
+        ->when($status, fn ($qb, $v) => $qb->where('status', $v))
+        ->latest('id')
+        ->limit(500);
+
+    $items = $query->get(['id','title','status','category','latitude','longitude','formatted_address']);
+
+    return response()->json([
+        'ok'    => true,
+        'items' => $items->map(function ($r) {
+            return [
+                'id'       => $r->id,
+                'title'    => $r->title,
+                'status'   => $r->status,
+                'category' => $r->category,
+                'lat'      => (float) $r->latitude,
+                'lng'      => (float) $r->longitude,
+                'address'  => $r->formatted_address,
+                'url'      => route('reports.show', $r),
+            ];
+        }),
+    ]);
+}
+
 }
