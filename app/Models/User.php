@@ -32,4 +32,13 @@ protected $fillable = [
             'is_admin' => 'boolean', // ✅ Add this
         ];
     }
+
+    public function comments()
+{
+    return $this->hasMany(\App\Models\Comment::class);
+}
+public function endorsements()
+{
+    return $this->hasMany(\App\Models\Endorsement::class);
+}
 }

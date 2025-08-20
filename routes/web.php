@@ -87,5 +87,16 @@ Route::prefix('admin')
         // LIVE map data (JSON for dashboard map)
         Route::get('/reports/map', [ReportMapController::class, 'index'])->name('reports.map');
     });
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\EndorsementController;
+
+Route::middleware(['auth','verified'])->group(function () {
+    // Comments
+    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])->name('reports.comments.store');
+    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])->name('reports.comments.destroy');
+
+    // Endorsements
+    Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])->name('reports.endorse.toggle');
+});
 
 require __DIR__ . '/auth.php';

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class Report extends Model
@@ -16,12 +17,13 @@ class Report extends Model
      | Constants
      * ---------------------------- */
     public const STATUSES   = ['pending', 'in_progress', 'resolved', 'rejected'];
+
     public const CATEGORIES = [
         'Road Damage', 'Waste Management', 'Street Light', 'Water Supply',
         'Electricity', 'Drainage', 'Garbage', 'Broken Road', 'Other',
     ];
 
-    /* Optional color hints for pins/badges */
+    /** Optional color hints for pins/badges */
     public const STATUS_COLORS = [
         'pending'      => '#eab308', // amber-500
         'in_progress'  => '#3b82f6', // blue-500
@@ -29,6 +31,9 @@ class Report extends Model
         'rejected'     => '#ef4444', // red-500
     ];
 
+    /* ----------------------------
+     | Mass assignment / casting
+     * ---------------------------- */
     protected $fillable = [
         'user_id',
         'title',
@@ -38,7 +43,7 @@ class Report extends Model
         'location',
         'status',
         'admin_note',
-        'photo',                // storage path "reports/xxx.jpg"
+        'photo',                // storage path like "reports/xxx.jpg"
         // Geo fields:
         'latitude',
         'longitude',
@@ -48,20 +53,20 @@ class Report extends Model
     ];
 
     protected $casts = [
-        'created_at'        => 'datetime',
-        'updated_at'        => 'datetime',
-        'geocoded_at'       => 'datetime',
-        'latitude'          => 'float',
-        'longitude'         => 'float',
+        'created_at'  => 'datetime',
+        'updated_at'  => 'datetime',
+        'geocoded_at' => 'datetime',
+        'latitude'    => 'float',
+        'longitude'   => 'float',
     ];
 
+    /** Accessors appended to JSON */
     protected $appends = [
         'photo_url',
         'photo_name',
         'short_address',
         'has_coords',
-        // Uncomment if you want thumbnails in lists:
-        // 'static_map_url',
+        // 'static_map_url', // uncomment if you want thumbnails in lists
     ];
 
     /* ----------------------------
@@ -72,9 +77,22 @@ class Report extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** Admin/internal notes on a report (newest first) */
     public function notes(): HasMany
     {
         return $this->hasMany(ReportNote::class)->latest();
+    }
+
+    /** Public comments (newest first) */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class)->latest();
+    }
+
+    /** Endorsements / upvotes */
+    public function endorsements(): HasMany
+    {
+        return $this->hasMany(Endorsement::class);
     }
 
     /* ----------------------------
@@ -141,6 +159,7 @@ class Report extends Model
             return;
         }
 
+        // Store without "public/" prefix for Storage::disk('public')
         $normalized = str_starts_with($value, 'public/')
             ? substr($value, 7)
             : $value;
@@ -186,7 +205,7 @@ class Report extends Model
     }
 
     /* ----------------------------
-     | Query scopes (search/filters)
+     | Simple filter/search scopes
      * ---------------------------- */
     public function scopeSearch($q, ?string $term)
     {
@@ -195,10 +214,10 @@ class Report extends Model
 
         $like = '%'.str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $term).'%';
         return $q->where(function ($x) use ($like) {
-            $x->where('title',       'like', $like)
-              ->orWhere('description','like', $like)
-              ->orWhere('formatted_address','like', $like)
-              ->orWhere('location',  'like', $like);
+            $x->where('title', 'like', $like)
+              ->orWhere('description', 'like', $like)
+              ->orWhere('formatted_address', 'like', $like)
+              ->orWhere('location', 'like', $like);
         });
     }
 
@@ -245,44 +264,42 @@ class Report extends Model
                  ->whereBetween('longitude', [min($sw['lng'], $ne['lng']), max($sw['lng'], $ne['lng'])]);
     }
 
-    /**
-     * Haversine distance (in KM). Returns distance as a selectable column if $asColumn provided.
-     * NOTE: This uses MySQL trig functions; works on MariaDB/MySQL/Postgres with minor tweaks.
-     */
-    /* ----------------------------
- | Geo scopes (Haversine, km)
- * ---------------------------- */
-public function scopeWithDistance($q, float $lat, float $lng)
-{
-    // Guard if columns don’t exist (keeps app resilient)
-    if (!\Illuminate\Support\Facades\Schema::hasColumns($this->getTable(), ['latitude','longitude'])) {
-        return $q;
-    }
-
-    $haversine = '(6371 * acos(least(1.0, greatest(-1.0, cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude))))))';
-    return $q->select($this->getTable().'.*')
-             ->selectRaw("$haversine as distance_km", [$lat, $lng, $lat]);
-}
-
-public function scopeWithinRadiusKm($q, float $lat, float $lng, float $radiusKm)
-{
-    // compute distance first, then filter
-    return $q->withDistance($lat, $lng)->having('distance_km', '<=', $radiusKm);
-}
-
-public function scopeOrderByDistance($q, float $lat, float $lng)
-{
-    // ensure distance is present; if not, add it
-    $q = $q->getQuery()->columns ? $q : $q->withDistance($lat, $lng);
-    return $q->orderBy('distance_km');
-}
-
-    /* ----------------------------
-     | Helpers
-     * ---------------------------- */
-    public function statusColor(): string
+    /** Internal helper: ensure geo columns exist (keeps app resilient on fresh DBs) */
+    protected static function geoColumnsExist(): bool
     {
-        return self::STATUS_COLORS[$this->status] ?? '#6b7280'; // gray-500 fallback
+        return Schema::hasColumns('reports', ['latitude', 'longitude']);
     }
-    
-}
+
+    /**
+     * Haversine distance (in KM). Adds a `distance_km` select column.
+     * Values are clamped to avoid NaN from acos domain errors.
+     */
+    public function scopeWithDistance($q, float $lat, float $lng)
+    {
+        if (!self::geoColumnsExist()) return $q;
+
+        $lat = max(-90, min(90, $lat));
+        $lng = max(-180, min(180, $lng));
+
+        $expr = "(
+            6371 * acos(
+              least(1.0, greatest(-1.0,
+                cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) +
+                sin(radians(?)) * sin(radians(latitude))
+              ))
+            )
+        )";
+
+        return $q->select($this->getTable().'.*')
+                 ->selectRaw("$expr as distance_km", [$lat, $lng, $lat]);
+    }
+
+    /** Scope: filter by radius (km) */
+    public function scopeWithinRadiusKm($q, float $lat, float $lng, float $radiusKm)
+    {
+        if (!self::geoColumnsExist()) return $q;
+        return $q->withDistance($lat, $lng)->having('distance_km', '<=', $radiusKm);
+    }
+
+    /** Scope: order by distance if present; otherwise newest */
+    public function scopeOrderB

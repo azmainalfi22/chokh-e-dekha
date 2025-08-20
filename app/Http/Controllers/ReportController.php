@@ -9,6 +9,20 @@ use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
+    /** Helpers */
+    protected function hasGeoColumns(): bool
+    {
+        return Schema::hasColumns('reports', ['latitude','longitude']);
+    }
+    protected function hasComments(): bool
+    {
+        return Schema::hasTable('comments');
+    }
+    protected function hasEndorsements(): bool
+    {
+        return Schema::hasTable('endorsements'); // planned upvotes table
+    }
+
     public function index(Request $request)
     {
         $q        = trim((string) $request->query('q', ''));
@@ -17,17 +31,17 @@ class ReportController extends Controller
         $status   = $request->query('status');
         $perPage  = max(6, min(48, (int) $request->integer('per_page', 12)));
 
-        // Optional geo filters
-        $nearLat   = $request->float('near_lat');
-        $nearLng   = $request->float('near_lng');
-        $radiusKm  = (float) ($request->query('radius_km', 0)); // 0 = ignore
+        // Optional geo filters (only if columns exist)
+        $geoOk    = $this->hasGeoColumns();
+        $nearLat  = $geoOk ? $request->float('near_lat') : null;
+        $nearLng  = $geoOk ? $request->float('near_lng') : null;
+        $radiusKm = $geoOk ? (float) $request->query('radius_km', 0) : 0;
 
         // Sorting
-        $sort      = $request->query('sort', $nearLat && $nearLng ? 'nearest' : 'newest');
-        $sortAllow = ['newest','oldest','status','city','category','nearest'];
-        if (!in_array($sort, $sortAllow, true)) {
-            $sort = 'newest';
-        }
+        $sortAllow = ['newest','oldest','status','city','category','nearest','popular','discussed'];
+        $sort      = $request->query('sort', ($geoOk && is_finite($nearLat) && is_finite($nearLng)) ? 'nearest' : 'newest');
+        if (!in_array($sort, $sortAllow, true)) $sort = 'newest';
+        if ($sort === 'nearest' && !$geoOk)     $sort = 'newest';
 
         // Allowed statuses
         $statuses = ['pending','in_progress','resolved','rejected'];
@@ -51,8 +65,18 @@ class ReportController extends Controller
         $like = fn(string $s) => '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s) . '%';
 
         $reports = Report::query()
-            ->with('user:id,name')
-            ->when($q !== '', function ($qb) use ($q, $like) {
+            ->with('user:id,name');
+
+        // Optional counts (don’t break if tables aren’t there yet)
+        if ($this->hasComments()) {
+            $reports->withCount('comments');
+        }
+        if ($this->hasEndorsements()) {
+            $reports->withCount('endorsements');
+        }
+
+        // Filters
+        $reports->when($q !== '', function ($qb) use ($q, $like) {
                 $qb->where(function ($x) use ($q, $like) {
                     $x->where('title', 'like', $like($q))
                       ->orWhere('description', 'like', $like($q))
@@ -64,26 +88,32 @@ class ReportController extends Controller
             ->when($category, fn ($qb, $v) => $qb->where('category', $v))
             ->when($status, fn ($qb, $v) => $qb->where('status', $v));
 
-        // Geo filtering / sorting if lat/lng provided
-        if (is_finite($nearLat) && is_finite($nearLng)) {
+        // Geo filtering / sorting only if geo columns exist
+        if ($geoOk && is_finite($nearLat) && is_finite($nearLng)) {
             if ($radiusKm > 0) {
+                // needs your Report scopes
                 $reports = $reports->withinRadiusKm($nearLat, $nearLng, $radiusKm);
             } else {
-                // still compute distance; useful for 'nearest' sort
                 $reports = $reports->withDistance($nearLat, $nearLng);
             }
         }
 
-        // Sort
+        // Sorting
         $reports = match ($sort) {
-            'oldest'   => $reports->oldest(), // created_at asc
-            'status'   => $reports->orderBy('status')->latest('id'),
-            'city'     => $reports->orderBy('city_corporation')->latest('id'),
-            'category' => $reports->orderBy('category')->latest('id'),
-            'nearest'  => (is_finite($nearLat) && is_finite($nearLng))
-                            ? $reports->orderByDistance($nearLat, $nearLng)
-                            : $reports->latest(),
-            default    => $reports->latest(), // newest first
+            'oldest'     => $reports->oldest(), // created_at asc
+            'status'     => $reports->orderBy('status')->latest('id'),
+            'city'       => $reports->orderBy('city_corporation')->latest('id'),
+            'category'   => $reports->orderBy('category')->latest('id'),
+            'nearest'    => ($geoOk && is_finite($nearLat) && is_finite($nearLng))
+                                ? $reports->orderByDistance($nearLat, $nearLng)
+                                : $reports->latest(),
+            'popular'    => ($this->hasEndorsements() ? $reports->orderByDesc('endorsements_count') : $reports)
+                                ->when($this->hasComments(), fn($q)=>$q->orderByDesc('comments_count'))
+                                ->latest('id'),
+            'discussed'  => $this->hasComments()
+                                ? $reports->orderByDesc('comments_count')->latest('id')
+                                : $reports->latest(),
+            default      => $reports->latest(), // newest first
         };
 
         $reports = $reports->paginate($perPage)->withQueryString();
@@ -105,7 +135,6 @@ class ReportController extends Controller
         }
 
         return view('reports.create', [
-            // for <script src="https://maps.googleapis.com/maps/api/js?key=...">
             'googleApiKey' => config('services.google_maps.key'),
         ]);
     }
@@ -129,19 +158,17 @@ class ReportController extends Controller
             'place_id'          => ['nullable','string','max:128'],
             'formatted_address' => ['nullable','string','max:255'],
 
-            'photo'            => ['nullable','image','mimes:jpeg,jpg,png,webp,gif','max:4096'],
+            'photo'             => ['nullable','image','mimes:jpeg,jpg,png,webp,gif','max:4096'],
         ]);
 
-        // Save photo to public disk -> storage/app/public/reports/...
         if ($request->hasFile('photo')) {
             $validated['photo'] = $request->file('photo')->store('reports', 'public');
         }
 
-        // Try to normalize address server-side if we can
-        $validated = $this->normalizeGeo($validated);
-
+        // Normalize geo
         $validated['user_id'] = Auth::id();
         $validated['status']  = 'pending';
+        $validated = $this->normalizeGeo($validated);
 
         Report::create($validated);
 
@@ -150,55 +177,66 @@ class ReportController extends Controller
             ->with('success', 'Report submitted successfully!');
     }
 
-public function myReports(Request $request)
-{
-    $statuses = ['pending','in_progress','resolved','rejected'];
-    $q        = trim((string)$request->query('q',''));
-    $city     = $request->query('city_corporation');
-    $category = $request->query('category');
-    $status   = $request->query('status');
-    if ($status && !in_array($status,$statuses,true)) $status = null;
-
-    $like = fn($s) => '%'.str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s).'%';
-
-    $reports = Report::with('user')
-        ->where('user_id',$request->user()->id)
-        ->when($q !== '', fn($qrb) => $qrb->where(function($x) use($q,$like){
-            $x->where('title','like',$like($q))
-              ->orWhere('description','like',$like($q))
-              ->orWhere('formatted_address','like',$like($q))
-              ->orWhere('location','like',$like($q));
-        }))
-        ->when($city,     fn($qrb,$v) => $qrb->where('city_corporation',$v))
-        ->when($category, fn($qrb,$v) => $qrb->where('category',$v))
-        ->when($status,   fn($qrb,$v) => $qrb->where('status',$v))
-        ->latest()
-        ->paginate(12)
-        ->withQueryString();
-
-    // (Optional) For select options you can pass distinct lists:
-    $cities     = Report::where('user_id',$request->user()->id)->whereNotNull('city_corporation')->distinct()->orderBy('city_corporation')->pluck('city_corporation');
-    $categories = Report::where('user_id',$request->user()->id)->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
-
-    return view('reports.my', compact('reports','cities','categories'));
-}
-
-
-    public function show(Report $report)
+    public function myReports(Request $request)
     {
-        // Anyone logged in may view any report (read-only)
-        if (!auth()->check()) {
-            abort(403);
-        }
+        $statuses = ['pending','in_progress','resolved','rejected'];
+        $q        = trim((string)$request->query('q',''));
+        $city     = $request->query('city_corporation');
+        $category = $request->query('category');
+        $status   = $request->query('status');
+        if ($status && !in_array($status,$statuses,true)) $status = null;
 
-        // Only load notes if the table exists
+        $like = fn($s) => '%'.str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s).'%';
+
+        $reports = Report::with('user')
+            ->where('user_id',$request->user()->id);
+
+        if ($this->hasComments())     $reports->withCount('comments');
+        if ($this->hasEndorsements()) $reports->withCount('endorsements');
+
+        $reports = $reports
+            ->when($q !== '', fn($qrb) => $qrb->where(function($x) use($q,$like){
+                $x->where('title','like',$like($q))
+                  ->orWhere('description','like',$like($q))
+                  ->orWhere('formatted_address','like',$like($q))
+                  ->orWhere('location','like',$like($q));
+            }))
+            ->when($city,     fn($qrb,$v) => $qrb->where('city_corporation',$v))
+            ->when($category, fn($qrb,$v) => $qrb->where('category',$v))
+            ->when($status,   fn($qrb,$v) => $qrb->where('status',$v))
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
+
+        $cities     = Report::where('user_id',$request->user()->id)->whereNotNull('city_corporation')->distinct()->orderBy('city_corporation')->pluck('city_corporation');
+        $categories = Report::where('user_id',$request->user()->id)->whereNotNull('category')->distinct()->orderBy('category')->pluck('category');
+
+        return view('reports.my', compact('reports','cities','categories'));
+    }
+
+    public function show(Report $report, Request $request)
+    {
+        abort_unless(auth()->check(), 403);
+
+        // Always load author
+        $report->load('user');
+
+        // Optionally load notes (admin side-table)
         if (Schema::hasTable('report_notes')) {
-            $report->load(['user', 'notes.admin']);
-        } else {
-            $report->load('user');
+            $report->loadMissing('notes.admin');
         }
 
-        return view('reports.show', compact('report'));
+        // OPTIONAL: comments (if/when table exists)
+        $comments = null;
+        if ($this->hasComments()) {
+            $comments = $report->comments()
+                ->with('user:id,name')
+                ->latest()
+                ->paginate(10)
+                ->withQueryString();
+        }
+
+        return view('reports.show', compact('report','comments'));
     }
 
     public function adminShow(Report $report)
@@ -229,8 +267,7 @@ public function myReports(Request $request)
         // If any geo field provided, re-normalize
         if ($request->filled('latitude') || $request->filled('longitude') || $request->filled('place_id')) {
             $normalized = $this->normalizeGeo($validated);
-            // Keep admin note/status too
-            $validated = array_merge($validated, $normalized);
+            $validated  = array_merge($validated, $normalized);
         }
 
         $report->update($validated);
@@ -254,75 +291,74 @@ public function myReports(Request $request)
      * - Else if lat/lng are present, try Reverse Geocode.
      * - If service class is missing, trust client fields.
      */
-protected function normalizeGeo(array $data): array
-{
-    // Helpers
-    $hasGeocodedAt = Schema::hasColumn('reports', 'geocoded_at');
+    protected function normalizeGeo(array $data): array
+    {
+        // Helpers
+        $hasGeocodedAt = Schema::hasColumn('reports', 'geocoded_at');
 
-    $setIf = function (&$arr, string $key, $value) {
-        if ($value !== null && $value !== '') {
-            $arr[$key] = $value;
+        $setIf = function (&$arr, string $key, $value) {
+            if ($value !== null && $value !== '') {
+                $arr[$key] = $value;
+            }
+        };
+
+        // Normalize basic types from client
+        if (isset($data['latitude'])) {
+            $lat = is_numeric($data['latitude']) ? max(-90, min(90, (float)$data['latitude'])) : null;
+            $setIf($data, 'latitude', $lat !== null ? round($lat, 7) : null);
         }
-    };
-
-    // Normalize basic types from client
-    if (isset($data['latitude'])) {
-        $lat = is_numeric($data['latitude']) ? max(-90, min(90, (float)$data['latitude'])) : null;
-        $setIf($data, 'latitude', $lat !== null ? round($lat, 7) : null);
-    }
-    if (isset($data['longitude'])) {
-        $lng = is_numeric($data['longitude']) ? max(-180, min(180, (float)$data['longitude'])) : null;
-        $setIf($data, 'longitude', $lng !== null ? round($lng, 7) : null);
-    }
-    if (isset($data['place_id'])) {
-        $setIf($data, 'place_id', trim((string)$data['place_id']));
-    }
-    if (isset($data['formatted_address'])) {
-        $setIf($data, 'formatted_address', trim((string)$data['formatted_address']));
-    }
-
-    $serviceClass = 'App\\Services\\GoogleMapsService';
-
-    // No service available: only stamp geocoded_at if we have coords and column exists
-    if (!class_exists($serviceClass)) {
-        if (!empty($data['latitude']) && !empty($data['longitude']) && $hasGeocodedAt) {
-            $data['geocoded_at'] = now();
+        if (isset($data['longitude'])) {
+            $lng = is_numeric($data['longitude']) ? max(-180, min(180, (float)$data['longitude'])) : null;
+            $setIf($data, 'longitude', $lng !== null ? round($lng, 7) : null);
         }
+        if (isset($data['place_id'])) {
+            $setIf($data, 'place_id', trim((string)$data['place_id']));
+        }
+        if (isset($data['formatted_address'])) {
+            $setIf($data, 'formatted_address', trim((string)$data['formatted_address']));
+        }
+
+        $serviceClass = 'App\\Services\\GoogleMapsService';
+
+        // No service available: only stamp geocoded_at if we have coords and column exists
+        if (!class_exists($serviceClass)) {
+            if (!empty($data['latitude']) && !empty($data['longitude']) && $hasGeocodedAt) {
+                $data['geocoded_at'] = now();
+            }
+            return $data;
+        }
+
+        /** @var \App\Services\GoogleMapsService $maps */
+        $maps = app($serviceClass);
+
+        try {
+            // Prefer place_id → details
+            if (!empty($data['place_id'])) {
+                $d = $maps->placeDetails($data['place_id']) ?? [];
+
+                $setIf($data, 'latitude',  isset($d['lat']) ? round((float)$d['lat'], 7) : null);
+                $setIf($data, 'longitude', isset($d['lng']) ? round((float)$d['lng'], 7) : null);
+                $setIf($data, 'formatted_address', $d['formatted_address'] ?? null);
+
+                if ($hasGeocodedAt) $data['geocoded_at'] = now();
+            }
+            // Else if we have coords → reverse geocode
+            elseif (!empty($data['latitude']) && !empty($data['longitude'])) {
+                $lat = (float)$data['latitude'];
+                $lng = (float)$data['longitude'];
+
+                $d = $maps->reverseGeocode($lat, $lng) ?? [];
+
+                $setIf($data, 'formatted_address', $d['formatted_address'] ?? null);
+                $setIf($data, 'place_id', $d['place_id'] ?? null);
+
+                if ($hasGeocodedAt) $data['geocoded_at'] = now();
+            }
+        } catch (\Throwable $e) {
+            // Fail-soft: keep user-provided fields; don’t break submission
+            // report($e);
+        }
+
         return $data;
     }
-
-    /** @var \App\Services\GoogleMapsService $maps */
-    $maps = app($serviceClass);
-
-    try {
-        // Prefer place_id → details
-        if (!empty($data['place_id'])) {
-            $d = $maps->placeDetails($data['place_id']) ?? [];
-
-            // Only set when the API returns non-empty values
-            $setIf($data, 'latitude',  isset($d['lat']) ? round((float)$d['lat'], 7) : null);
-            $setIf($data, 'longitude', isset($d['lng']) ? round((float)$d['lng'], 7) : null);
-            $setIf($data, 'formatted_address', $d['formatted_address'] ?? null);
-
-            if ($hasGeocodedAt) $data['geocoded_at'] = now();
-        }
-        // Else if we have coords → reverse geocode
-        elseif (!empty($data['latitude']) && !empty($data['longitude'])) {
-            $lat = (float)$data['latitude'];
-            $lng = (float)$data['longitude'];
-
-            $d = $maps->reverseGeocode($lat, $lng) ?? [];
-
-            $setIf($data, 'formatted_address', $d['formatted_address'] ?? null);
-            $setIf($data, 'place_id', $d['place_id'] ?? null);
-
-            if ($hasGeocodedAt) $data['geocoded_at'] = now();
-        }
-    } catch (\Throwable $e) {
-        // Fail-soft: keep user-provided fields; don’t break submission
-        // Optionally log: report($e);
-    }
-
-    return $data;
-}
 }
