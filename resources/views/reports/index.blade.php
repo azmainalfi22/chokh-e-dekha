@@ -17,6 +17,7 @@
 @endpush
 
 @section('content')
+@php $googleApiKey = config('services.google_maps.key'); @endphp
 <div class="relative grainy">
   {{-- colored blobs --}}
   <div class="pointer-events-none absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-30 bg-gradient-to-br from-amber-300 to-rose-300"></div>
@@ -176,6 +177,25 @@
       </form>
     </div>
 
+    {{-- Map/List toggle + container (ADDED) --}}
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-sm text-amber-900/70">
+          Toggle to view a live map of filtered reports.
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="toggleMapBtn"
+                  class="rounded-xl px-3 py-2 bg-white ring-1 ring-amber-900/10 text-amber-900/90 shadow hover:shadow-md">
+            Show Map
+          </button>
+        </div>
+      </div>
+
+      <div id="reportsMapWrap" class="hidden rounded-2xl overflow-hidden ring-1 ring-amber-900/10 bg-white/80 backdrop-blur">
+        <div id="reportsMap" class="h-[460px] w-full"></div>
+      </div>
+    </div>
+
     @php
       $badge = function($status) {
         $map = [
@@ -254,16 +274,46 @@
                 </li>
               </ul>
 
-              <div class="mt-3 flex items-center justify-between">
+              {{-- Engagement bar (ADDED) --}}
+              <div class="mt-2 flex items-center justify-between text-sm">
+                <div class="flex items-center gap-4">
+                  {{-- Endorse toggle --}}
+                  @auth
+                    @php
+                      // Works even without eager-loading
+                      $endorsed = $report->endorsements()->where('user_id', auth()->id())->exists();
+                      $endorseCount = $report->endorsements_count ?? $report->endorsements()->count();
+                    @endphp
+                    <form method="POST" action="{{ route('reports.endorse', $report) }}">
+                      @csrf
+                      <button type="submit"
+                              class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ring-1 ring-amber-900/10
+                                     {{ $endorsed ? 'bg-amber-100 text-amber-900' : 'bg-white text-amber-900/80 hover:bg-amber-50' }}">
+                        👍 <span>{{ $endorseCount }}</span>
+                      </button>
+                    </form>
+                  @else
+                    @php $endorseCount = $report->endorsements_count ?? $report->endorsements()->count(); @endphp
+                    <a href="{{ route('login') }}" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ring-1 ring-amber-900/10 bg-white text-amber-900/80 hover:bg-amber-50" title="Log in to endorse">
+                      👍 <span>{{ $endorseCount }}</span>
+                    </a>
+                  @endauth
+
+                  {{-- Comments count (link to show#comments) --}}
+                  @php $commentsCount = $report->comments_count ?? $report->comments()->count(); @endphp
+                  <a href="{{ route('reports.show', $report) }}#comments"
+                     class="inline-flex items-center gap-1.5 text-amber-900/70 hover:text-amber-900">
+                    💬 <span>{{ $commentsCount }}</span>
+                  </a>
+                </div>
+
                 <a href="{{ route('reports.show', $report) }}"
                    class="inline-flex items-center gap-1 text-amber-700 hover:text-amber-800 font-medium">
                   View details
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6l6 6-6 6-1.4-1.4L12.2 12 8.6 7.4z"/></svg>
                 </a>
-                @if(!auth()->user()->is_admin && Route::has('reports.my'))
-                  <a href="{{ route('reports.my') }}" class="text-sm text-gray-500 hover:text-gray-700">My reports</a>
-                @endif
               </div>
+
             </div>
           </div>
         @endforeach
@@ -279,6 +329,9 @@
 </div>
 
 @push('scripts')
+@if($googleApiKey)
+  <script src="https://maps.googleapis.com/maps/api/js?key={{ $googleApiKey }}&loading=async" defer></script>
+@endif
 <script>
   (function () {
     const form = document.querySelector('form[action="{{ route('reports.index') }}"]');
@@ -300,7 +353,7 @@
       } catch {}
     });
 
-    // Near me: fill lat/lng + default sort=nearest if not set
+    // Near me
     const nearBtn = document.getElementById('nearMeBtn');
     const nearLat = document.getElementById('near_lat');
     const nearLng = document.getElementById('near_lng');
@@ -328,6 +381,100 @@
         nearBtn.classList.remove('opacity-70');
         nearBtn.textContent = 'Near me';
       }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+    });
+
+    // --------------------------
+    // Map toggle + markers (ADDED)
+    // --------------------------
+    const toggleBtn  = document.getElementById('toggleMapBtn');
+    const mapWrap    = document.getElementById('reportsMapWrap');
+    const mapEl      = document.getElementById('reportsMap');
+
+    let map, info, markers = [];
+
+    function svgPin(fill) {
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+        <svg width="40" height="40" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <defs><filter id="s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/><feOffset dy="2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+          <g filter="url(#s)"><path d="M32 4c-10.5 0-19 8.5-19 19 0 13.2 19 37 19 37s19-23.8 19-37c0-10.5-8.5-19-19-19z" fill="${fill}"/><circle cx="32" cy="23" r="6.5" fill="#fff"/></g>
+        </svg>`);
+    }
+
+    const fills = { pending:'#eab308', in_progress:'#3b82f6', resolved:'#16a34a', rejected:'#ef4444' };
+
+    function createMarker(item) {
+      const m = new google.maps.Marker({
+        position: { lat: item.lat, lng: item.lng },
+        map,
+        title: item.title,
+        icon: { url: svgPin(fills[item.status] || '#e11d48'), scaledSize: new google.maps.Size(40,40), anchor: new google.maps.Point(20,40) }
+      });
+      m.addListener('click', () => {
+        info.setContent(`
+          <div style="max-width:240px">
+            <div style="font-weight:700;margin-bottom:4px">${item.title}</div>
+            <div style="font-size:12px;opacity:.8;margin-bottom:6px">${item.address ?? ''}</div>
+            <a href="${item.url}" style="color:#b91c1c;text-decoration:underline">View details</a>
+          </div>`);
+        info.open({ anchor: m, map });
+      });
+      return m;
+    }
+
+    async function loadMarkers() {
+      if (!map) return;
+      const params = new URLSearchParams(new FormData(form)).toString();
+      const url = `{{ route('reports.map') }}?${params}`;
+      try {
+        const res = await fetch(url, { headers: { 'Accept':'application/json' } });
+        const data = await res.json();
+        markers.forEach(mm => mm.setMap(null));
+        markers = [];
+        if (!data?.items?.length) return;
+
+        const bounds = new google.maps.LatLngBounds();
+        data.items.forEach(it => {
+          const mk = createMarker(it);
+          markers.push(mk);
+          bounds.extend({ lat: it.lat, lng: it.lng });
+        });
+        if (!bounds.isEmpty()) map.fitBounds(bounds);
+      } catch (e) { console.error(e); }
+    }
+
+    function ensureMap() {
+      if (map || !window.google || !google.maps) return;
+      map = new google.maps.Map(mapEl, {
+        center: { lat: 23.777176, lng: 90.399452 }, // Dhaka fallback
+        zoom: 12,
+        clickableIcons: false,
+        mapTypeControl: false,
+        fullscreenControl: false,
+        streetViewControl: false,
+      });
+      info = new google.maps.InfoWindow();
+      loadMarkers();
+    }
+
+    toggleBtn?.addEventListener('click', () => {
+      const showing = !mapWrap.classList.contains('hidden');
+      if (showing) {
+        mapWrap.classList.add('hidden');
+        toggleBtn.textContent = 'Show Map';
+      } else {
+        mapWrap.classList.remove('hidden');
+        toggleBtn.textContent = 'Hide Map';
+        const t = setInterval(() => {
+          if (window.google && google.maps) { clearInterval(t); ensureMap(); }
+        }, 50);
+      }
+    });
+
+    // Reload markers whenever the filter form submits
+    form?.addEventListener('submit', () => {
+      if (!mapWrap.classList.contains('hidden')) {
+        setTimeout(loadMarkers, 0);
+      }
     });
   })();
 </script>
