@@ -9,12 +9,17 @@ return new class extends Migration {
     {
         Schema::create('endorsements', function (Blueprint $table) {
             $table->id();
+
             $table->foreignId('report_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+
             $table->timestamps();
 
-            $table->unique(['report_id','user_id']);
-            $table->index(['user_id','created_at']);
+            // One endorsement per user per report
+            $table->unique(['report_id', 'user_id']);
+
+            // Useful for counts/ordering
+            $table->index(['report_id', 'created_at']);
         });
     }
 

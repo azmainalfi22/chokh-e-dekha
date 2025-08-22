@@ -60,7 +60,7 @@ class Report extends Model
         'longitude'   => 'float',
     ];
 
-    /** Accessors appended to JSON */
+    /** Accessors appended to JSON (used in Blade) */
     protected $appends = [
         'photo_url',
         'photo_name',
@@ -102,6 +102,26 @@ class Report extends Model
     }
 
     /* ----------------------------
+     | Convenience helpers for UI
+     * ---------------------------- */
+
+    /** Hex color for current status (with gray fallback) */
+    public function statusColor(): string
+    {
+        return self::STATUS_COLORS[$this->status] ?? '#6b7280'; // gray-500
+    }
+
+    /** Whether a given user has endorsed this report (safe for missing table) */
+    public function isEndorsedBy(?int $userId): bool
+    {
+        if (!$userId) return false;
+        if (!Schema::hasTable('endorsements') || !Schema::hasColumn('endorsements', 'report_id')) {
+            return false;
+        }
+        return $this->endorsements()->where('user_id', $userId)->exists();
+    }
+
+    /* ----------------------------
      | Accessors
      * ---------------------------- */
     public function getPhotoUrlAttribute(): ?string
@@ -120,8 +140,10 @@ class Report extends Model
         // Prefer a concise label from formatted address,
         // else fall back to the manual location field.
         if ($this->formatted_address) {
-            // Use the first segment for a short label (e.g., street or place)
-            return trim(strtok($this->formatted_address, ','));
+            // Keep the most relevant last 2–3 segments (e.g., "Banani, Dhaka")
+            $parts = array_map('trim', explode(',', $this->formatted_address));
+            $take  = count($parts) >= 3 ? 3 : 2;
+            return implode(', ', array_slice($parts, -$take));
         }
         return $this->location ?: null;
     }
@@ -132,7 +154,7 @@ class Report extends Model
     }
 
     /**
-     * Optional: small static map thumbnail for lists/cards.
+     * Small static map thumbnail for lists/cards.
      * Requires GOOGLE_MAPS_KEY in config('services.google_maps.key').
      */
     public function getStaticMapUrlAttribute(): ?string
@@ -177,6 +199,18 @@ class Report extends Model
     {
         $v = $value ? strtolower(trim($value)) : null;
         $this->attributes['status'] = in_array($v, self::STATUSES, true) ? $v : $value;
+    }
+
+    /** Optional: keep category within known list if possible */
+    public function setCategoryAttribute($value): void
+    {
+        if ($value === null) { $this->attributes['category'] = null; return; }
+        $v = trim((string) $value);
+        // try to match case-insensitively to one of the known categories
+        foreach (self::CATEGORIES as $opt) {
+            if (strcasecmp($opt, $v) === 0) { $this->attributes['category'] = $opt; return; }
+        }
+        $this->attributes['category'] = $v;
     }
 
     public function setLatitudeAttribute($value): void
@@ -318,5 +352,27 @@ class Report extends Model
         $q->withDistance($lat, $lng);
 
         return $q->orderBy('distance_km')->orderByDesc('id');
+    }
+
+    /* ----------------------------
+     | Engagement-friendly scopes
+     * ---------------------------- */
+
+    /** Popular = by endorsements_count desc (falls back gracefully if table is missing) */
+    public function scopePopular($q)
+    {
+        if (Schema::hasTable('endorsements') && Schema::hasColumn('endorsements', 'report_id')) {
+            return $q->withCount('endorsements')->orderByDesc('endorsements_count');
+        }
+        return $q->latest();
+    }
+
+    /** Discussed = by comments_count desc (falls back gracefully if table is missing) */
+    public function scopeDiscussed($q)
+    {
+        if (Schema::hasTable('comments') && Schema::hasColumn('comments', 'report_id')) {
+            return $q->withCount('comments')->orderByDesc('comments_count');
+        }
+        return $q->latest();
     }
 }

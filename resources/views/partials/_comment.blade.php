@@ -1,12 +1,30 @@
-<div class="py-3 flex items-start gap-3">
-  <div class="h-8 w-8 rounded-full bg-amber-200 grid place-items-center text-amber-900 font-semibold">
-    {{ strtoupper(mb_substr($comment->user->name ?? 'U', 0, 1)) }}
+@php
+  /** @var \App\Models\Comment $c */
+  $name = trim($c->user->name ?? 'User');
+  // Simple initial for the avatar chip (works with multibyte names)
+  $initial = mb_strtoupper(mb_substr($name, 0, 1));
+@endphp
+
+<li id="comment-{{ $c->id }}" data-comment-id="{{ $c->id }}" class="flex items-start gap-2">
+  {{-- avatar placeholder --}}
+  <div class="mt-0.5 h-7 w-7 flex-none rounded-full ring-1
+              bg-amber-200/60 ring-amber-200 text-amber-900
+              dark:bg-white/10 dark:ring-white/10 dark:text-amber-200
+              flex items-center justify-center text-[11px] font-semibold">
+    {{ $initial }}
   </div>
-  <div class="min-w-0">
-    <div class="text-sm">
-      <span class="font-semibold">{{ $comment->user->name ?? 'User' }}</span>
-      <span class="text-amber-900/60 text-xs">• {{ $comment->created_at->diffForHumans() }}</span>
+
+  <div class="flex-1">
+    <div class="inline-block rounded-2xl px-3 py-2 text-[13px]
+                bg-amber-50 ring-1 ring-amber-100
+                dark:bg-white/5 dark:ring-white/10">
+      <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $name }}</span>
+      <span class="ml-1 text-slate-800 dark:text-slate-100">{!! nl2br(e($c->body)) !!}</span>
     </div>
-    <div class="mt-1 text-sm text-amber-900/90">{{ $comment->body }}</div>
+
+    <div class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400"
+         title="{{ optional($c->created_at)->toDayDateTimeString() }}">
+      {{ optional($c->created_at)->diffForHumans() }}
+    </div>
   </div>
-</div>
+</li>

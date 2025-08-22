@@ -67,11 +67,11 @@
 
   {{-- welcome / actions --}}
   <section class="mb-6">
-    <div class="cd-card rounded-2xl ring-1 ring-amber-900/10 shadow p-6">
-      <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
+    <div class="cd-card rounded-2xl ring-1 ring-amber-700/10 shadow p-6">
+      <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-700 to-rose-400">
         👋 Welcome, {{ auth()->user()->name }}!
       </h1>
-      <p class="text-sm text-gray-800 mt-1">This is your command center for civic impact.</p>
+      <p class="text-sm text-gray-1000 mt-1">This is your command center for civic impact.</p>
 
       <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
         @php

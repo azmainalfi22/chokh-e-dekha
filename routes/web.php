@@ -18,7 +18,6 @@ use App\Http\Controllers\Admin\ReportMapController;
 // Engagement controllers
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\EndorsementController;
-use App\Http\Controllers\RatingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,7 +38,7 @@ Route::get('/', function () {
 /* ---------------------------
  | Public browsing (no auth)
  * --------------------------- */
-// List (public)
+// Reports list (public)
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
 // Map markers JSON (public; same filters as index)
@@ -51,8 +50,10 @@ Route::get('/reports/map.json', [ReportController::class, 'mapData'])->name('rep
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Show a single report (controller also checks auth)
-    Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
+    // Show a single report
+    Route::get('/reports/{report}', [ReportController::class, 'show'])
+        ->whereNumber('report')
+        ->name('reports.show');
 
     // My reports
     Route::get('/my-reports', [ReportController::class, 'myReports'])->name('reports.my');
@@ -67,18 +68,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/report',       [ReportController::class, 'store'])->name('report.store');
     });
 
-    // Profile
+    // User profile (needed by layouts.app link)
     Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile',[ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-    // Engagement
-    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])->name('reports.comments.store');
-    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])->name('reports.comments.destroy');
+/* ---------------------------
+ | Engagement (auth only, NO email verification)
+ * --------------------------- */
+Route::middleware('auth')->group(function () {
+    // Comments
+    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])
+        ->whereNumber('report')
+        ->middleware('throttle:20,1')   // up to 20 comment attempts per minute per IP
+        ->name('reports.comments.store');
 
-    Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])->name('reports.endorse.toggle');
+    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])
+        ->whereNumber('report')
+        ->whereNumber('comment')
+        ->middleware('throttle:60,1')   // reasonable protection
+        ->name('reports.comments.destroy');
 
-    Route::post('/reports/{report}/ratings', [RatingController::class, 'store'])->name('reports.ratings.store');
+    // Endorse (like)
+    Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])
+        ->whereNumber('report')
+        ->middleware('throttle:60,1')   // prevent spam-click storms
+        ->name('reports.endorse');
+
+    // Back-compat alias for older Blade code that used reports.endorse.toggle
+    Route::post('/reports/{report}/endorse-toggle', [EndorsementController::class, 'toggle'])
+        ->whereNumber('report')
+        ->middleware('throttle:60,1')
+        ->name('reports.endorse.toggle');
 });
 
 /* ---------------------------
@@ -98,15 +120,23 @@ Route::prefix('admin')
 
         // Reports (admin views)
         Route::get('/reports',          [AdminReportController::class, 'index'])->name('reports.index');
-        Route::get('/reports/{report}', [AdminReportController::class, 'show'])->name('reports.show');
+        Route::get('/reports/{report}', [AdminReportController::class, 'show'])
+            ->whereNumber('report')
+            ->name('reports.show');
 
         // Status update (PUT/PATCH)
         Route::match(['put','patch'], '/reports/{report}/status', [AdminReportController::class, 'updateStatus'])
+            ->whereNumber('report')
             ->name('reports.status');
 
         // Notes
-        Route::post('/reports/{report}/notes',          [AdminReportController::class, 'storeNote'])->name('reports.notes.store');
-        Route::delete('/reports/{report}/notes/{note}', [AdminReportController::class, 'destroyNote'])->name('reports.notes.destroy');
+        Route::post('/reports/{report}/notes',          [AdminReportController::class, 'storeNote'])
+            ->whereNumber('report')
+            ->name('reports.notes.store');
+        Route::delete('/reports/{report}/notes/{note}', [AdminReportController::class, 'destroyNote'])
+            ->whereNumber('report')
+            ->whereNumber('note')
+            ->name('reports.notes.destroy');
 
         // LIVE map data (JSON for dashboard map)
         Route::get('/reports/map', [ReportMapController::class, 'index'])->name('reports.map');

@@ -19,12 +19,14 @@ class ReportController extends Controller
 
     protected function hasComments(): bool
     {
-        return Schema::hasTable('comments');
+        return Schema::hasTable('comments') && Schema::hasColumn('comments', 'report_id');
     }
 
     protected function hasEndorsements(): bool
     {
-        return Schema::hasTable('endorsements');
+        return Schema::hasTable('endorsements')
+            && Schema::hasColumn('endorsements', 'report_id')
+            && Schema::hasColumn('endorsements', 'user_id');
     }
 
     protected function hasRatings(): bool
@@ -83,7 +85,8 @@ class ReportController extends Controller
 
         $like = fn(string $s) => '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $s) . '%';
 
-        $reports = Report::query()->with('user:id,name');
+        $reports = Report::query()
+            ->with('user:id,name');
 
         // Optional aggregates (don’t break if tables don’t exist)
         if ($this->hasComments()) {
@@ -91,6 +94,15 @@ class ReportController extends Controller
         }
         if ($this->hasEndorsements()) {
             $reports->withCount('endorsements');
+
+            // Also know if the current user endorsed this report (for UI state)
+            if (Auth::check() && method_exists($reports->getQuery(), 'withExists')) {
+                $reports->withExists([
+                    'endorsements as endorsed_by_me' => function ($q) {
+                        $q->where('user_id', Auth::id());
+                    },
+                ]);
+            }
         }
         if ($this->hasRatings()) {
             $reports->withCount('ratings')->withAvg('ratings', 'score'); // ratings_count, ratings_avg_score
@@ -128,8 +140,8 @@ class ReportController extends Controller
                                ? $reports->orderByDistance($nearLat, $nearLng)
                                : $reports->latest(),
             'popular'   => ($this->hasEndorsements() ? $reports->orderByDesc('endorsements_count') : $reports)
-                               ->when($this->hasComments(), fn($q)=>$q->orderByDesc('comments_count'))
-                               ->when($this->hasRatings(),  fn($q)=>$q->orderByDesc('ratings_count'))
+                               ->when($this->hasComments(), fn ($q) => $q->orderByDesc('comments_count'))
+                               ->when($this->hasRatings(),  fn ($q) => $q->orderByDesc('ratings_count'))
                                ->latest('id'),
             'discussed' => $this->hasComments()
                                ? $reports->orderByDesc('comments_count')->latest('id')
@@ -214,7 +226,8 @@ class ReportController extends Controller
 
         $like = fn($s) => '%'.str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s).'%';
 
-        $reports = Report::with('user')->where('user_id', $request->user()->id);
+        $reports = Report::with('user')
+            ->where('user_id', $request->user()->id);
 
         if ($this->hasComments())     $reports->withCount('comments');
         if ($this->hasEndorsements()) $reports->withCount('endorsements');
@@ -261,7 +274,6 @@ class ReportController extends Controller
 
         // Optionally load notes (admin side-table)
         if (Schema::hasTable('report_notes')) {
-            // if you have a notes->admin relation, this will eager-load it
             $report->loadMissing('notes.admin');
         }
 
@@ -404,49 +416,68 @@ class ReportController extends Controller
 
         return $data;
     }
+
+    /* ----------------------------
+     | Map markers JSON for client
+     * ---------------------------- */
     public function mapData(Request $request)
-{
-    // Reuse the same filter logic as index()
-    $q        = trim((string) $request->query('q', ''));
-    $city     = $request->query('city_corporation');
-    $category = $request->query('category');
-    $status   = $request->query('status');
+    {
+        // Same filters as index()
+        $q        = trim((string) $request->query('q', ''));
+        $city     = $request->query('city_corporation');
+        $category = $request->query('category');
+        $status   = $request->query('status');
+        $nearLat  = $request->float('near_lat');
+        $nearLng  = $request->float('near_lng');
+        $radiusKm = (float) $request->query('radius_km', 0);
 
-    $like = fn(string $s) => '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s) . '%';
+        $like = fn(string $s) => '%' . str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s) . '%';
 
-    $query = \App\Models\Report::query()
-        ->withCoords()
-        ->when($q !== '', function ($qb) use ($q, $like) {
-            $qb->where(function ($x) use ($q, $like) {
-                $x->where('title', 'like', $like($q))
-                  ->orWhere('description', 'like', $like($q))
-                  ->orWhere('formatted_address', 'like', $like($q))
-                  ->orWhere('location', 'like', $like($q));
-            });
-        })
-        ->when($city, fn ($qb, $v) => $qb->where('city_corporation', $v))
-        ->when($category, fn ($qb, $v) => $qb->where('category', $v))
-        ->when($status, fn ($qb, $v) => $qb->where('status', $v))
-        ->latest('id')
-        ->limit(500);
+        $qbuilder = Report::query()
+            ->with('user:id,name')
+            ->whereNotNull('latitude')->whereNotNull('longitude')
+            ->when($q !== '', function ($qb) use ($q, $like) {
+                $qb->where(function ($x) use ($q, $like) {
+                    $x->where('title','like',$like($q))
+                      ->orWhere('description','like',$like($q))
+                      ->orWhere('formatted_address','like',$like($q))
+                      ->orWhere('location','like',$like($q));
+                });
+            })
+            ->when($city, fn($qb,$v) => $qb->where('city_corporation',$v))
+            ->when($category, fn($qb,$v) => $qb->where('category',$v))
+            ->when($status, fn($qb,$v) => $qb->where('status',$v));
 
-    $items = $query->get(['id','title','status','category','latitude','longitude','formatted_address']);
+        if ($this->validPoint($nearLat, $nearLng)) {
+            $qbuilder = $radiusKm > 0
+                ? $qbuilder->withinRadiusKm($nearLat, $nearLng, $radiusKm)
+                : $qbuilder->withDistance($nearLat, $nearLng);
+        }
 
-    return response()->json([
-        'ok'    => true,
-        'items' => $items->map(function ($r) {
-            return [
-                'id'       => $r->id,
-                'title'    => $r->title,
-                'status'   => $r->status,
-                'category' => $r->category,
-                'lat'      => (float) $r->latitude,
-                'lng'      => (float) $r->longitude,
-                'address'  => $r->formatted_address,
-                'url'      => route('reports.show', $r),
-            ];
-        }),
-    ]);
-}
+        $items = $qbuilder->latest('id')->limit(500)->get([
+            'id','title','status','category','latitude','longitude','formatted_address','created_at'
+        ]);
 
+        // Response shape:
+        // {
+        //   "count": N,
+        //   "items": [
+        //      { "id":1, "title":"...", "status":"pending", "lat":..., "lng":..., "address":"...", "url":"/reports/1" }
+        //   ]
+        // }
+        return response()->json([
+            'count' => $items->count(),
+            'items' => $items->map(fn($r) => [
+                'id'      => $r->id,
+                'title'   => $r->title,
+                'status'  => $r->status,
+                'category'=> $r->category,
+                'lat'     => (float) $r->latitude,
+                'lng'     => (float) $r->longitude,
+                'address' => $r->formatted_address,
+                'created' => optional($r->created_at)->toIso8601String(),
+                'url'     => route('reports.show', $r),
+            ]),
+        ]);
+    }
 }
