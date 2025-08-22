@@ -3,75 +3,96 @@
 
 @push('styles')
 <style>
-  :root {
-    --cd-card-light: rgba(255,255,255,0.92);
-    --cd-card-dark: rgba(241, 230, 216, 0.51);
-    --cd-amber: 245, 158, 11;
-    --page-light: #fffaf5;
-    --page-dark:  #0b0e12;
-    --page-dark-grad-1: rgba(255,179,0,.06);
-    --page-dark-grad-2: rgba(244,63,94,.07);
-    --text-body: #0f172a; /* slate-900 */
-  }
+  /* Page-specific styles only (theme tokens come from partials._theme via the layout) */
 
-  /* Page background: dark mode changes ONLY the background, not text color */
-  body{
-    min-height:100vh;
-    background: radial-gradient(1200px 400px at -10% -10%, rgba(251,191,36,.12), transparent 40%),
-                radial-gradient(1000px 300px at 110% 110%, rgba(244,63,94,.10), transparent 45%),
-                var(--page-light);
-    color: var(--text-body);
+  /* Soft background accents */
+  .blob{ position:absolute; border-radius:9999px; filter:blur(36px); opacity:.2; pointer-events:none; }
+
+  /* Glassy card */
+  .cd-card{
+    position:relative; background: var(--surface); color: var(--text);
+    border:1px solid var(--ring); border-radius: var(--radius-2xl); padding: var(--space-6);
+    backdrop-filter: blur(10px); box-shadow: var(--shadow-lg);
+    transition: transform var(--duration-fast) var(--ease-in-out),
+                box-shadow var(--duration-fast) var(--ease-in-out),
+                border-color var(--duration-fast) var(--ease-in-out);
   }
-  .dark body{
+  .cd-card::before{
+    content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
     background:
-      radial-gradient(1200px 400px at -10% -10%, var(--page-dark-grad-1), transparent 40%),
-      radial-gradient(1000px 300px at 110% 110%, var(--page-dark-grad-2), transparent 45%),
-      var(--page-dark);
-    /* no text color override on purpose */
+      radial-gradient(1200px 400px at -10% -10%, rgba(251,191,36,.12), transparent 40%),
+      radial-gradient(1000px 300px at 110% 110%, rgba(244,63,94,.10), transparent 45%);
   }
+  .cd-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-xl); border-color: var(--accent); }
 
-  /* Cards: switch surface in dark, but KEEP text dark/slate */
-  .cd-card {
-    background: var(--cd-card-light);
-    backdrop-filter: blur(8px);
-    transition: transform .15s ease, box-shadow .15s ease, background-color .2s ease;
-    color: var(--text-body);
+  /* Chips / small buttons */
+  .cd-chip{
+    display:inline-flex; align-items:center; gap:.5rem; font-weight:600;
+    border-radius: var(--radius-xl); padding:.4rem .75rem; line-height:1; border:1px solid var(--ring);
+    background: var(--surface); color: var(--text);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-fast) var(--ease-in-out),
+                box-shadow var(--duration-normal) var(--ease-in-out),
+                border-color var(--duration-normal) var(--ease-in-out);
   }
-  .cd-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.08); }
-  .dark .cd-card { background: var(--cd-card-dark); color: var(--text-body); }
+  .cd-chip:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--accent); }
 
-  /* Table readability in both modes */
-  .cd-card table, .cd-card th, .cd-card td { color: var(--text-body); }
-  .cd-card tbody tr { border-color: rgba(251,191,36,.35); }
-
-  .cd-chip {
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 1px 2px rgba(0,0,0,.06);
-    transition: background-color .18s ease, transform .08s ease;
+  /* Status pills (token-based) */
+  .status-pill{
+    display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .6rem;
+    border-radius: var(--radius-full); font-size: var(--text-xs); font-weight:700;
+    border:1px solid transparent; line-height:1; white-space:nowrap; box-shadow: var(--shadow-sm);
   }
-  .cd-chip:active { transform: translateY(1px) }
+  .status-pending     { background: var(--status-pending-bg);     color: var(--status-pending-text);     border-color: var(--status-pending-border); }
+  .status-in_progress { background: var(--status-in-progress-bg); color: var(--status-in-progress-text); border-color: var(--status-in-progress-border); }
+  .status-resolved    { background: var(--status-resolved-bg);    color: var(--status-resolved-text);    border-color: var(--status-resolved-border); }
+  .status-rejected    { background: var(--status-rejected-bg);    color: var(--status-rejected-text);    border-color: var(--status-rejected-border); }
+
+  /* Counters (stat tiles) */
+  .stat-tile{
+    color:#fff; padding: var(--space-6); border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl); text-align:center;
+  }
+  .stat-value{ font-size: var(--text-4xl); font-weight: 800; }
+  .stat-label{ font-size: var(--text-xs); margin-top:.35rem; letter-spacing:.06em; text-transform:uppercase; opacity:.9; }
+
+  /* Table */
+  table th, table td { color: var(--text); }
+  thead th{
+    font-size: var(--text-xs); text-transform: uppercase; letter-spacing:.06em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--ring);
+    padding: .5rem 1rem;
+  }
+  tbody td{ padding:.5rem 1rem; border-bottom:1px solid var(--ring); }
+
+  /* Footer text tone */
+  .muted{ color: var(--text-secondary); }
 </style>
 @endpush
 
 @section('content')
 <div class="relative">
-  {{-- background blobs --}}
-  <div class="pointer-events-none absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300"></div>
-  <div class="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
+  {{-- Background blobs (behind everything) --}}
+  <div class="blob pointer-events-none absolute -top-20 -right-24 h-80 w-80" style="background:linear-gradient(135deg,#fbbf24,#fb7185)"></div>
+  <div class="blob pointer-events-none absolute -bottom-24 -left-24 h-96 w-96" style="background:linear-gradient(135deg,#fb923c,#f472b6)"></div>
 
-  {{-- flash --}}
+  {{-- Flash error --}}
   @if (session('error'))
-    <div class="mb-4 rounded-xl px-4 py-3 bg-rose-50 text-rose-800 ring-1 ring-rose-200">
+    <div class="mb-4 rounded-xl px-4 py-3"
+         style="background:var(--error-50); color:var(--error-700); border:1px solid var(--error-100); box-shadow:var(--shadow-sm);">
       {{ session('error') }}
     </div>
   @endif
 
-  {{-- welcome / actions --}}
+  {{-- Welcome / quick actions --}}
   <section class="mb-6">
-    <div class="cd-card rounded-2xl ring-1 ring-amber-700/10 shadow p-6">
-      <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-700 to-rose-400">
+    <div class="cd-card rounded-2xl ring-1 ring-amber-900/10 shadow p-6">
+      <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text"
+          style="background-image:linear-gradient(90deg,#fbbf24,#ea580c,#f43f5e)">
         👋 Welcome, {{ auth()->user()->name }}!
       </h1>
-      <p class="text-sm text-gray-1000 mt-1">This is your command center for civic impact.</p>
+      <p class="text-sm text-secondary mt-1">This is your command center for civic impact.</p>
 
       <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
         @php
@@ -79,21 +100,21 @@
             [
               'route' => 'report.create',
               'icon'  => '<path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>',
-              'bg'    => 'from-emerald-500 to-green-600',
+              'bg'    => 'background-image:linear-gradient(135deg,#10b981,#059669);',
               'title' => 'Submit Report',
               'desc'  => 'Let the city know'
             ],
             [
               'route' => 'reports.my',
               'icon'  => '<path d="M4 6h16v2H4zm0 4h10v2H4zm0 4h16v2H4z"/>',
-              'bg'    => 'from-indigo-500 to-violet-600',
+              'bg'    => 'background-image:linear-gradient(135deg,#6366f1,#7c3aed);',
               'title' => 'My Reports',
               'desc'  => 'Track your submissions'
             ],
             [
               'route' => 'profile.edit',
               'icon'  => '<path d="M12 12a5 5 0 100-10 5 5 0 000 10zm7 2H5a2 2 0 00-2 2v5h18v-5a2 2 0 00-2-2z"/>',
-              'bg'    => 'from-amber-500 to-rose-600',
+              'bg'    => 'background-image:linear-gradient(135deg,#f59e0b,#f43f5e);',
               'title' => 'Edit Profile',
               'desc'  => 'Manage your identity'
             ],
@@ -101,77 +122,88 @@
         @endphp
 
         @foreach($actions as $a)
-          <a href="{{ route($a['route']) }}" class="cd-card group rounded-2xl ring-1 ring-amber-900/10 shadow hover:shadow-lg transition p-5 flex flex-col items-center text-center">
-            <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br {{ $a['bg'] }} text-white shadow mb-3">
+          <a href="{{ route($a['route']) }}"
+             class="cd-card group rounded-2xl ring-1 ring-amber-900/10 shadow hover:shadow-lg transition p-5 flex flex-col items-center text-center">
+            <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl text-white shadow mb-3"
+                 style="{{ $a['bg'] }}">
               <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">{!! $a['icon'] !!}</svg>
             </div>
             <div class="font-semibold">{{ $a['title'] }}</div>
-            <div class="text-xs text-gray-700">{{ $a['desc'] }}</div>
+            <div class="text-xs text-secondary">{{ $a['desc'] }}</div>
           </a>
         @endforeach
       </div>
     </div>
   </section>
 
-  {{-- stats --}}
+  {{-- Stats --}}
   <section class="mb-6">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       @php
         $statBoxes = [
-          ['val' => $stats['total'],   'bg' => 'from-amber-500 to-rose-600',   'label' => 'Total Reports'],
-          ['val' => $stats['pending'], 'bg' => 'from-yellow-400 to-orange-500','label' => 'Pending'],
-          ['val' => $stats['resolved'],'bg' => 'from-emerald-500 to-green-700','label' => 'Resolved'],
+          ['val' => $stats['total']    ?? 0, 'bg' => 'linear-gradient(135deg,#f59e0b,#f43f5e)', 'label' => 'Total Reports'],
+          ['val' => $stats['pending']  ?? 0, 'bg' => 'linear-gradient(135deg,#fbbf24,#ea580c)', 'label' => 'Pending'],
+          ['val' => $stats['resolved'] ?? 0, 'bg' => 'linear-gradient(135deg,#10b981,#047857)', 'label' => 'Resolved'],
         ];
       @endphp
+
       @foreach($statBoxes as $sb)
-        <div class="text-white p-6 rounded-2xl shadow-2xl text-center bg-gradient-to-br {{ $sb['bg'] }}">
-          <div class="text-4xl font-extrabold counter" data-target="{{ $sb['val'] }}">0</div>
-          <div class="text-xs mt-2 tracking-wide uppercase opacity-90">{{ $sb['label'] }}</div>
+        <div class="stat-tile" style="background:{{ $sb['bg'] }}">
+          <div class="stat-value counter" data-target="{{ $sb['val'] }}">0</div>
+          <div class="stat-label">{{ $sb['label'] }}</div>
         </div>
       @endforeach
     </div>
   </section>
 
-  {{-- recent reports --}}
+  {{-- Recent reports --}}
   <section class="cd-card rounded-2xl ring-1 ring-amber-900/10 shadow p-6">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-amber-900">Recent Reports</h2>
-      <a href="{{ route('reports.my') }}" class="text-sm text-rose-700 hover:underline">View all</a>
+      <h2 class="text-lg font-semibold" style="color:var(--text);">Recent Reports</h2>
+      <a href="{{ route('reports.my') }}" class="text-sm text-accent hover:underline">View all</a>
     </div>
 
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
         <thead>
-          <tr class="uppercase text-xs tracking-wider">
-            <th class="px-4 py-2 text-left">Title</th>
-            <th class="px-4 py-2 text-left">City</th>
-            <th class="px-4 py-2 text-left">Status</th>
-            <th class="px-4 py-2 text-left">Date</th>
-            <th class="px-4 py-2 text-right">Action</th>
+          <tr>
+            <th class="text-left">Title</th>
+            <th class="text-left">City</th>
+            <th class="text-left">Status</th>
+            <th class="text-left">Date</th>
+            <th class="text-right">Action</th>
           </tr>
         </thead>
         <tbody>
           @forelse($recentReports as $report)
-            <tr class="border-b hover:bg-amber-50 transition">
-              <td class="px-4 py-2 font-medium">{{ $report->title }}</td>
-              <td class="px-4 py-2">{{ $report->city_corporation }}</td>
-              <td class="px-4 py-2">
-                @php $resolved = $report->status === 'resolved'; @endphp
-                <span class="px-2 py-1 text-xs rounded-full font-semibold
-                  {{ $resolved ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800' }}">
-                  {{ ucfirst($report->status) }}
+            @php
+              $status = $report->status ?? 'pending';
+              $statusClass = match($status){
+                'resolved'     => 'status-resolved',
+                'in_progress'  => 'status-in_progress',
+                'rejected'     => 'status-rejected',
+                default        => 'status-pending'
+              };
+            @endphp
+            <tr class="hover:bg-[rgba(245,158,11,0.05)] transition-colors">
+              <td class="font-medium">{{ $report->title }}</td>
+              <td>{{ $report->city_corporation }}</td>
+              <td>
+                <span class="status-pill {{ $statusClass }}">
+                  {{ \Illuminate\Support\Str::headline($status) }}
                 </span>
               </td>
-              <td class="px-4 py-2">{{ $report->created_at->format('M d, Y h:i a') }}</td>
-              <td class="px-4 py-2 text-right">
-                <a href="{{ route('reports.show', $report) }}" class="cd-chip inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm text-white bg-gradient-to-r from-amber-600 to-rose-600 shadow hover:shadow-lg transition">
+              <td>{{ optional($report->created_at)->format('M d, Y h:i a') }}</td>
+              <td class="text-right">
+                <a href="{{ route('reports.show', $report) }}"
+                   class="cd-chip">
                   View
                 </a>
               </td>
             </tr>
           @empty
             <tr>
-              <td colspan="5" class="px-4 py-6 text-center text-gray-700">No reports yet. Create your first one!</td>
+              <td colspan="5" class="px-4 py-6 text-center text-secondary">No reports yet. Create your first one!</td>
             </tr>
           @endforelse
         </tbody>
@@ -179,12 +211,12 @@
     </div>
   </section>
 
-  <footer class="text-center text-sm text-gray-700 mt-8">
+  <footer class="text-center text-sm muted mt-8">
     © {{ now()->year }} {{ config('app.name', 'Chokh-e-Dekha') }}. Made with ❤️ for civic good.
   </footer>
 </div>
 
-{{-- counters --}}
+{{-- Counters --}}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.counter').forEach(counter => {

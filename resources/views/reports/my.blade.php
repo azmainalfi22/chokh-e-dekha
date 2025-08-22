@@ -4,58 +4,112 @@
 
 @push('styles')
 <style>
+  /* ---------- THEME TOKENS (aligned with All Reports) ---------- */
   :root{
-    --card-light: rgba(255,255,255,.88);
-    --card-dark:  rgba(22,24,28,.92);
-    --text-body:  #0f172a;
+    --surface: #ffffff;
+    --surface-muted: #f8fafc;        /* slate-50 */
+    --surface-elevated: #ffffff;
+    --text: #0f172a;                  /* slate-900 */
+    --text-secondary: #475569;        /* slate-600 */
+    --muted: #64748b;                 /* slate-500 */
+    --ring: #e2e8f0;                  /* slate-200 */
+    --ring-focus: #f59e0b;            /* amber-500 */
+    --link: #0ea5e9;                  /* sky-500 */
+    --accent: #f59e0b;                /* amber-500 */
+    --accent-600: #d97706;            /* amber-600 */
+    --accent-700: #b45309;            /* amber-700 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
+  .dark{
+    --surface: rgba(31,41,55,0.95);
+    --surface-muted:#111827;
+    --surface-elevated: rgba(55,65,81,0.95);
+    --text:#f9fafb;
+    --text-secondary:#d1d5db;
+    --muted:#9ca3af;
+    --ring:#374151;
+    --ring-focus:#fbbf24;
+    --link:#38bdf8;
+    --accent:#fbbf24;
+    --accent-600:#f59e0b;
+    --accent-700:#f59e0b;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  }
+
+  body{ background: var(--surface-muted); color: var(--text); }
+
+  /* ---------- Cards (glassy) ---------- */
   .cd-card{
-    background: var(--card-light);
-    color: var(--text-body);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--ring);
+    border-radius: 1rem;
     backdrop-filter: blur(10px);
-    transition: transform .15s ease, box-shadow .15s ease, background-color .2s ease;
+    box-shadow: var(--shadow-lg);
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
-  .cd-card:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0,0,0,.08) }
-  @media (prefers-color-scheme: dark){ .dark .cd-card{ background: var(--card-dark) } }
+  .cd-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-xl); border-color: var(--accent); }
 
-  .chip-btn{ @apply text-xs px-2 py-1 rounded-lg ring-1 ring-amber-900/10 bg-white text-gray-700 hover:bg-amber-50; }
-  .dark .chip-btn{ background:#1b1f24 !important; color:#f5f5f5 !important; }
+  /* ---------- Tiny chips / pills (no @apply) ---------- */
+  .chip-btn{
+    display:inline-flex; align-items:center; gap:.375rem;
+    padding:.25rem .5rem; border-radius:.5rem; font-size:.75rem; font-weight:500;
+    border:1px solid rgba(0,0,0,.06); background:#fff; color:#374151;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chip-btn:hover{ background: rgba(245,158,11,.08); }
+  .dark .chip-btn{ background:#1b1f24 !important; color:#f5f5f5 !important; border-color:#2a2f36; }
 
-  /* filter pills */
-  .pill{ @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ring-1 ring-amber-900/10 bg-white text-amber-900/90; }
-  .dark .pill{ background:#1b1f24; color:#f5f5f5; }
+  .pill{
+    display:inline-flex; align-items:center; gap:.5rem;
+    padding:.375rem .75rem; border-radius:9999px; font-size:.875rem; font-weight:600;
+    border:1px solid rgba(245,158,11,.2); background:#fff; color:#7c2d12;
+  }
+  .pill svg{ flex:0 0 auto; }
+  .dark .pill{ background:#1b1f24; color:#f5f5f5; border-color:#2a2f36; }
 
-  /* Map container */
+  /* Map */
   #myReportsMap{ height: 420px; border-radius: 1rem; overflow: hidden; }
+
+  /* Soft blobs */
+  .blob{ position:absolute; border-radius:9999px; filter: blur(36px); opacity:.2; pointer-events:none; }
 </style>
 @endpush
 
 @section('content')
 <div class="relative">
   {{-- ambient blobs --}}
-  <div class="pointer-events-none absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300"></div>
-  <div class="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
+  <div class="blob -top-20 -right-24 h-80 w-80 bg-gradient-to-br from-amber-300 to-rose-300"></div>
+  <div class="blob -bottom-24 -left-24 h-96 w-96 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
 
   <div class="max-w-7xl mx-auto p-4 md:p-8 relative z-[1]">
 
     {{-- header --}}
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div class="min-w-0">
-        <h1 class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
+        <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
           My Reports
         </h1>
-        <p class="text-sm text-amber-600">Your submitted issues, all in one place.</p>
+        <p class="text-sm" style="color:var(--muted)">Your submitted issues, all in one place.</p>
       </div>
 
       <div class="flex items-center gap-2">
-        <button id="toggleMap"
-                class="pill">
+        <button id="toggleMap" class="pill">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
           <span>Map view</span>
         </button>
         @if(Route::has('report.create'))
           <a href="{{ route('report.create') }}"
-             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl shadow hover:shadow-md bg-amber-600 text-white hover:bg-amber-700 transition">
+             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl shadow hover:shadow-md font-semibold text-white transition"
+             style="background:linear-gradient(135deg,var(--accent),#f97316);">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5h2v14h-2zM5 11h14v2H5z"/></svg>
             New Report
           </a>
@@ -71,20 +125,23 @@
       $status   = request('status');
       $statuses = ['pending'=>'Pending','in_progress'=>'In Progress','resolved'=>'Resolved','rejected'=>'Rejected'];
 
-      // Fallback lists if controller didn't pass $cities/$categories
       $cities     = $cities     ?? ['Dhaka North','Dhaka South','Chattogram','Gazipur','Khulna','Rajshahi','Sylhet','Barishal','Cumilla','Narayanganj','Mymensingh'];
       $categories = $categories ?? ['Road Damage','Broken Road','Street Light','Electricity','Water Supply','Drainage','Waste Management','Garbage','Sewage','Public Safety','Traffic','Parks','Health','Education','Other'];
     @endphp
 
-    <form action="{{ route('reports.my') }}" method="GET" class="cd-card rounded-2xl ring-1 ring-amber-100 shadow p-4 mb-6">
+    <form action="{{ route('reports.my') }}" method="GET" class="cd-card p-4 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div class="md:col-span-2">
           <label class="sr-only" for="q">Search</label>
           <input id="q" name="q" value="{{ $q }}" type="search" placeholder="Search title, description, address…"
-                 class="w-full rounded-xl border border-amber-200/60 bg-white px-3 py-2 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                 class="w-full rounded-xl border px-3 py-2 text-sm"
+                 style="background:var(--surface-muted); color:var(--text); border-color:var(--ring); outline:none;"
+                 onfocus="this.style.boxShadow='0 0 0 3px rgba(245,158,11,.12)'; this.style.borderColor='var(--ring-focus)';"
+                 onblur="this.style.boxShadow='none'; this.style.borderColor='var(--ring)';">
         </div>
         <div>
-          <select name="city_corporation" class="w-full rounded-xl border border-amber-200/60 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <select name="city_corporation" class="w-full rounded-xl border px-3 py-2 text-sm"
+                  style="background:var(--surface-muted); color:var(--text); border-color:var(--ring);">
             <option value="">All cities</option>
             @foreach($cities as $c)
               <option value="{{ $c }}" @selected($city===$c)>{{ $c }}</option>
@@ -92,7 +149,8 @@
           </select>
         </div>
         <div>
-          <select name="category" class="w-full rounded-xl border border-amber-200/60 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <select name="category" class="w-full rounded-xl border px-3 py-2 text-sm"
+                  style="background:var(--surface-muted); color:var(--text); border-color:var(--ring);">
             <option value="">All categories</option>
             @foreach($categories as $c)
               <option value="{{ $c }}" @selected($category===$c)>{{ $c }}</option>
@@ -100,7 +158,8 @@
           </select>
         </div>
         <div>
-          <select name="status" class="w-full rounded-xl border border-amber-200/60 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400">
+          <select name="status" class="w-full rounded-xl border px-3 py-2 text-sm"
+                  style="background:var(--surface-muted); color:var(--text); border-color:var(--ring);">
             <option value="">Any status</option>
             @foreach($statuses as $k=>$label)
               <option value="{{ $k }}" @selected($status===$k)>{{ $label }}</option>
@@ -108,9 +167,16 @@
           </select>
         </div>
         <div class="md:col-span-2 flex items-center gap-2">
-          <button class="px-4 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700">Apply</button>
+          <button class="px-4 py-2 rounded-xl font-semibold text-white"
+                  style="background:linear-gradient(135deg,var(--accent),#f97316); box-shadow:var(--shadow-sm);">
+            Apply
+          </button>
           @if($q || $city || $category || $status)
-            <a href="{{ route('reports.my') }}" class="px-4 py-2 rounded-xl ring-1 ring-amber-900/10 bg-white text-amber-900/90">Reset</a>
+            <a href="{{ route('reports.my') }}"
+               class="px-4 py-2 rounded-xl"
+               style="background:var(--surface); color:var(--text); border:1px solid var(--ring);">
+              Reset
+            </a>
           @endif
         </div>
       </div>
@@ -118,12 +184,12 @@
 
     {{-- MAP PANEL (toggle) --}}
     <div id="mapPanel" class="mb-6 hidden">
-      <div class="cd-card rounded-2xl ring-1 ring-amber-100 shadow p-4">
+      <div class="cd-card p-4">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Map</h2>
-          <div class="text-xs text-amber-900/70">Pins show the reports from this page.</div>
+          <h2 class="text-lg font-semibold" style="color:var(--text)">Map</h2>
+          <div class="text-xs" style="color:var(--muted)">Pins show the reports from this page.</div>
         </div>
-        <div id="myReportsMap" class="ring-1 ring-amber-100"></div>
+        <div id="myReportsMap" style="border:1px solid var(--ring)"></div>
       </div>
     </div>
 
@@ -141,7 +207,6 @@
         return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset '.$cls.'">'.\Illuminate\Support\Str::headline($status).'</span>';
       };
 
-      // Data for map (current page only)
       $mapReports = collect($reports->items() ?? $reports)->map(function($r){
         return [
           'id'     => $r->id,
@@ -156,45 +221,47 @@
 
     {{-- CARDS --}}
     @if($reports->isEmpty())
-      <div class="rounded-2xl border border-dashed border-amber-300 cd-card px-6 py-12 text-center shadow">
-        <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full ring-1 ring-amber-200 bg-amber-50">
-          <svg class="h-5 w-5 text-amber-700" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zM3 10h18v2H3zM3 15h12v2H3z"/></svg>
+      <div class="cd-card px-6 py-12 text-center border-dashed" style="border:1px dashed var(--ring);">
+        <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full"
+             style="border:1px solid var(--ring); background:var(--surface-muted);">
+          <svg class="h-5 w-5" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zM3 10h18v2H3zM3 15h12v2H3z"/></svg>
         </div>
-        <h3 class="text-lg font-semibold">You haven’t submitted any reports</h3>
-        <p class="text-sm text-amber-900/70 mt-1">Create your first one to help improve the city.</p>
+        <h3 class="text-lg font-semibold" style="color:var(--text)">You haven’t submitted any reports</h3>
+        <p class="text-sm mt-1" style="color:var(--muted)">Create your first one to help improve the city.</p>
       </div>
     @else
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         @foreach($reports as $report)
-          <article class="cd-card rounded-2xl shadow hover:shadow-xl transition overflow-hidden ring-1 ring-amber-100">
+          <article class="cd-card overflow-hidden">
             <div class="p-5 flex flex-col gap-3">
               <div class="flex items-start justify-between gap-3">
                 <h3 class="text-lg font-bold leading-snug line-clamp-2">{{ $report->title }}</h3>
                 {!! $badge($report) !!}
               </div>
 
-              <ul class="text-sm space-y-1">
+              <ul class="text-sm space-y-1" style="color:var(--text-secondary)">
                 <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4 text-amber-800/80" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
-                  <span class="font-medium">{{ $report->location ?? 'N/A' }}</span>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+                  <span class="font-medium" style="color:var(--text)">{{ $report->location ?? 'N/A' }}</span>
                 </li>
                 <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4 text-amber-800/80" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 10h16v8H4z"/></svg>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 10h16v8H4z"/></svg>
                   <span>{{ $report->category ?? 'General' }}</span>
                 </li>
                 <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4 text-amber-800/80" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v2H5zM5 8h14v12H5z"/></svg>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v2H5zM5 8h14v12H5z"/></svg>
                   <span>{{ $report->city_corporation ?? '—' }}</span>
                 </li>
                 <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4 text-amber-800/80" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10v2H7zM5 6h14v14H5zM9 8h6v6H9z"/></svg>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10v2H7zM5 6h14v14H5zM9 8h6v6H9z"/></svg>
                   <span>{{ optional($report->created_at)->format('M d, Y h:i a') }}</span>
                 </li>
+
                 @if(!empty($report->formatted_address))
                   <li class="pt-1">
-                    <div class="text-xs text-amber-900/70">Address</div>
+                    <div class="text-xs" style="color:var(--muted)">Address</div>
                     <div class="mt-0.5 flex flex-wrap items-center gap-2">
-                      <span class="text-sm font-medium truncate max-w-[16rem]" title="{{ $report->formatted_address }}">
+                      <span class="text-sm font-medium truncate max-w-[16rem]" title="{{ $report->formatted_address }}" style="color:var(--text)">
                         {{ $report->formatted_address }}
                       </span>
                       <button type="button" class="chip-btn"
@@ -216,7 +283,8 @@
 
               <div class="mt-3 flex items-center justify-between">
                 <a href="{{ route('reports.show', $report) }}"
-                   class="inline-flex items-center gap-1 text-amber-700 hover:text-amber-800 font-medium">
+                   class="inline-flex items-center gap-1 font-semibold"
+                   style="color:var(--link)">
                   View details
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6l6 6-6 6-1.4-1.4L12.2 12 8.6 7.4z"/></svg>
                 </a>
@@ -228,8 +296,8 @@
 
       {{-- pagination --}}
       @if(method_exists($reports,'links'))
-        <div class="mt-6">
-          {{ $reports->links() }}
+        <div class="mt-6 flex justify-center">
+          {{ $reports->appends(request()->query())->links() }}
         </div>
       @endif
     @endif

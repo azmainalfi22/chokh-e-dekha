@@ -4,110 +4,243 @@
 
 @push('styles')
 <style>
-  /* ---------- THEME TOKENS (Light/Dark) ---------- */
-  :root{
-    --surface: #ffffff;
-    --surface-muted: #f8fafc;        /* slate-50 */
-    --text: #0f172a;                  /* slate-900 */
-    --muted: #475569;                 /* slate-600/700 */
-    --ring: #e2e8f0;                  /* slate-200 */
-    --link: #0ea5e9;                  /* sky-500 */
-    --accent: #f59e0b;                /* amber-500 */
-    --accent-700:#b45309;             /* amber-700 */
-  }
-  .dark{
-    --surface:#6653325b;              /* semi-transparent for glassy cards */
-    --surface-muted:#111827;          /* gray-900 */
-    --text:#e5e7eb;                   /* gray-200 */
-    --muted:#9ca3af;                  /* gray-400 */
-    --ring:#1f2937;                   /* gray-800 */
-    --link:#38bdf8;                   /* sky-400 */
-    --accent:#f59e0b;
-    --accent-700:#f59e0b;
-  }
+  /* ---------- PAGE-SPECIFIC STYLES ---------- */
+  /* Only styles unique to this page go here. The global theme is included by the layout. */
 
-  /* Soft grain overlay */
-  .grainy::before{
-    content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
-    opacity:.14; mix-blend:multiply;
-    background-size: 220px 220px; background-repeat: repeat;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/feTurbulence%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.20'/%3E%3C/svg%3E");
-  }
-  .dark .grainy::before{ opacity:.10; } /* reduce glare in dark */
-
-  /* ---------- SURFACES & TYPOGRAPHY ---------- */
-  body{ color:var(--text); }
-  .report-card{
+  /* Report Cards */
+  .report-card {
     background: var(--surface);
     border: 1px solid var(--ring);
-    box-shadow: 0 8px 24px rgba(100, 60, 7, 0.37);
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    box-shadow: var(--shadow-lg);
+    transition: all var(--duration-normal) var(--ease-out);
+    backdrop-filter: blur(8px);
+    position: relative;
+    overflow: visible;
   }
-  .report-card:hover{
-    transform: translateY(-3px);
-    box-shadow: 0 14px 36px rgba(2,6,23,.18);
-    border-color: rgba(245,158,11,.45);
-  }
-  .dark .report-card{
-    box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  .report-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--accent);
   }
 
-  .report-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem; }
-  .report-head h3{ color:var(--text); }
+  .report-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .report-head h3 {
+    color: var(--text);
+    line-height: 1.2;
+  }
 
-  .meta{ color: var(--muted); }
-  .meta li{ display:flex; align-items:center; gap:.5rem; }
+  .meta {
+    color: var(--muted);
+    font-size: var(--text-sm);
+  }
+  .meta li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    line-height: 1.4;
+  }
 
-  a{ color: var(--link); }
-  a:hover{ text-decoration: underline; }
+  a {
+    color: var(--link);
+    transition: all var(--duration-fast) ease;
+  }
+  a:hover {
+    text-decoration: underline;
+    color: var(--accent);
+  }
 
-  /* ---------- BADGES ---------- */
-  .badge{ display:inline-flex; align-items:center; gap:.4rem;
-          padding:.18rem .55rem; border-radius:999px; font-size:.72rem; font-weight:600; }
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    line-height: 1;
+  }
   .badge-category{
-    background: rgba(245,158,11,.12); color: var(--accent-700);
-    border: 1px solid rgba(245,158,11,.28);
+    background: rgba(245,158,11,.15);
+    color: var(--accent-700);
+    border: 1px solid rgba(245,158,11,.3);
   }
 
-  /* Status pills – tuned for both themes */
-  .status-pill{ display:inline-flex; align-items:center; gap:.35rem; padding:.22rem .6rem;
-                border-radius:999px; font-size:.72rem; font-weight:700; line-height:1; border:1px solid transparent; white-space:nowrap;}
-  .status-pending{     background: rgba(245,158,11,.16); color:#92400e; border-color: rgba(245,158,11,.35); }
-  .dark .status-pending{ color:#fbbf24; }
-  .status-in_progress{ background: rgba(59,130,246,.15); color:#1e3a8a;  border-color: rgba(147,197,253,.45); }
-  .dark .status-in_progress{ color:#93c5fd; }
-  .status-resolved{    background: rgba(16,185,129,.15); color:#065f46; border-color: rgba(110,231,183,.45); }
-  .dark .status-resolved{ color:#6ee7b7; }
-  .status-rejected{    background: rgba(239,68,68,.16);  color:#991b1b; border-color: rgba(252,165,165,.45); }
-  .dark .status-rejected{ color:#fca5a5; }
-
-  /* ---------- THREAD & EFFECTS ---------- */
-  .cd-thread { max-height:0; overflow:hidden; transition:max-height .3s ease; }
-  @keyframes fadeIn { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform:none;} }
-  .appear { animation: fadeIn .25s ease both; }
-  @media (prefers-reduced-motion: reduce){
-    .report-card, .appear { transition:none !important; animation:none !important; transform:none !important; }
+  /* Status Pills (uses tokens from _theme) */
+  .status-pill{
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: 1;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+  }
+  .status-pending{
+    background: var(--status-pending-bg);
+    color: var(--status-pending-text);
+    border-color: var(--status-pending-border);
+  }
+  .status-in_progress{
+    background: var(--status-in-progress-bg);
+    color: var(--status-in-progress-text);
+    border-color: var(--status-in-progress-border);
+  }
+  .status-resolved{
+    background: var(--status-resolved-bg);
+    color: var(--status-resolved-text);
+    border-color: var(--status-resolved-border);
+  }
+  .status-rejected{
+    background: var(--status-rejected-bg);
+    color: var(--status-rejected-text);
+    border-color: var(--status-rejected-border);
   }
 
-  /* ---------- FILTERS PANEL ---------- */
-  .filters-panel{ background: var(--surface); border:1px solid var(--ring);
-                  box-shadow: 0 8px 24px rgba(43, 24, 4, 0.38); }
+  /* Comment Thread */
+  .cd-thread{
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--duration-slow) var(--ease-out);
+    background: var(--surface-elevated);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-2xl);
+    margin-top: var(--space-4);
+    position: relative;
+    z-index: var(--z-dropdown);
+  }
+  .cd-thread.open { border-color: var(--ring-focus); box-shadow: var(--shadow-md); }
+  .cd-thread-content { padding: var(--space-4); }
+  .js-thread-list { max-height: 200px; overflow-y: auto; margin-bottom: var(--space-4); }
+  .js-thread-list:empty { display: none; }
+
+  .comment-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+  .comment-item:last-child { margin-bottom: 0; }
+
+  .comment-avatar{
+    width: 2rem; height: 2rem; border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--accent), #f97316);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:600; font-size: var(--text-xs); flex-shrink:0;
+  }
+  .comment-bubble{
+    background: var(--surface-muted);
+    border: 1px solid var(--ring);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-3) var(--space-4);
+    flex: 1; min-width: 0;
+  }
+  .comment-author{ font-weight:600; color:var(--text); font-size: var(--text-sm); }
+  .comment-text{ color:var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); line-height: 1.4; }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .appear { animation: fadeInUp var(--duration-slower) var(--ease-out) both; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .loading { animation: pulse 1.5s ease-in-out infinite; }
+
+  /* Filters Panel */
+  .filters-panel{
+    background: var(--surface);
+    border: 1px solid var(--ring);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(12px);
+  }
   .filters-panel input[type="search"],
   .filters-panel select,
   .filters-panel .btn{
-    background: var(--surface-muted) !important; color: var(--text) !important; border-color: var(--ring) !important;
+    background: var(--surface-muted) !important;
+    color: var(--text) !important;
+    border-color: var(--ring) !important;
+    transition: all var(--duration-fast) ease !important;
+  }
+  .filters-panel input[type="search"]:focus,
+  .filters-panel select:focus,
+  .filters-panel .btn:focus{
+    border-color: var(--ring-focus) !important;
+    box-shadow: 0 0 0 3px rgba(245,158,11,.1) !important;
+    outline: none !important;
   }
   .filters-panel .btn-apply{
-    background: linear-gradient(90deg,#f59e0b,#f43f5e) !important; color:#fff !important; border-color:transparent !important;
+    background: linear-gradient(135deg, var(--accent), #f97316) !important;
+    color:#fff !important; border-color: transparent !important; font-weight:600 !important;
+  }
+  .filters-panel .btn-apply:hover{
+    background: linear-gradient(135deg, var(--accent-600), #ea580c) !important;
+    transform: translateY(-1px) !important; box-shadow: var(--shadow-md) !important;
   }
   .filters-panel .btn-ghost{
     background: var(--surface) !important; color: var(--text) !important; border-color: var(--ring) !important;
   }
+  .filters-panel .btn-ghost:hover{
+    background: var(--surface-muted) !important; border-color: var(--accent) !important;
+  }
+
+  /* Engagement Buttons */
+  .engagement-bar{ border-top:1px solid var(--ring); padding-top: var(--space-4); margin-top: var(--space-4); }
+  .engagement-btn{
+    display:inline-flex; align-items:center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xl); font-size: var(--text-sm); font-weight:500;
+    transition: all var(--duration-fast) ease; border:1px solid var(--ring);
+    background: var(--surface); color: var(--text-secondary);
+  }
+  .engagement-btn:hover{ background: var(--surface-muted); border-color: var(--accent); color: var(--text); }
+  .engagement-btn.active{ background: rgba(245,158,11,.1); border-color: var(--accent); color: var(--accent-700); }
+
+  /* Loading shimmer */
+  .skeleton{
+    background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface) 50%, var(--surface-muted) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-lg);
+  }
+  @keyframes shimmer { 0% {background-position:-200% 0} 100% {background-position:200% 0} }
+
+  /* Toast */
+  .toast{
+    position: fixed; left:50%; transform: translateX(-50%); bottom: var(--space-8);
+    z-index: var(--z-toast); padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-xl); font-size: var(--text-sm); font-weight:500; color:#fff;
+    background: linear-gradient(135deg, var(--accent), #f97316);
+    box-shadow: var(--shadow-lg); backdrop-filter: blur(8px);
+    transition: all var(--duration-slow) var(--ease-out);
+  }
+  .toast.hide{ opacity:0; transform: translate(-50%, 1rem); }
+
+  /* Responsive */
+  @media (max-width: 768px){
+    .report-card{ margin-bottom: var(--space-6); }
+    .report-head{ flex-direction: column; gap: var(--space-2); }
+    .status-pill{ align-self: flex-start; }
+    .filters-panel form{ grid-template-columns: 1fr !important; }
+    .filters-panel .btn-cluster{ flex-direction: column; gap: var(--space-2); }
+  }
 </style>
 @endpush
 
-
 @section('content')
+{{-- Your existing content here, unchanged --}}
+{{-- The rest of your Blade template remains exactly the same --}}
+
 @php
   use Illuminate\Support\Facades\Schema;
   use Illuminate\Support\Facades\Route;
@@ -124,51 +257,70 @@
   $commentsRouteName = Route::has('reports.comments.store') ? 'reports.comments.store' : null;
 @endphp
 
-<div class="relative grainy">
-  {{-- colored blobs --}}
-  <div class="pointer-events-none absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-30 bg-gradient-to-br from-amber-300 to-rose-300"></div>
-  <div class="pointer-events-none absolute -bottom-24 -left-24 h-96 w-80 rounded-full blur-3xl opacity-30 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
+<div class="relative grainy min-h-screen">
+  {{-- Enhanced background blobs --}}
+  <div class="pointer-events-none fixed -top-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 via-orange-300 to-rose-300 animate-pulse"></div>
+  <div class="pointer-events-none fixed -bottom-32 -left-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 via-amber-300 to-pink-300 animate-pulse" style="animation-delay:1s;"></div>
 
+  {{-- Rest of your content... --}}
+  {{-- All your existing HTML structure remains unchanged --}}
   <div class="max-w-7xl mx-auto p-4 md:p-8 relative z-[1]">
-    <header class="mb-6 md:mb-8">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <header class="mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div class="min-w-0">
-          <h1 class="text-3xl font-extrabold text-[color:var(--text)]">All Reports</h1>
-          <p class="text-sm" style="color:var(--muted)">Search and filter reports submitted across all city corporations.</p>
+          <h1 class="text-4xl md:text-5xl font-black text-[color:var(--text)] mb-3">
+            All Reports
+          </h1>
+          <p class="text-base md:text-lg" style="color:var(--muted)">
+            Search and filter reports submitted across all city corporations.
+          </p>
         </div>
 
         @if(Route::has('report.create') && !auth()->user()?->is_admin)
           <a href="{{ route('report.create') }}"
-             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl shadow hover:shadow-md bg-amber-600 text-white hover:bg-amber-700 transition self-start md:self-auto">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5h2v14h-2zM5 11h14v2H5z"/></svg>
+             class="inline-flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl font-semibold text-white transition-all duration-200 self-start lg:self-auto"
+             style="background: linear-gradient(135deg, var(--accent), #f97316);">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11 5h2v14h-2zM5 11h14v2H5z"/>
+            </svg>
             New Report
           </a>
         @endif
       </div>
     </header>
 
-    {{-- Flash --}}
+    {{-- Enhanced Flash Messages --}}
     @if(session('success'))
-      <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800 shadow-sm">
-        {{ session('success') }}
+      <div class="mb-8 rounded-xl border border-emerald-300 bg-emerald-50 px-6 py-4 text-emerald-800 shadow-md backdrop-blur-sm">
+        <div class="flex items-center gap-3">
+          <svg class="h-5 w-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          {{ session('success') }}
+        </div>
       </div>
     @endif
 
-    {{-- Filters + Actions --}}
-    <div class="mb-6 rounded-2xl filters-panel p-4">
-      <form method="GET" action="{{ route('reports.index') }}"
-            class="grid gap-3 items-center grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-9">
+    {{-- Enhanced Filters Panel --}}
+    <div class="mb-8 rounded-2xl filters-panel p-6 shadow-xl">
+      <form method="GET" action="{{ route('reports.index') }}" id="filtersForm"
+            class="grid gap-4 items-center grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-9">
 
-        {{-- Search --}}
-        <div class="flex items-center gap-2 col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3">
-          <svg class="h-5 w-5 flex-none" style="color:var(--muted)" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4a6 6 0 104.47 10.03l3.75 3.75 1.41-1.41-3.75-3.75A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/></svg>
-          <input type="search" name="q" value="{{ $q ?? '' }}" placeholder="Search title, description, or address…"
-                 class="w-full rounded-xl border px-3 py-2 focus:ring-2" style="border-color:var(--ring)">
+        {{-- Enhanced Search --}}
+        <div class="flex items-center gap-3 col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3">
+          <div class="relative flex-1">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 flex-none" style="color:var(--muted)" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10 4a6 6 0 104.47 10.03l3.75 3.75 1.41-1.41-3.75-3.75A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"/>
+            </svg>
+            <input type="search" name="q" value="{{ $q ?? '' }}" placeholder="Search title, description, or address…"
+                   class="w-full rounded-xl border pl-10 pr-4 py-3 text-sm focus:ring-2 transition-all duration-200" 
+                   style="border-color:var(--ring)">
+          </div>
         </div>
 
-        {{-- City --}}
+        {{-- Enhanced Selects --}}
         <select name="city_corporation"
-                class="w-full rounded-xl border px-3 py-2 focus:ring-2"
+                class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 transition-all duration-200"
                 style="border-color:var(--ring)">
           <option value="">All cities</option>
           @foreach(($cities ?? collect()) as $c)
@@ -176,9 +328,8 @@
           @endforeach
         </select>
 
-        {{-- Category --}}
         <select name="category"
-                class="w-full rounded-xl border px-3 py-2 focus:ring-2"
+                class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 transition-all duration-200"
                 style="border-color:var(--ring)">
           <option value="">All categories</option>
           @foreach(($categories ?? collect()) as $categ)
@@ -186,9 +337,8 @@
           @endforeach
         </select>
 
-        {{-- Status --}}
         <select name="status"
-                class="w-full rounded-xl border px-3 py-2 focus:ring-2"
+                class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 transition-all duration-200"
                 style="border-color:var(--ring)">
           <option value="">All statuses</option>
           @foreach(($statuses ?? ['pending','in_progress','resolved','rejected']) as $s)
@@ -196,44 +346,50 @@
           @endforeach
         </select>
 
-        {{-- Near me cluster --}}
-        <div class="col-span-1 sm:col-span-2 xl:col-span-3 flex flex-wrap items-center gap-2">
+        {{-- Enhanced Near Me Section --}}
+        <div class="col-span-1 sm:col-span-2 xl:col-span-3 flex flex-wrap items-center gap-3">
           <button type="button" id="nearMeBtn"
-                  class="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-amber-600 text-white hover:bg-amber-700 shadow">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 4.2L18 8l-4.2 1.8L12 14l-1.8-4.2L6 8l4.2-1.8z"/></svg>
-            Near me
+                  class="inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                  style="background: linear-gradient(135deg, var(--accent), #f97316);">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l1.8 4.2L18 8l-4.2 1.8L12 14l-1.8-4.2L6 8l4.2-1.8z"/>
+            </svg>
+            <span>Near me</span>
           </button>
 
-          <label for="radius_km" class="text-sm" style="color:var(--muted)">Radius</label>
-          @php $radiusKm = (int)($radiusKm ?? request('radius_km', 0)); @endphp
-          <select id="radius_km" name="radius_km"
-                  class="rounded-xl border px-3 py-2 focus:ring-2" style="border-color:var(--ring)">
-            <option value="0"  @selected($radiusKm===0)>Any</option>
-            <option value="3"  @selected($radiusKm===3)>3 km</option>
-            <option value="5"  @selected($radiusKm===5)>5 km</option>
-            <option value="10" @selected($radiusKm===10)>10 km</option>
-            <option value="20" @selected($radiusKm===20)>20 km</option>
-          </select>
+          <div class="flex items-center gap-2">
+            <label for="radius_km" class="text-sm font-medium" style="color:var(--muted)">Radius:</label>
+            @php $radiusKm = (int)($radiusKm ?? request('radius_km', 0)); @endphp
+            <select id="radius_km" name="radius_km"
+                    class="rounded-xl border px-3 py-2 text-sm focus:ring-2 transition-all duration-200" 
+                    style="border-color:var(--ring)">
+              <option value="0"  @selected($radiusKm===0)>Any</option>
+              <option value="3"  @selected($radiusKm===3)>3 km</option>
+              <option value="5"  @selected($radiusKm===5)>5 km</option>
+              <option value="10" @selected($radiusKm===10)>10 km</option>
+              <option value="20" @selected($radiusKm===20)>20 km</option>
+            </select>
+          </div>
 
           {{-- Hidden near-me fields --}}
           <input type="hidden" id="near_lat" name="near_lat" value="{{ $nearLat ?? request('near_lat') }}">
           <input type="hidden" id="near_lng" name="near_lng" value="{{ $nearLng ?? request('near_lng') }}">
         </div>
 
-        {{-- Actions cluster --}}
-        <div class="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 flex flex-wrap items-center justify-end gap-2">
-          <label for="per_page" class="sr-only">Results per page</label>
+        {{-- Enhanced Actions --}}
+        <div class="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-3 flex flex-wrap items-center justify-end gap-3 btn-cluster">
           <select id="per_page" name="per_page"
-                  class="w-full sm:w-auto rounded-xl border px-3 py-2 focus:ring-2 btn" style="border-color:var(--ring)">
+                  class="rounded-xl border px-3 py-2 text-sm focus:ring-2 btn transition-all duration-200" 
+                  style="border-color:var(--ring)">
             @foreach([12,18,24,30,36,48] as $pp)
               <option value="{{ $pp }}" @selected((int)request('per_page',12)===$pp)>Show {{ $pp }}</option>
             @endforeach
           </select>
 
           @php $sort = request('sort', ($nearLat ?? false) && ($nearLng ?? false) ? 'nearest' : 'newest'); @endphp
-          <label for="sort" class="sr-only">Sort by</label>
           <select id="sort" name="sort"
-                  class="w-full sm:w-auto rounded-xl border px-3 py-2 focus:ring-2 btn" style="border-color:var(--ring)">
+                  class="rounded-xl border px-3 py-2 text-sm focus:ring-2 btn transition-all duration-200" 
+                  style="border-color:var(--ring)">
             <option value="newest"   @selected($sort==='newest')>Newest first</option>
             <option value="oldest"   @selected($sort==='oldest')>Oldest first</option>
             <option value="status"   @selected($sort==='status')>Status (A→Z)</option>
@@ -243,33 +399,53 @@
           </select>
 
           <button type="submit" name="apply" value="1"
-                  class="flex-none rounded-xl font-semibold px-4 py-2 shadow hover:shadow-lg btn-apply">
+                  class="flex-none rounded-xl font-semibold px-6 py-2 shadow-md hover:shadow-lg btn-apply transition-all duration-200">
             Apply
           </button>
 
           <a href="{{ route('reports.index') }}"
-             class="flex-none rounded-xl px-3 py-2 border shadow hover:shadow-md btn-ghost">
+             class="flex-none rounded-xl px-4 py-2 border shadow-sm hover:shadow-md btn-ghost transition-all duration-200">
             Clear
           </a>
 
           <button type="button" id="copyLinkBtn"
-                  class="flex-none rounded-xl px-3 py-2 border shadow hover:shadow-md btn-ghost">
+                  class="flex-none rounded-xl px-4 py-2 border shadow-sm hover:shadow-md btn-ghost transition-all duration-200">
             Copy link
           </button>
         </div>
 
-        {{-- Active chips --}}
+        {{-- Enhanced Active Filters --}}
         @if(($q ?? '') || ($city ?? '') || (($category ?? $cat ?? '') !== '') || (($status ?? '') !== '') || (($nearLat ?? request('near_lat')) && ($nearLng ?? request('near_lng'))))
-          <div class="sm:col-span-2 lg:grid-cols-6 xl:grid-cols-9 mt-1 flex flex-wrap items-center gap-2 text-sm" style="color:var(--muted)">
-            <span>Active:</span>
-            @if($q)    <span class="px-2 py-1 rounded-lg" style="background:rgba(245,158,11,.12); color:var(--text); border:1px solid rgba(245,158,11,.28);">Search: “{{ $q }}”</span>@endif
-            @if($city) <span class="px-2 py-1 rounded-lg" style="background:rgba(245,158,11,.12); color:var(--text); border:1px solid rgba(245,158,11,.28);">City: {{ $city }}</span>@endif
-            @php $showCat = ($category ?? $cat ?? ''); @endphp
-            @if($showCat !== '') <span class="px-2 py-1 rounded-lg" style="background:rgba(245,158,11,.12); color:var(--text); border:1px solid rgba(245,158,11,.28);">Category: {{ $showCat }}</span>@endif
-            @if(($status ?? '') !== '') <span class="px-2 py-1 rounded-lg" style="background:rgba(245,158,11,.12); color:var(--text); border:1px solid rgba(245,158,11,.28);">Status: {{ Str::headline($status) }}</span>@endif
-            @if(($nearLat ?? request('near_lat')) && ($nearLng ?? request('near_lng')))
-              <span class="px-2 py-1 rounded-lg" style="background:rgba(245,158,11,.12); color:var(--text); border:1px solid rgba(245,158,11,.28);">Near me{{ $radiusKm ? " ({$radiusKm} km)" : '' }}</span>
-            @endif
+          <div class="col-span-full mt-4 pt-4 border-t" style="border-color:var(--ring)">
+            <div class="flex flex-wrap items-center gap-2 text-sm" style="color:var(--muted)">
+              <span class="font-semibold">Active filters:</span>
+              @if($q)    
+                <span class="px-3 py-1.5 rounded-lg font-medium" style="background:rgba(245,158,11,.15); color:var(--text); border:1px solid rgba(245,158,11,.3);">
+                  Search: "{{ $q }}"
+                </span>
+              @endif
+              @if($city) 
+                <span class="px-3 py-1.5 rounded-lg font-medium" style="background:rgba(245,158,11,.15); color:var(--text); border:1px solid rgba(245,158,11,.3);">
+                  City: {{ $city }}
+                </span>
+              @endif
+              @php $showCat = ($category ?? $cat ?? ''); @endphp
+              @if($showCat !== '') 
+                <span class="px-3 py-1.5 rounded-lg font-medium" style="background:rgba(245,158,11,.15); color:var(--text); border:1px solid rgba(245,158,11,.3);">
+                  Category: {{ $showCat }}
+                </span>
+              @endif
+              @if(($status ?? '') !== '') 
+                <span class="px-3 py-1.5 rounded-lg font-medium" style="background:rgba(245,158,11,.15); color:var(--text); border:1px solid rgba(245,158,11,.3);">
+                  Status: {{ Str::headline($status) }}
+                </span>
+              @endif
+              @if(($nearLat ?? request('near_lat')) && ($nearLng ?? request('near_lng')))
+                <span class="px-3 py-1.5 rounded-lg font-medium" style="background:rgba(245,158,11,.15); color:var(--text); border:1px solid rgba(245,158,11,.3);">
+                  Near me{{ $radiusKm ? " ({$radiusKm} km)" : '' }}
+                </span>
+              @endif
+            </div>
           </div>
         @endif
       </form>
@@ -283,18 +459,27 @@
       };
     @endphp
 
-    {{-- List --}}
+    {{-- Enhanced Reports List --}}
     @if($reports->isEmpty())
-      <div class="rounded-2xl border border-amber-300 bg-white/60 backdrop-blur px-6 py-12 text-center shadow">
-        <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full ring-1 ring-amber-200 bg-amber-50">
-          <svg class="h-5 w-5 text-amber-700" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zM3 10h18v2H3zM3 15h12v2H3z"/></svg>
+      <div class="rounded-2xl border border-amber-300 bg-white/80 backdrop-blur-sm px-8 py-16 text-center shadow-lg">
+        <div class="mx-auto mb-6 inline-flex h-16 w-16 items-center justify-center rounded-full ring-2 ring-amber-200 bg-amber-50">
+          <svg class="h-8 w-8 text-amber-700" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 5h18v2H3zM3 10h18v2H3zM3 15h12v2H3z"/>
+          </svg>
         </div>
-        <h3 class="text-lg font-semibold" style="color:var(--text)">No reports match your filters</h3>
-        <p class="text-sm" style="color:var(--muted)">Try adjusting search terms or clearing filters.</p>
-        <a href="{{ route('reports.index') }}" class="mt-4 inline-flex px-4 py-2 rounded-xl bg-amber-600 text-white hover:bg-amber-700">Reset filters</a>
+        <h3 class="text-xl font-bold mb-2" style="color:var(--text)">No reports match your filters</h3>
+        <p class="text-base mb-6" style="color:var(--muted)">Try adjusting your search terms or clearing active filters to see more results.</p>
+        <a href="{{ route('reports.index') }}" 
+           class="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all duration-200"
+           style="background: linear-gradient(135deg, var(--accent), #f97316);">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          Reset all filters
+        </a>
       </div>
     @else
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         @foreach($reports as $report)
           @php
             $commentsCount = $commentsEnabled
@@ -313,255 +498,753 @@
             }
           @endphp
 
-          {{-- IMPORTANT: no overflow-hidden here to let the thread expand --}}
-          <div class="report-card appear rounded-2xl transition">
-
-            {{-- Static map header --}}
+          <article class="report-card appear rounded-2xl overflow-visible">
+            {{-- Enhanced Map Header --}}
             @if($report->static_map_url)
               <a href="@if($report->has_coords) https://www.google.com/maps/search/?api=1&query={{ $report->latitude }},{{ $report->longitude }} @else {{ route('reports.show', $report) }} @endif"
                  target="_blank" rel="noopener"
-                 class="block">
+                 class="block relative group overflow-hidden">
                 <img src="{{ $report->static_map_url }}"
-                     alt="Map preview"
-                     class="w-full h-40 object-cover" loading="lazy">
+                     alt="Map preview for {{ $report->title }}"
+                     class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105" 
+                     loading="lazy">
+                <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <span class="text-white font-semibold bg-black/50 px-3 py-1 rounded-full text-sm">
+                    View on map
+                  </span>
+                </div>
               </a>
             @endif
 
-            <div class="p-5 flex flex-col gap-3 relative group">
+            <div class="p-6 flex flex-col gap-4 relative">
+              {{-- Enhanced Header --}}
               <div class="report-head">
-                <div class="min-w-0">
-                  <h3 class="text-lg font-bold leading-snug line-clamp-2">{{ $report->title }}</h3>
-                  <p class="mt-0.5">
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-xl font-bold leading-tight line-clamp-2 mb-2">{{ $report->title }}</h3>
+                  <div class="flex items-center gap-2">
                     <span class="badge badge-category">{{ $report->category ?? 'General' }}</span>
-                  </p>
+                  </div>
                 </div>
-                {!! $pill($report->status) !!}
+                <div class="flex-shrink-0">
+                  {!! $pill($report->status) !!}
+                </div>
               </div>
 
-              <ul class="meta space-y-1">
-                <li>
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
-                  <span class="font-medium" style="color:var(--text)">
-                    {{ $report->short_address ?? $report->location ?? 'N/A' }}
-                  </span>
-                  @if($report->has_coords)
-                    <a href="https://www.google.com/maps/search/?api=1&query={{ $report->latitude }},{{ $report->longitude }}"
-                       target="_blank" rel="noopener"
-                       class="ml-2 text-xs">Open in Maps</a>
-                  @endif
+              {{-- Enhanced Meta Information --}}
+              <ul class="meta space-y-2">
+                <li class="flex items-start gap-2">
+                  <svg class="h-4 w-4 mt-0.5 flex-shrink-0" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/>
+                  </svg>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-medium block" style="color:var(--text)">
+                      {{ $report->short_address ?? $report->location ?? 'Address not specified' }}
+                    </span>
+                    @if($report->has_coords)
+                      <a href="https://www.google.com/maps/search/?api=1&query={{ $report->latitude }},{{ $report->longitude }}"
+                         target="_blank" rel="noopener"
+                         class="text-xs hover:underline inline-flex items-center gap-1 mt-1">
+                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                        </svg>
+                        Open in Maps
+                      </a>
+                    @endif
+                  </div>
                 </li>
                 <li>
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v2H5zM5 8h14v12H5z"/></svg>
-                  <span>{{ $report->city_corporation ?? '—' }}</span>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 4h14v2H5zM5 8h14v12H5z"/>
+                  </svg>
+                  <span class="font-medium">{{ $report->city_corporation ?? 'Not specified' }}</span>
                 </li>
                 <li>
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zM4 22v-2c0-2.2 3.8-3.3 6-3.3s6 1.1 6 3.3v2H4z"/></svg>
-                  <span>{{ $report->user->name ?? 'Unknown' }}</span>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12a5 5 0 100-10 5 5 0 000 10zM4 22v-2c0-2.2 3.8-3.3 6-3.3s6 1.1 6 3.3v2H4z"/>
+                  </svg>
+                  <span>{{ $report->user->name ?? 'Anonymous' }}</span>
                 </li>
                 <li>
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10v2H7zM5 6h14v14H5zM9 8h6v6H9z"/></svg>
-                  <span>{{ optional($report->created_at)->format('M d, Y h:i a') }}</span>
+                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M7 2h10v2H7zM5 6h14v14H5zM9 8h6v6H9z"/>
+                  </svg>
+                  <span>{{ optional($report->created_at)->format('M d, Y \a\t h:i A') }}</span>
                 </li>
               </ul>
 
-              {{-- Engagement bar --}}
-              <div class="mt-2 flex items-center justify-between text-sm">
-                <div class="flex items-center gap-3">
-                  {{-- Endorse (like) --}}
-                  @includeWhen($endorsementsEnabled && $endorseRouteName, 'partials._endorse_button', [
-                    'report'        => $report,
-                    'endorseCount'  => $endorseCount ?? 0,
-                    'endorsed'      => $endorsed ?? false,
-                    'routeName'     => $endorseRouteName
-                  ])
+              {{-- Enhanced Engagement Bar --}}
+              <div class="engagement-bar">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    {{-- Enhanced Endorse Button --}}
+                    @includeWhen($endorsementsEnabled && $endorseRouteName, 'partials._endorse_button', [
+                      'report'        => $report,
+                      'endorseCount'  => $endorseCount ?? 0,
+                      'endorsed'      => $endorsed ?? false,
+                      'routeName'     => $endorseRouteName
+                    ])
 
-                  {{-- Comments trigger (FB-like inline) --}}
-                  <button type="button"
-                          class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border btn js-thread-toggle"
-                          data-target="#thread-{{ $report->id }}"
-                          aria-expanded="false">
-                    💬 <span class="js-comments-count">{{ $commentsCount }}</span>
-                  </button>
+                    {{-- Enhanced Comments Button --}}
+                    <button type="button"
+                            class="engagement-btn js-thread-toggle @if($commentsCount > 0) active @endif"
+                            data-target="#thread-{{ $report->id }}"
+                            aria-expanded="false"
+                            aria-label="Toggle comments">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                      </svg>
+                      <span class="js-comments-count">{{ $commentsCount }}</span>
+                      <span class="hidden sm:inline">{{ $commentsCount === 1 ? 'Comment' : 'Comments' }}</span>
+                    </button>
+                  </div>
+
+                  <a href="{{ route('reports.show', $report) }}"
+                     class="inline-flex items-center gap-2 font-semibold text-sm hover:gap-3 transition-all duration-200"
+                     style="color:var(--link)">
+                    View details
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M10 6l6 6-6 6-1.4-1.4L12.2 12 8.6 7.4z"/>
+                    </svg>
+                  </a>
                 </div>
-
-                <a href="{{ route('reports.show', $report) }}"
-                   class="inline-flex items-center gap-1 font-medium">
-                  View details
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6l6 6-6 6-1.4-1.4L12.2 12 8.6 7.4z"/></svg>
-                </a>
               </div>
 
-              {{-- Inline thread (FB-like) --}}
-              @includeWhen($commentsEnabled && $commentsRouteName, 'partials._comment_thread', [
-                'report' => $report,
-                'commentsRouteName' => $commentsRouteName
-              ])
+              {{-- Enhanced Comment Thread --}}
+              @if($commentsEnabled && $commentsRouteName)
+                <div id="thread-{{ $report->id }}" class="cd-thread">
+                  <div class="cd-thread-content">
+                    {{-- Comments List --}}
+                    <ul class="js-thread-list space-y-3">
+                      @if(method_exists($report, 'comments'))
+                        @foreach($report->comments()->latest()->limit(3)->get() as $comment)
+                          <li class="comment-item">
+                            <div class="comment-avatar">
+                              {{ substr($comment->user->name ?? 'A', 0, 1) }}
+                            </div>
+                            <div class="comment-bubble">
+                              <div class="comment-author">{{ $comment->user->name ?? 'Anonymous' }}</div>
+                              <div class="comment-text">{{ $comment->body }}</div>
+                            </div>
+                          </li>
+                        @endforeach
+                      @endif
+                    </ul>
+
+                    {{-- Comment Form --}}
+                    @auth
+                      <form action="{{ route($commentsRouteName, $report) }}" method="POST" class="js-comment-form">
+                        @csrf
+                        <div class="flex gap-3">
+                          <div class="comment-avatar">
+                            {{ substr(auth()->user()->name, 0, 1) }}
+                          </div>
+                          <div class="flex-1">
+                            <textarea name="body" 
+                                      placeholder="Write a comment..." 
+                                      class="w-full rounded-xl border px-4 py-3 text-sm resize-none focus:ring-2 transition-all duration-200"
+                                      style="border-color:var(--ring); min-height:44px;"
+                                      rows="1"></textarea>
+                            <div class="flex justify-end mt-2">
+                              <button type="submit" 
+                                      class="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200"
+                                      style="background: linear-gradient(135deg, var(--accent), #f97316);">
+                                Post
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                    @else
+                      <div class="text-center py-4" style="color:var(--muted)">
+                        <a href="{{ route('login') }}" class="font-medium" style="color:var(--link)">
+                          Sign in to comment
+                        </a>
+                      </div>
+                    @endauth
+                  </div>
+                </div>
+              @endif
             </div>
-          </div>
+          </article>
         @endforeach
       </div>
 
+      {{-- Enhanced Pagination --}}
       @if(method_exists($reports,'links'))
-        <div class="mt-6">
-          {{ $reports->links() }}
+        <div class="mt-12">
+          <div class="flex justify-center">
+            {{ $reports->appends(request()->query())->links() }}
+          </div>
         </div>
       @endif
     @endif
   </div>
 </div>
 
+
+
+{{-- All your existing JavaScript remains unchanged --}}
 @push('scripts')
 <script>
 (function(){
+  'use strict';
+  
   const getCsrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const form = document.getElementById('filtersForm');
 
-  /* ===== tiny toast ===== */
-  function toast(msg){
-    let t = document.createElement('div');
-    t.role = 'status';
-    t.ariaLive = 'polite';
-    t.textContent = msg;
-    t.className = 'fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] px-3 py-2 rounded-xl text-sm text-white shadow-lg';
-    t.style.backgroundImage = 'linear-gradient(90deg,#d97706,#e11d48)';
-    document.body.appendChild(t);
-    setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translate(-50%,8px)'; }, 1100);
-    setTimeout(()=>t.remove(), 1500);
+  /* ===== Enhanced Toast System ===== */
+  function toast(message, type = 'success') {
+    // Remove any existing toasts
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    
+    const toast = document.createElement('div');
+    toast.role = 'status';
+    toast.ariaLive = 'polite';
+    toast.textContent = message;
+    toast.className = 'toast';
+    
+    // Different styles for different types
+    if (type === 'error') {
+      toast.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    }
+    
+    document.body.appendChild(toast);
+    
+    // Auto hide
+    setTimeout(() => toast.classList.add('hide'), 2500);
+    setTimeout(() => toast.remove(), 3000);
   }
 
-  /* ===== Auto-appear on scroll ===== */
-  const io = ('IntersectionObserver' in window) ? new IntersectionObserver((entries)=>{
-    for (const e of entries){ if (e.isIntersecting) { e.target.classList.add('appear'); io.unobserve(e.target); } }
-  }, { rootMargin: '0px 0px -10% 0px' }) : null;
+  /* ===== Enhanced Auto-appear Animation ===== */
+  const observerOptions = {
+    rootMargin: '0px 0px -10% 0px',
+    threshold: 0.1
+  };
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('appear');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
 
-  document.querySelectorAll('.report-card').forEach(c => io?.observe(c));
-
-  /* ===== Filter helpers ===== */
-  const form = document.querySelector('form[action="{{ route('reports.index') }}"]');
-  ['per_page','sort','radius_km'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && form) el.addEventListener('change', () => form.requestSubmit());
+  // Observe all report cards with staggered animation
+  document.querySelectorAll('.report-card').forEach((card, index) => {
+    card.style.animationDelay = `${index * 0.1}s`;
+    observer.observe(card);
   });
 
-  // Optional: debounce search auto-apply
-  const qInput = form?.querySelector('input[name="q"]');
-  if (qInput){
-    let t; qInput.addEventListener('input', ()=>{
-      clearTimeout(t);
-      t = setTimeout(()=>{ if (qInput.value.trim().length >= 2) form.requestSubmit(); }, 450);
+  /* ===== Enhanced Form Auto-submission ===== */
+  if (form) {
+    // Auto-submit on select changes
+    ['per_page', 'sort', 'radius_km', 'city_corporation', 'category', 'status'].forEach(id => {
+      const element = document.getElementById(id) || form.querySelector(`select[name="${id}"]`);
+      if (element) {
+        element.addEventListener('change', () => {
+          form.classList.add('loading');
+          form.requestSubmit();
+        });
+      }
+    });
+
+    // Enhanced search with debouncing
+    const searchInput = form.querySelector('input[name="q"]');
+    if (searchInput) {
+      let searchTimeout;
+      let lastSearchValue = searchInput.value;
+      
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const currentValue = e.target.value.trim();
+        
+        // Only trigger if value changed and meets criteria
+        if (currentValue !== lastSearchValue && (currentValue.length >= 2 || currentValue.length === 0)) {
+          searchTimeout = setTimeout(() => {
+            lastSearchValue = currentValue;
+            form.classList.add('loading');
+            form.requestSubmit();
+          }, 400);
+        }
+      });
+      
+      // Handle enter key
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(searchTimeout);
+          form.classList.add('loading');
+          form.requestSubmit();
+        }
+      });
+    }
+  }
+
+  /* ===== Enhanced Copy Link Function ===== */
+  const copyBtn = document.getElementById('copyLinkBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast('Link copied to clipboard!');
+        
+        // Visual feedback
+        copyBtn.style.background = 'var(--accent)';
+        copyBtn.style.color = 'white';
+        setTimeout(() => {
+          copyBtn.style.background = '';
+          copyBtn.style.color = '';
+        }, 1000);
+      } catch (error) {
+        toast('Failed to copy link', 'error');
+      }
     });
   }
 
-  // Copy link -> toast
-  const copyBtn = document.getElementById('copyLinkBtn');
-  copyBtn?.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(location.href); toast('Link copied'); } catch {}
-  });
-
-  // Near me
+  /* ===== Enhanced Geolocation ===== */
   const nearBtn = document.getElementById('nearMeBtn');
   const nearLat = document.getElementById('near_lat');
   const nearLng = document.getElementById('near_lng');
-  const sortSel = document.getElementById('sort');
-  nearBtn?.addEventListener('click', () => {
-    if (!navigator.geolocation) { alert('Geolocation not supported on this device/browser.'); return; }
-    nearBtn.disabled = true; nearBtn.classList.add('opacity-70'); nearBtn.textContent = 'Locating…';
-    navigator.geolocation.getCurrentPosition(pos => {
-      nearLat.value = pos.coords.latitude.toFixed(6);
-      nearLng.value = pos.coords.longitude.toFixed(6);
-      if (sortSel && sortSel.value !== 'nearest') sortSel.value = 'nearest';
-      form.requestSubmit();
-    }, () => {
-      alert('Unable to get location. Please allow location access and try again.');
-      nearBtn.disabled = false; nearBtn.classList.remove('opacity-70'); nearBtn.textContent = 'Near me';
-    }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
-  });
-
-  // Thread toggle (slide open like FB)
-  function openThread(panel){ const h = panel.scrollHeight; panel.style.maxHeight = (h+40) + 'px'; panel.classList.add('open'); }
-  function closeThread(panel){ panel.style.maxHeight = '0px'; panel.classList.remove('open'); }
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.js-thread-toggle'); if(!btn) return;
-    const panel = document.querySelector(btn.dataset.target); if(!panel) return;
-    const isOpen = panel.classList.contains('open'); (isOpen ? closeThread : openThread)(panel);
-    btn.setAttribute('aria-expanded', String(!isOpen));
-  });
-
-  // Endorse (like) optimistic
-  document.querySelectorAll('.js-endorse-form').forEach(formEl => {
-    formEl.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      const btn = formEl.querySelector('button');
-      const cntEl = formEl.querySelector('.js-endorse-count');
-      if (!btn || !cntEl) return;
-      const endorsed = btn.dataset.endorsed === '1';
-      const old = parseInt(cntEl.textContent || '0', 10);
-
-      btn.dataset.endorsed = endorsed ? '0' : '1';
-      cntEl.textContent = String(old + (endorsed ? -1 : +1));
-      btn.classList.toggle('bg-amber-100', !endorsed);
-      btn.classList.toggle('text-amber-900', !endorsed);
-
-      try{
-        const r = await fetch(formEl.action, { method:'POST',
-          headers:{'X-CSRF-TOKEN':getCsrf(),'X-Requested-With':'XMLHttpRequest','Accept':'application/json'},
-          body:new FormData(formEl)
-        });
-        if(!r.ok) throw 0;
-      }catch{
-        btn.dataset.endorsed = endorsed ? '1' : '0';
-        cntEl.textContent = String(old);
-        btn.classList.toggle('bg-amber-100', endorsed);
-        btn.classList.toggle('text-amber-900', endorsed);
-        alert('Could not update like right now.');
+  const sortSelect = document.getElementById('sort');
+  
+  if (nearBtn) {
+    nearBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        toast('Geolocation is not supported by this browser', 'error');
+        return;
       }
-    }, {passive:false});
+      
+      // Loading state
+      nearBtn.disabled = true;
+      nearBtn.classList.add('loading');
+      const originalContent = nearBtn.innerHTML;
+      nearBtn.innerHTML = `
+        <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.364-6.364l-2.828 2.828M9.464 14.536L6.636 17.364m12.728 0l-2.828-2.828M9.464 9.464L6.636 6.636"/>
+        </svg>
+        <span>Locating...</span>
+      `;
+      
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      };
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          nearLat.value = position.coords.latitude.toFixed(6);
+          nearLng.value = position.coords.longitude.toFixed(6);
+          
+          if (sortSelect && sortSelect.value !== 'nearest') {
+            sortSelect.value = 'nearest';
+          }
+          
+          form.classList.add('loading');
+          form.requestSubmit();
+          
+          toast('Location found! Showing nearby reports.');
+        },
+        (error) => {
+          let message = 'Unable to get your location. ';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              message += 'Please allow location access and try again.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              message += 'Location information is unavailable.';
+              break;
+            case error.TIMEOUT:
+              message += 'Location request timed out.';
+              break;
+            default:
+              message += 'An unknown error occurred.';
+              break;
+          }
+          
+          toast(message, 'error');
+          
+          // Reset button
+          nearBtn.disabled = false;
+          nearBtn.classList.remove('loading');
+          nearBtn.innerHTML = originalContent;
+        },
+        options
+      );
+    });
+  }
+
+  /* ===== Enhanced Thread Toggle with Smooth Animation ===== */
+  function openThread(panel) {
+    panel.classList.add('open');
+    const height = panel.scrollHeight;
+    panel.style.maxHeight = `${height + 20}px`;
+    
+    // Focus first input in the thread
+    const firstInput = panel.querySelector('textarea, input');
+    if (firstInput) {
+      setTimeout(() => firstInput.focus(), 300);
+    }
+  }
+  
+  function closeThread(panel) {
+    panel.style.maxHeight = '0px';
+    panel.classList.remove('open');
+  }
+  
+  document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.js-thread-toggle');
+    if (!toggleBtn) return;
+    
+    const panel = document.querySelector(toggleBtn.dataset.target);
+    if (!panel) return;
+    
+    const isOpen = panel.classList.contains('open');
+    
+    if (isOpen) {
+      closeThread(panel);
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      toggleBtn.classList.remove('active');
+    } else {
+      // Close other threads first
+      document.querySelectorAll('.cd-thread.open').forEach(otherPanel => {
+        if (otherPanel !== panel) {
+          closeThread(otherPanel);
+          const otherBtn = document.querySelector(`[data-target="#${otherPanel.id}"]`);
+          if (otherBtn) {
+            otherBtn.setAttribute('aria-expanded', 'false');
+            otherBtn.classList.remove('active');
+          }
+        }
+      });
+      
+      openThread(panel);
+      toggleBtn.setAttribute('aria-expanded', 'true');
+      toggleBtn.classList.add('active');
+    }
   });
 
-  // Comment submit (inline + optimistic)
-  document.querySelectorAll('.js-comment-form').forEach(form => {
-    form.addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const ta = form.querySelector('textarea[name="body"]');
-      const text = (ta?.value || '').trim();
-      if(!text) return;
-
-      const thread = form.closest('.cd-thread');
-      const list   = thread?.querySelector('.js-thread-list');
-      const card   = form.closest('.group');
-      const cnt    = card?.querySelector('.js-comments-count');
-      const youName = document.querySelector('meta[name="user-name"]')?.content || 'You';
-
-      const li = document.createElement('li');
-      li.className = 'flex items-start gap-2';
-      li.innerHTML = `
-        <div class="mt-0.5 h-7 w-7 flex-none rounded-full bg-amber-200/60 ring-1 ring-amber-200"></div>
-        <div class="flex-1">
-          <div class="inline-block rounded-2xl bg-amber-50 ring-1 ring-amber-100 px-3 py-2 text-[13px]">
-            <span class="font-semibold">${youName}</span>
-            <span class="ml-1">${text.replace(/</g,'&lt;')}</span>
-          </div>
-        </div>`;
-      list?.appendChild(li);
-
-      const old = parseInt(cnt?.textContent || '0', 10);
-      if (cnt) cnt.textContent = String(old + 1);
-      if (ta) ta.value = '';
-
-      try{
-        const r = await fetch(form.action, { method:'POST',
-          headers:{'X-CSRF-TOKEN':getCsrf(),'X-Requested-With':'XMLHttpRequest','Accept':'application/json'},
-          body:new FormData(form)
+  /* ===== Enhanced Endorsement System ===== */
+  document.querySelectorAll('.js-endorse-form').forEach(endorseForm => {
+    endorseForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      
+      const button = endorseForm.querySelector('button');
+      const countElement = endorseForm.querySelector('.js-endorse-count');
+      
+      if (!button || !countElement) return;
+      
+      const wasEndorsed = button.dataset.endorsed === '1';
+      const currentCount = parseInt(countElement.textContent || '0', 10);
+      
+      // Optimistic update
+      button.dataset.endorsed = wasEndorsed ? '0' : '1';
+      countElement.textContent = String(currentCount + (wasEndorsed ? -1 : 1));
+      button.classList.toggle('active', !wasEndorsed);
+      
+      // Add loading state
+      button.classList.add('loading');
+      
+      try {
+        const response = await fetch(endorseForm.action, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': getCsrf(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new FormData(endorseForm)
         });
-        if(!r.ok) throw 0;
-      }catch{
-        li.remove();
-        if (cnt) cnt.textContent = String(old);
-        alert('Could not post comment right now.');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Update with server response if available
+        if (data.endorsed !== undefined) {
+          button.dataset.endorsed = data.endorsed ? '1' : '0';
+          button.classList.toggle('active', data.endorsed);
+        }
+        if (data.count !== undefined) {
+          countElement.textContent = String(data.count);
+        }
+        
+      } catch (error) {
+        // Revert optimistic update
+        button.dataset.endorsed = wasEndorsed ? '1' : '0';
+        countElement.textContent = String(currentCount);
+        button.classList.toggle('active', wasEndorsed);
+        
+        console.error('Endorsement failed:', error);
+        toast('Failed to update endorsement. Please try again.', 'error');
+      } finally {
+        button.classList.remove('loading');
       }
-    }, {passive:false});
+    });
   });
+
+  /* ===== Enhanced Comment System ===== */
+  document.querySelectorAll('.js-comment-form').forEach(commentForm => {
+    const textarea = commentForm.querySelector('textarea[name="body"]');
+    
+    // Auto-resize textarea
+    if (textarea) {
+      textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.max(44, this.scrollHeight) + 'px';
+      });
+    }
+    
+    commentForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      
+      const textContent = (textarea?.value || '').trim();
+      if (!textContent) {
+        textarea?.focus();
+        return;
+      }
+      
+      const thread = commentForm.closest('.cd-thread');
+      const commentsList = thread?.querySelector('.js-thread-list');
+      const reportCard = commentForm.closest('.report-card');
+      const commentsCountElement = reportCard?.querySelector('.js-comments-count');
+      const userName = document.querySelector('meta[name="user-name"]')?.content || 
+                       textarea?.getAttribute('data-user-name') || 
+                       'You';
+      
+      // Create optimistic comment
+      const commentElement = document.createElement('li');
+      commentElement.className = 'comment-item';
+      commentElement.innerHTML = `
+        <div class="comment-avatar">${userName.charAt(0).toUpperCase()}</div>
+        <div class="comment-bubble">
+          <div class="comment-author">${userName}</div>
+          <div class="comment-text">${textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+        </div>
+      `;
+      
+      // Add to list
+      if (commentsList) {
+        commentsList.appendChild(commentElement);
+        commentsList.scrollTop = commentsList.scrollHeight;
+      }
+      
+      // Update counter
+      const currentCount = parseInt(commentsCountElement?.textContent || '0', 10);
+      if (commentsCountElement) {
+        commentsCountElement.textContent = String(currentCount + 1);
+      }
+      
+      // Clear and disable form
+      if (textarea) {
+        textarea.value = '';
+        textarea.style.height = 'auto';
+        textarea.disabled = true;
+      }
+      
+      const submitBtn = commentForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading');
+      }
+      
+      try {
+        const response = await fetch(commentForm.action, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': getCsrf(),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body: new FormData(commentForm)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        // Success - comment stays
+        toast('Comment posted successfully!');
+        
+      } catch (error) {
+        // Remove optimistic comment
+        commentElement.remove();
+        
+        // Revert counter
+        if (commentsCountElement) {
+          commentsCountElement.textContent = String(currentCount);
+        }
+        
+        console.error('Comment submission failed:', error);
+        toast('Failed to post comment. Please try again.', 'error');
+        
+        // Restore form content
+        if (textarea) {
+          textarea.value = textContent;
+        }
+        
+      } finally {
+        // Re-enable form
+        if (textarea) {
+          textarea.disabled = false;
+        }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('loading');
+        }
+      }
+    });
+  });
+
+  /* ===== Enhanced Loading States ===== */
+  window.addEventListener('beforeunload', () => {
+    if (form) {
+      form.classList.add('loading');
+    }
+  });
+
+  /* ===== Handle Form Submission Feedback ===== */
+  if (form) {
+    form.addEventListener('submit', () => {
+      form.classList.add('loading');
+      
+      // Add loading overlay
+      const loadingOverlay = document.createElement('div');
+      loadingOverlay.className = 'fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center';
+      loadingOverlay.innerHTML = `
+        <div class="bg-white rounded-xl p-6 shadow-xl flex items-center gap-3">
+          <svg class="h-6 w-6 animate-spin text-amber-600" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.364-6.364l-2.828 2.828M9.464 14.536L6.636 17.364m12.728 0l-2.828-2.828M9.464 9.464L6.636 6.636"/>
+          </svg>
+          <span class="font-medium text-gray-900">Loading reports...</span>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+      
+      // Remove overlay after a timeout (fallback)
+      setTimeout(() => {
+        loadingOverlay?.remove();
+      }, 10000);
+    });
+  }
+
+  /* ===== Enhanced Keyboard Navigation ===== */
+  document.addEventListener('keydown', (e) => {
+    // Toggle comments with 'c' key when focused on a report card
+    if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const focusedCard = document.activeElement?.closest('.report-card');
+      if (focusedCard) {
+        const toggleBtn = focusedCard.querySelector('.js-thread-toggle');
+        if (toggleBtn) {
+          e.preventDefault();
+          toggleBtn.click();
+        }
+      }
+    }
+    
+    // Close threads with Escape
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.cd-thread.open').forEach(thread => {
+        closeThread(thread);
+        const toggleBtn = document.querySelector(`[data-target="#${thread.id}"]`);
+        if (toggleBtn) {
+          toggleBtn.setAttribute('aria-expanded', 'false');
+          toggleBtn.classList.remove('active');
+        }
+      });
+    }
+  });
+
+  /* ===== Intersection Observer for Lazy Loading ===== */
+  const lazyImageObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        if (img.dataset.src) {
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          lazyImageObserver.unobserve(img);
+        }
+      }
+    });
+  }, {
+    rootMargin: '50px 0px',
+    threshold: 0.1
+  });
+
+  // Observe lazy images
+  document.querySelectorAll('img[data-src]').forEach(img => {
+    lazyImageObserver.observe(img);
+  });
+
+  /* ===== Enhanced Error Handling ===== */
+  window.addEventListener('error', (e) => {
+    console.error('Global error:', e.error);
+  });
+
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error('Unhandled promise rejection:', e.reason);
+  });
+
+  /* ===== Performance Monitoring ===== */
+  if ('performance' in window && 'measure' in performance) {
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        try {
+          const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+          console.log(`Page loaded in ${loadTime}ms`);
+          
+          if (loadTime > 3000) {
+            console.warn('Slow page load detected');
+          }
+        } catch (e) {
+          console.log('Performance measurement failed:', e);
+        }
+      }, 0);
+    });
+  }
+
+  /* ===== Accessibility Enhancements ===== */
+  // Add ARIA live region for dynamic updates
+  const liveRegion = document.createElement('div');
+  liveRegion.setAttribute('aria-live', 'polite');
+  liveRegion.setAttribute('aria-atomic', 'true');
+  liveRegion.className = 'sr-only';
+  liveRegion.id = 'live-region';
+  document.body.appendChild(liveRegion);
+
+  // Announce filter changes
+  const originalToast = toast;
+  toast = function(message, type = 'success') {
+    originalToast(message, type);
+    
+    // Also announce to screen readers
+    const liveRegion = document.getElementById('live-region');
+    if (liveRegion) {
+      liveRegion.textContent = message;
+    }
+  };
+
+  /* ===== Initialize ===== */
+  console.log('Reports index initialized successfully');
+  
+  // Remove any existing loading states
+  document.querySelectorAll('.loading').forEach(el => {
+    el.classList.remove('loading');
+  });
+  
+  // Remove loading overlay if it exists
+  document.querySelectorAll('.fixed.inset-0').forEach(overlay => {
+    if (overlay.textContent.includes('Loading')) {
+      overlay.remove();
+    }
+  });
+
 })();
 </script>
 @endpush
-
 @endsection

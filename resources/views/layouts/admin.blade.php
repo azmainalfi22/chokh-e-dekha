@@ -1,5 +1,9 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+@push('styles')
+  @include('partials._theme')
+@endpush
+
 <head>
   <!-- Theme boot (prevents flash) -->
   <script>

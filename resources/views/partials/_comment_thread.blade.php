@@ -1,16 +1,18 @@
 @php
   use Illuminate\Support\Facades\Route;
 
-  // Default comments store route (route-safe)
+  // Route-safe: use existing if passed in, else detect
   $commentsRouteName = $commentsRouteName
       ?? (Route::has('reports.comments.store') ? 'reports.comments.store' : null);
 
-  // Existing list (prefer eager relation, else fallback query)
+  // Prefer eager-loaded comments; otherwise fetch a small recent set
   $existing = isset($comments)
       ? $comments
-      : ( $report->relationLoaded('comments')
+      : (
+          $report->relationLoaded('comments')
             ? $report->comments
-            : (method_exists($report,'comments') ? $report->comments()->latest()->take(10)->get() : collect()) );
+            : (method_exists($report,'comments') ? $report->comments()->latest()->take(10)->get() : collect())
+        );
 @endphp
 
 <div id="thread-{{ $report->id }}" class="cd-thread mt-3 space-y-3">
@@ -18,14 +20,14 @@
     @forelse($existing as $c)
       @include('partials._comment', ['c' => $c])
     @empty
-      {{-- no comments yet --}}
+      {{-- No comments yet --}}
     @endforelse
   </ul>
 
   @auth
     @if($commentsRouteName)
       <form class="js-comment-form"
-            action="{{ route($commentsRouteName, $report, false) }}" {{-- ← relative path --}}
+            action="{{ route($commentsRouteName, ['report' => $report], false) }}"
             method="POST" autocomplete="off">
         @csrf
         <div class="flex items-end gap-2">

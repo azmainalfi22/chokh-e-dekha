@@ -92,14 +92,7 @@
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
-      @include('reports.partials._rating_stars', ['report' => $report])
-      <div class="text-sm text-amber-900/80">
-        Avg: <span class="font-semibold">{{ number_format($report->avg_rating ?? 0, 1) }}</span> / 5
-        <span class="opacity-70">({{ $report->ratings_count ?? 0 }})</span>
-      </div>
-    </div>
-  </div>
+  
 
   {{-- Comments --}}
   <h2 class="text-lg font-semibold text-amber-800">Comments</h2>

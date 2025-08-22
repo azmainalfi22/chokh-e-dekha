@@ -243,7 +243,9 @@
 <script src="https://maps.googleapis.com/maps/api/js?key={{ $googleApiKey }}&libraries=places&loading=async" defer></script>
 
 <script>
-  let map, marker, geocoder, autocomplete;
+  let map, marker, geocoder, autocomplete, lastCenter;
+  const $ = (id) => document.getElementById(id);
+
   const stylesLight = [
     { elementType: "geometry", stylers: [{ saturation: -5 }, { lightness: 5 }] },
     { featureType: "poi", stylers: [{ visibility: "off" }] },
@@ -259,13 +261,13 @@
     { featureType: "water", stylers: [{ color: "#0f1115" }] },
   ];
   const isDark = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const $ = (id) => document.getElementById(id);
 
   const svgPin = (fill = '#e11d48') =>
     'data:image/svg+xml;utf8,' + encodeURIComponent(`
       <svg width="40" height="40" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
         <defs><filter id="s" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/><feOffset dy="2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/><feOffset dy="2"/>
+          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter></defs>
         <g filter="url(#s)">
           <path d="M32 4c-10.5 0-19 8.5-19 19 0 13.2 19 37 19 37s19-23.8 19-37c0-10.5-8.5-19-19-19z" fill="${fill}"/>
@@ -289,6 +291,50 @@
     });
   }
 
+  function setMarkerAndCenter(lat, lng, zoom = 16, doReverse = true) {
+    const pos = new google.maps.LatLng(lat, lng);
+    marker.setPosition(pos);
+    map.panTo(pos);
+    map.setZoom(zoom);
+    lastCenter = pos;
+    if (doReverse) reverseGeocode(lat, lng);
+  }
+
+  function wireButtons(){
+    const btnGeo   = $('btnGeolocate');
+    const btnCenter= $('btnCenter');
+
+    btnGeo?.addEventListener('click', () => {
+      if (!navigator.geolocation) return alert('Geolocation not supported on this browser.');
+      btnGeo.disabled = true;
+      btnGeo.textContent = 'Locating…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setMarkerAndCenter(latitude, longitude, 17, true);
+          btnGeo.disabled = false;
+          btnGeo.textContent = '📍 Use my location';
+        },
+        (err) => {
+          console.error('Geolocation error:', err);
+          alert('Unable to get your location. Please allow permission and try again.');
+          btnGeo.disabled = false;
+          btnGeo.textContent = '📍 Use my location';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    btnCenter?.addEventListener('click', () => {
+      if (marker?.getPosition()) {
+        map.panTo(marker.getPosition());
+        map.setZoom(Math.max(map.getZoom(), 16));
+      } else if (lastCenter) {
+        map.panTo(lastCenter);
+      }
+    });
+  }
+
   function initMap() {
     geocoder = new google.maps.Geocoder();
 
@@ -309,32 +355,68 @@
       icon: { url: svgPin(), scaledSize: new google.maps.Size(40, 40), anchor: new google.maps.Point(20, 40) }
     });
 
+    // Drag to move
     google.maps.event.addListener(marker, 'dragend', () => {
       const p = marker.getPosition();
       reverseGeocode(p.lat(), p.lng());
     });
 
+    // Click map to move pin
+    map.addListener('click', (e) => {
+      const lat = e.latLng.lat(), lng = e.latLng.lng();
+      setMarkerAndCenter(lat, lng, map.getZoom(), true);
+    });
+
+    // Autocomplete
     const input = $('place_search');
     autocomplete = new google.maps.places.Autocomplete(input, { fields: ['geometry','place_id','formatted_address'] });
     autocomplete.addListener('place_changed', () => {
       const place = autocomplete.getPlace();
       if (!place.geometry) return;
       const loc = place.geometry.location;
-      map.panTo(loc); marker.setPosition(loc); map.setZoom(16);
+      setMarkerAndCenter(loc.lat(), loc.lng(), 16, false);
       setHidden(loc.lat(), loc.lng(), place.place_id, place.formatted_address);
     });
 
+    // Rehydrate from old() lat/lng if present
+    const oldLat = parseFloat($('latitude').value);
+    const oldLng = parseFloat($('longitude').value);
+    if (!Number.isNaN(oldLat) && !Number.isNaN(oldLng)) {
+      setMarkerAndCenter(oldLat, oldLng, 16, false);
+      $('addrBadge').textContent = $('formatted_address').value || 'Pinned location restored.';
+    } else {
+      // No old values: just reverse geocode the default center to populate address hint
+      const c = map.getCenter();
+      reverseGeocode(c.lat(), c.lng());
+    }
+
+    // Auto-switch styles when OS theme changes
     try {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
         map.setOptions({ styles: e.matches ? stylesDark : stylesLight });
       });
     } catch {}
+
+    wireButtons();
+  }
+
+  // Guard: ensure lat/lng exist before submit
+  function enforceLocationBeforeSubmit(){
+    const form = document.querySelector('form[action="{{ route('report.store') }}"]');
+    form?.addEventListener('submit', (e) => {
+      if (!$('latitude').value || !$('longitude').value) {
+        e.preventDefault();
+        alert('Please pick a point on the map or search for a location.');
+        $('place_search').focus();
+      }
+    });
   }
 
   window.addEventListener('load', () => {
     const check = setInterval(() => {
-      if (window.google && google.maps) { clearInterval(check); initMap(); }
+      if (window.google && google.maps) { clearInterval(check); initMap(); enforceLocationBeforeSubmit(); }
     }, 50);
   });
 </script>
+
 @endsection

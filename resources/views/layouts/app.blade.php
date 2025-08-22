@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +15,7 @@
   <script>
     (() => {
       const saved = localStorage.getItem('theme'); // 'light' | 'dark' | null
-      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
       const shouldDark = saved ? (saved === 'dark') : !!prefersDark;
       if (shouldDark) document.documentElement.classList.add('dark');
       window.__theme = saved ?? (prefersDark ? 'dark' : 'light');
@@ -24,6 +25,11 @@
   <title>@yield('title', 'Dashboard') • {{ config('app.name', 'Chokh-e-Dekha') }}</title>
 
   @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+  {{-- Include global theme tokens/utilities once for all pages --}}
+  @include('partials._theme')
+
+  {{-- Page-level style stacks --}}
   @stack('styles')
 
   <style>
@@ -127,7 +133,7 @@
   </style>
 </head>
 
-<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 grain-overlay">
+<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 grainy">
   {{-- Background blobs (behind everything) --}}
   <div class="pointer-events-none absolute -top-24 -left-24 h-[26rem] w-[26rem] rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300 -z-10"></div>
   <div class="pointer-events-none absolute -bottom-28 -right-24 h-[30rem] w-[30rem] rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300 -z-10"></div>
