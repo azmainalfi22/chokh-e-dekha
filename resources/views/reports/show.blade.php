@@ -47,7 +47,7 @@
         'rejected'    => 'bg-rose-100 text-rose-800 ring-rose-200',
       ][$status] ?? 'bg-gray-100 text-gray-800 ring-gray-200';
 
-      $photoUrl = $report->photo_url ?? ($report->photo ? asset('storage/'.$report->photo) : null);
+      $photoUrl = $report->photo_url ?? ($report->photo ? asset('storage/'.$public->disk('public')->url($report->photo)) : null);
 
       $lat = $report->latitude  ? (float)$report->latitude  : null;
       $lng = $report->longitude ? (float)$report->longitude : null;
@@ -59,6 +59,10 @@
       $mapsLink = $hasCoords
         ? "https://www.google.com/maps?q={$lat},{$lng}"
         : ($addr ? ("https://www.google.com/maps/search/?api=1&query=".urlencode($addr)) : null);
+
+      // endorsement count fallback if not eager loaded
+      $endorsementsCount = $report->endorsements_count
+          ?? (method_exists($report,'endorsements') ? $report->endorsements()->count() : 0);
     @endphp
 
     <div class="cd-card rounded-2xl shadow-2xl p-6 ring-1 ring-amber-100 dark:ring-white/10">
@@ -81,34 +85,48 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Left: Details + Attachment + Admin Notes --}}
         <div class="lg:col-span-2 space-y-6">
-{{-- Engagement: Endorse + Rating + Comments --}}
-<section class="rounded-2xl bg-white/85 backdrop-blur ring-1 ring-amber-900/10 shadow p-6 space-y-5">
-  {{-- Endorse + Rating header --}}
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-3">
-      @include('reports.partials._endorse_button', ['report' => $report])
-      <div class="text-sm text-amber-900/80">
-        <span class="font-semibold">{{ $report->endorsements_count ?? ($report->endorsements_count ?? 0) }}</span> endorsements
-      </div>
-    </div>
 
-  
+          {{-- Engagement: Endorse + Comments --}}
+          <section class="rounded-2xl bg-white/85 backdrop-blur ring-1 ring-amber-900/10 shadow p-6 space-y-5 dark:bg-white/5 dark:ring-white/10">
+            {{-- Endorse header row --}}
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                {{-- Safe include to prevent 500s if partial missing --}}
+                @includeIf('reports.partials._endorse_button', ['report' => $report])
 
-  {{-- Comments --}}
-  <h2 class="text-lg font-semibold text-amber-800">Comments</h2>
+                {{-- Fallback badge if the partial doesn’t exist --}}
+                @unless (view()->exists('reports.partials._endorse_button'))
+                  <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm"
+                        style="background:var(--surface-muted); border:1px solid var(--ring); color:var(--text-secondary)">
+                    👍 Endorsements
+                    <span class="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full text-xs font-bold"
+                          style="background:rgba(0,0,0,.06); color:var(--text);">
+                      {{ $endorsementsCount }}
+                    </span>
+                  </span>
+                @endunless
 
-  @auth
-    @include('reports.partials._comment_form', ['report' => $report])
-  @endauth
+                <div class="text-sm text-amber-900/80 dark:text-amber-200/80">
+                  <span class="font-semibold">{{ $endorsementsCount }}</span> endorsements
+                </div>
+              </div>
+            </div>
 
-  <div class="divide-y divide-amber-100">
-    @forelse($report->comments as $comment)
-      @include('reports.partials._comment', ['comment' => $comment])
-    @empty
-      <p class="text-sm text-amber-900/70 py-3">No comments yet. Be the first to comment.</p>
-    @endforelse
-  </div>
-</section>
+            {{-- Comments --}}
+            <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-100">Comments</h2>
+
+            @auth
+              @includeIf('reports.partials._comment_form', ['report' => $report])
+            @endauth
+
+            <div class="divide-y divide-amber-100 dark:divide-white/10">
+              @forelse($report->comments ?? [] as $comment)
+                @includeIf('reports.partials._comment', ['comment' => $comment])
+              @empty
+                <p class="text-sm text-amber-900/70 dark:text-amber-200/70 py-3">No comments yet. Be the first to comment.</p>
+              @endforelse
+            </div>
+          </section>
 
           {{-- Details --}}
           <div class="rounded-2xl bg-white/85 dark:bg-white/5 backdrop-blur ring-1 ring-amber-900/10 dark:ring-white/10 shadow p-6">
@@ -130,32 +148,33 @@
                 <dt class="text-amber-900/70 dark:text-amber-200/70">Current Status</dt>
                 <dd class="font-medium text-amber-900 dark:text-amber-100">{{ \Illuminate\Support\Str::headline($status) }}</dd>
               </div>
+
               @if($addr)
-  <div class="sm:col-span-2">
-    <dt class="text-amber-900/70 dark:text-amber-200/70">Formatted Address</dt>
-    <dd class="mt-1 flex flex-wrap items-center gap-2">
-      <span id="cdAddress" class="font-medium text-gray-800 dark:text-amber-100">{{ $addr }}</span>
+                <div class="sm:col-span-2">
+                  <dt class="text-amber-900/70 dark:text-amber-200/70">Formatted Address</dt>
+                  <dd class="mt-1 flex flex-wrap items-center gap-2">
+                    <span id="cdAddress" class="font-medium text-gray-800 dark:text-amber-100">{{ $addr }}</span>
 
-      <button type="button" id="copyAddrBtn"
-              class="cd-chip text-xs px-2 py-1 rounded-lg ring-1 ring-amber-900/10 
-                     bg-white text-gray-700 hover:bg-amber-50 
-                     dark:bg-[#1b1f24] dark:ring-white/10 dark:hover:bg-[#232830] 
-                     dark:text-amber-100">
-        Copy
-      </button>
+                    <button type="button" id="copyAddrBtn"
+                            class="cd-chip text-xs px-2 py-1 rounded-lg ring-1 ring-amber-900/10 
+                                   bg-white text-gray-700 hover:bg-amber-50 
+                                   dark:bg-[#1b1f24] dark:ring-white/10 dark:hover:bg-[#232830] 
+                                   dark:text-amber-100">
+                      Copy
+                    </button>
 
-      @if($mapsLink)
-        <a href="{{ $mapsLink }}" target="_blank" rel="noopener"
-           class="cd-chip text-xs px-2 py-1 rounded-lg ring-1 ring-amber-900/10 
-                  bg-white text-gray-700 hover:bg-amber-50 
-                  dark:bg-[#1b1f24] dark:ring-white/10 dark:hover:bg-[#232830] 
-                  dark:text-amber-100">
-          Open in Google Maps
-        </a>
-      @endif
-    </dd>
-  </div>
-@endif
+                    @if($mapsLink)
+                      <a href="{{ $mapsLink }}" target="_blank" rel="noopener"
+                         class="cd-chip text-xs px-2 py-1 rounded-lg ring-1 ring-amber-900/10 
+                                bg-white text-gray-700 hover:bg-amber-50 
+                                dark:bg-[#1b1f24] dark:ring-white/10 dark:hover:bg-[#232830] 
+                                dark:text-amber-100">
+                        Open in Google Maps
+                      </a>
+                    @endif
+                  </dd>
+                </div>
+              @endif
 
               <div class="sm:col-span-2">
                 <dt class="text-amber-900/70 dark:text-amber-200/70">Description</dt>
@@ -396,7 +415,7 @@
     });
   @endif
 
-  // Lightbox (unchanged core)
+  // Lightbox
   const modal     = document.getElementById('cd-lightbox');
   const viewport  = document.getElementById('lbViewport');
   const img       = document.getElementById('lbImg');

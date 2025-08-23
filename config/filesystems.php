@@ -38,14 +38,15 @@ return [
             'report' => false,
         ],
 
-        'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
-            'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
-        ],
+'public' => [
+    'driver'     => 'local',
+    'root'       => storage_path('app/public'),
+    // Use relative URL so it matches whatever host you’re on
+    'url'        => rtrim(env('ASSET_URL', ''), '/').'/storage', // resolves to '/storage' locally
+    'visibility' => 'public',
+    'throw'      => false,
+],
+
 
         's3' => [
             'driver' => 's3',

@@ -147,6 +147,24 @@
   .comment-author{ font-weight:600; color:var(--text); font-size: var(--text-sm); }
   .comment-text{ color:var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); line-height: 1.4; }
 
+  /* >>> Fix: Dark-mode safe textarea for comments <<< */
+  .js-comment-form textarea{
+    background: var(--surface);               /* dark-safe surface */
+    color: var(--text);                       /* uses tokens: white in dark, slate in light */
+    border: 1px solid var(--ring);
+    caret-color: var(--accent);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 1px 2px rgba(0,0,0,.04);
+  }
+  .js-comment-form textarea::placeholder{
+    color: var(--text-secondary);
+    opacity: .85;
+  }
+  .js-comment-form textarea:focus{
+    outline: none;
+    border-color: var(--ring-focus);
+    box-shadow: 0 0 0 3px rgba(245,158,11,.12), inset 0 1px 0 rgba(255,255,255,.45);
+  }
+
   /* Animations */
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
@@ -640,10 +658,10 @@
                           </div>
                           <div class="flex-1">
                             <textarea name="body" 
-                                      placeholder="Write a comment..." 
-                                      class="w-full rounded-xl border px-4 py-3 text-sm resize-none focus:ring-2 transition-all duration-200"
-                                      style="border-color:var(--ring); min-height:44px;"
-                                      rows="1"></textarea>
+                                  placeholder="Write a comment..." 
+                                  class="w-full rounded-xl border px-4 py-3 text-sm resize-none focus:ring-2 transition-all duration-200"
+                                  style="border-color:var(--ring); min-height:44px; color:var(--text);"
+                                  rows="1"></textarea>
                             <div class="flex justify-end mt-2">
                               <button type="submit" 
                                       class="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200"
@@ -1092,9 +1110,10 @@
         if (textarea) {
           textarea.disabled = false;
         }
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.classList.remove('loading');
+        const submitBtn2 = commentForm.querySelector('button[type="submit"]');
+        if (submitBtn2) {
+          submitBtn2.disabled = false;
+          submitBtn2.classList.remove('loading');
         }
       }
     });

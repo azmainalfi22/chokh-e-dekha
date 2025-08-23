@@ -1,30 +1,66 @@
 @php
-  /** @var \App\Models\Comment $c */
-  $name = trim($c->user->name ?? 'User');
-  // Simple initial for the avatar chip (works with multibyte names)
+  /** Accept either $comment or $c */
+  /** @var \App\Models\Comment $comment */
+  $comment = $comment ?? $c ?? null;
+
+  $name = trim($comment?->user?->name ?? 'User');
   $initial = mb_strtoupper(mb_substr($name, 0, 1));
 @endphp
 
-<li id="comment-{{ $c->id }}" data-comment-id="{{ $c->id }}" class="flex items-start gap-2">
-  {{-- avatar placeholder --}}
+@once
+  @push('styles')
+  <style>
+    /* Comment bubble readability in both themes (uses your theme tokens) */
+    .cd-comment-item .bubble{
+      background: var(--surface-muted, #f8fafc);
+      border: 1px solid var(--ring, #e2e8f0);
+      border-radius: 1rem;
+      padding: .6rem .8rem;
+      min-width: 0;
+    }
+    .dark .cd-comment-item .bubble{
+      background: rgba(255,255,255,.06);
+      border-color: #374151;
+    }
+    .cd-comment-item .author{
+      color: var(--text, #0f172a);
+      font-weight: 700;
+      font-size: .875rem;
+    }
+    .dark .cd-comment-item .author{ color:#f9fafb; }
+    .cd-comment-item .body{
+      color: var(--text-secondary, #475569);
+      font-size: .875rem;
+      line-height: 1.4;
+      white-space: pre-line;        /* preserve newlines */
+      overflow-wrap: anywhere;      /* avoid overflow on long words/urls */
+    }
+    .dark .cd-comment-item .body{ color:#d1d5db; }
+  </style>
+  @endpush
+@endonce
+
+<li id="comment-{{ $comment->id }}"
+    data-comment-id="{{ $comment->id }}"
+    class="cd-comment-item flex items-start gap-2">
+
+  {{-- avatar --}}
   <div class="mt-0.5 h-7 w-7 flex-none rounded-full ring-1
               bg-amber-200/60 ring-amber-200 text-amber-900
               dark:bg-white/10 dark:ring-white/10 dark:text-amber-200
-              flex items-center justify-center text-[11px] font-semibold">
+              grid place-items-center text-[11px] font-semibold">
     {{ $initial }}
   </div>
 
-  <div class="flex-1">
-    <div class="inline-block rounded-2xl px-3 py-2 text-[13px]
-                bg-amber-50 ring-1 ring-amber-100
-                dark:bg-white/5 dark:ring-white/10">
-      <span class="font-semibold text-slate-900 dark:text-slate-100">{{ $name }}</span>
-      <span class="ml-1 text-slate-800 dark:text-slate-100">{!! nl2br(e($c->body)) !!}</span>
+  <div class="flex-1 min-w-0">
+    <div class="bubble inline-block">
+      <span class="author">{{ $name }}</span>
+      <span class="ml-1 body">{!! nl2br(e($comment->body)) !!}</span>
     </div>
 
     <div class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400"
-         title="{{ optional($c->created_at)->toDayDateTimeString() }}">
-      {{ optional($c->created_at)->diffForHumans() }}
+         title="{{ optional($comment->created_at)->toDayDateTimeString() }}">
+      {{ optional($comment->created_at)->diffForHumans() }}
     </div>
   </div>
 </li>

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Report extends Model
 {
@@ -66,7 +67,7 @@ class Report extends Model
         'photo_name',
         'short_address',
         'has_coords',
-        'static_map_url', // used in cards
+        'static_map_url',
     ];
 
     /* ----------------------------
@@ -95,23 +96,15 @@ class Report extends Model
         return $this->hasMany(Endorsement::class);
     }
 
-    /** Ratings (score: 1–5) */
-    public function ratings(): HasMany
-    {
-        return $this->hasMany(Rating::class);
-    }
-
     /* ----------------------------
      | Convenience helpers for UI
      * ---------------------------- */
 
-    /** Hex color for current status (with gray fallback) */
     public function statusColor(): string
     {
         return self::STATUS_COLORS[$this->status] ?? '#6b7280'; // gray-500
     }
 
-    /** Whether a given user has endorsed this report (safe for missing table) */
     public function isEndorsedBy(?int $userId): bool
     {
         if (!$userId) return false;
@@ -124,23 +117,51 @@ class Report extends Model
     /* ----------------------------
      | Accessors
      * ---------------------------- */
+
+    /**
+     * Return a host-agnostic URL that always works on the current domain.
+     * If the value is already a full URL, return it.
+     * Otherwise return a relative path like "/storage/reports/xxx.jpg".
+     */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (!$this->photo) return null;
-        return Storage::disk('public')->url($this->photo);
+        $path = $this->photo;
+        if (!$path) return null;
+
+        // If already a URL, pass through.
+        if (Str::startsWith($path, ['http://', 'https://', '//'])) {
+            return $path;
+        }
+
+        // Normalize separators and strip any accidental prefixes.
+        $path = $this->normalizeStoragePath($path);
+
+        // Prefer the public disk existence check, but always return the same relative URL.
+        try {
+            if (Storage::disk('public')->exists($path)) {
+                return '/storage/'.ltrim($path, '/');
+            }
+        } catch (\Throwable $e) {
+            // ignore and continue to fallbacks
+        }
+
+        // Direct file presence via the public symlink.
+        if (is_file(public_path('storage/'.ltrim($path, '/')))) {
+            return '/storage/'.ltrim($path, '/');
+        }
+
+        // Last resort: still return the relative path; if missing it'll 404 (better than wrong host).
+        return '/storage/'.ltrim($path, '/');
     }
 
     public function getPhotoNameAttribute(): ?string
     {
-        return $this->photo ? basename($this->photo) : null;
+        return $this->photo ? basename(str_replace('\\', '/', $this->photo)) : null;
     }
 
     public function getShortAddressAttribute(): ?string
     {
-        // Prefer a concise label from formatted address,
-        // else fall back to the manual location field.
         if ($this->formatted_address) {
-            // Keep the most relevant last 2–3 segments (e.g., "Banani, Dhaka")
             $parts = array_map('trim', explode(',', $this->formatted_address));
             $take  = count($parts) >= 3 ? 3 : 2;
             return implode(', ', array_slice($parts, -$take));
@@ -153,10 +174,7 @@ class Report extends Model
         return is_numeric($this->latitude) && is_numeric($this->longitude);
     }
 
-    /**
-     * Small static map thumbnail for lists/cards.
-     * Requires GOOGLE_MAPS_KEY in config('services.google_maps.key').
-     */
+    /** Small static map thumbnail for lists/cards. */
     public function getStaticMapUrlAttribute(): ?string
     {
         if (!$this->has_coords) return null;
@@ -174,12 +192,14 @@ class Report extends Model
             'markers'  => "color:red|{$lat},{$lng}",
             'key'      => $key,
         ]);
+
         return "https://maps.googleapis.com/maps/api/staticmap?{$params}";
     }
 
     /* ----------------------------
      | Mutators (normalize)
      * ---------------------------- */
+
     public function setPhotoAttribute(?string $value): void
     {
         if (!$value) {
@@ -187,12 +207,7 @@ class Report extends Model
             return;
         }
 
-        // Store without "public/" prefix for Storage::disk('public')
-        $normalized = str_starts_with($value, 'public/')
-            ? substr($value, 7)
-            : $value;
-
-        $this->attributes['photo'] = $normalized;
+        $this->attributes['photo'] = $this->normalizeStoragePath($value);
     }
 
     public function setStatusAttribute(?string $value): void
@@ -201,12 +216,10 @@ class Report extends Model
         $this->attributes['status'] = in_array($v, self::STATUSES, true) ? $v : $value;
     }
 
-    /** Optional: keep category within known list if possible */
     public function setCategoryAttribute($value): void
     {
         if ($value === null) { $this->attributes['category'] = null; return; }
         $v = trim((string) $value);
-        // try to match case-insensitively to one of the known categories
         foreach (self::CATEGORIES as $opt) {
             if (strcasecmp($opt, $v) === 0) { $this->attributes['category'] = $opt; return; }
         }
@@ -226,17 +239,19 @@ class Report extends Model
     /* ----------------------------
      | Model events – tidy storage
      * ---------------------------- */
+
     protected static function booted(): void
     {
         static::deleting(function (Report $report) {
-            if ($report->photo && Storage::disk('public')->exists($report->photo)) {
-                Storage::disk('public')->delete($report->photo);
+            $path = $report->normalizeStoragePath($report->photo);
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
             }
         });
 
         static::updating(function (Report $report) {
             if ($report->isDirty('photo')) {
-                $original = $report->getOriginal('photo');
+                $original = $report->normalizeStoragePath($report->getOriginal('photo'));
                 if ($original && $original !== $report->photo && Storage::disk('public')->exists($original)) {
                     Storage::disk('public')->delete($original);
                 }
@@ -247,6 +262,7 @@ class Report extends Model
     /* ----------------------------
      | Simple filter/search scopes
      * ---------------------------- */
+
     public function scopeSearch($q, ?string $term)
     {
         $term = trim((string) $term);
@@ -287,16 +303,11 @@ class Report extends Model
      | GEO scopes (maps, clustering)
      * ---------------------------- */
 
-    /** Only rows that have valid coordinates */
     public function scopeWithCoords($q)
     {
         return $q->whereNotNull('latitude')->whereNotNull('longitude');
     }
 
-    /**
-     * Filter by map viewport bounds.
-     * $ne = ['lat'=>..,'lng'=>..], $sw = ['lat'=>..,'lng'=>..]
-     */
     public function scopeInBounds($q, array $ne, array $sw)
     {
         return $q->withCoords()
@@ -304,16 +315,11 @@ class Report extends Model
                  ->whereBetween('longitude', [min($sw['lng'], $ne['lng']), max($sw['lng'], $ne['lng'])]);
     }
 
-    /** Internal helper: ensure geo columns exist (keeps app resilient on fresh DBs) */
     protected static function geoColumnsExist(): bool
     {
         return Schema::hasColumns('reports', ['latitude', 'longitude']);
     }
 
-    /**
-     * Haversine distance (in KM). Adds a `distance_km` select column.
-     * Values are clamped to avoid NaN from acos domain errors.
-     */
     public function scopeWithDistance($q, float $lat, float $lng)
     {
         if (!self::geoColumnsExist()) return $q;
@@ -336,29 +342,21 @@ class Report extends Model
                  ->selectRaw("$expr as distance_km", [$lat, $lng, $lat]);
     }
 
-    /** Scope: filter by radius (km) */
     public function scopeWithinRadiusKm($q, float $lat, float $lng, float $radiusKm)
     {
         if (!self::geoColumnsExist()) return $q;
         return $q->withDistance($lat, $lng)->having('distance_km', '<=', $radiusKm);
     }
 
-    /** Scope: order by distance if present; otherwise newest */
     public function scopeOrderByDistance($q, float $lat, float $lng)
     {
         if (!self::geoColumnsExist()) return $q->latest();
 
-        // Ensure the distance column is selected (idempotent)
         $q->withDistance($lat, $lng);
 
         return $q->orderBy('distance_km')->orderByDesc('id');
     }
 
-    /* ----------------------------
-     | Engagement-friendly scopes
-     * ---------------------------- */
-
-    /** Popular = by endorsements_count desc (falls back gracefully if table is missing) */
     public function scopePopular($q)
     {
         if (Schema::hasTable('endorsements') && Schema::hasColumn('endorsements', 'report_id')) {
@@ -367,12 +365,27 @@ class Report extends Model
         return $q->latest();
     }
 
-    /** Discussed = by comments_count desc (falls back gracefully if table is missing) */
     public function scopeDiscussed($q)
     {
         if (Schema::hasTable('comments') && Schema::hasColumn('comments', 'report_id')) {
             return $q->withCount('comments')->orderByDesc('comments_count');
         }
         return $q->latest();
+    }
+
+    /* ----------------------------
+     | Internals
+     * ---------------------------- */
+
+    /** Normalize any stored path to something like "reports/file.jpg". */
+    protected function normalizeStoragePath(?string $path): ?string
+    {
+        if (!$path) return null;
+
+        $path = str_replace('\\', '/', $path);         // windows → web separators
+        $path = ltrim($path, '/');                     // drop leading slash
+        $path = preg_replace('#^public/#', '', $path); // drop "public/"
+        $path = preg_replace('#^storage/#', '', $path);// drop "storage/" if mistakenly saved
+        return $path;
     }
 }

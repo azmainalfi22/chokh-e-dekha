@@ -29,10 +29,7 @@ class ReportController extends Controller
             && Schema::hasColumn('endorsements', 'user_id');
     }
 
-    protected function hasRatings(): bool
-    {
-        return Schema::hasTable('ratings') && Schema::hasColumn('ratings', 'score');
-    }
+
 
     protected function validPoint($lat, $lng): bool
     {
@@ -104,9 +101,7 @@ class ReportController extends Controller
                 ]);
             }
         }
-        if ($this->hasRatings()) {
-            $reports->withCount('ratings')->withAvg('ratings', 'score'); // ratings_count, ratings_avg_score
-        }
+
 
         // Text/field filters
         $reports->when($q !== '', function ($qb) use ($q, $like) {
@@ -141,7 +136,6 @@ class ReportController extends Controller
                                : $reports->latest(),
             'popular'   => ($this->hasEndorsements() ? $reports->orderByDesc('endorsements_count') : $reports)
                                ->when($this->hasComments(), fn ($q) => $q->orderByDesc('comments_count'))
-                               ->when($this->hasRatings(),  fn ($q) => $q->orderByDesc('ratings_count'))
                                ->latest('id'),
             'discussed' => $this->hasComments()
                                ? $reports->orderByDesc('comments_count')->latest('id')
@@ -231,7 +225,7 @@ class ReportController extends Controller
 
         if ($this->hasComments())     $reports->withCount('comments');
         if ($this->hasEndorsements()) $reports->withCount('endorsements');
-        if ($this->hasRatings())      $reports->withCount('ratings')->withAvg('ratings', 'score');
+
 
         $reports = $reports
             ->when($q !== '', fn($qrb) => $qrb->where(function ($x) use ($q, $like) {
