@@ -277,8 +277,8 @@
 
 <div class="relative grainy min-h-screen">
   {{-- Enhanced background blobs --}}
-  <div class="pointer-events-none fixed -top-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 via-orange-300 to-rose-300 animate-pulse"></div>
-  <div class="pointer-events-none fixed -bottom-32 -left-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 via-amber-300 to-pink-300 animate-pulse" style="animation-delay:1s;"></div>
+  <div class="pointer-events-none fixed -top-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-200 via-orange-200 to-rose-200 "></div>
+  <div class="pointer-events-none fixed -bottom-32 -left-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-200 via-amber-200 to-pink-200 " style="animation-delay:1s;"></div>
 
   {{-- Rest of your content... --}}
   {{-- All your existing HTML structure remains unchanged --}}
