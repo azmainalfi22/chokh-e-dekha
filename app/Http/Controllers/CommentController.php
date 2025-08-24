@@ -4,30 +4,65 @@
 namespace App\Http\Controllers;
 
 use App\Models\Report;
-use App\Models\Comment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class CommentController extends Controller
 {
     public function store(Request $request, Report $report)
     {
-        // Must be logged in (route has auth middleware)
-        $data = $request->validate([
+        // Must be logged in (route should use auth middleware)
+        $validated = $request->validate([
             'body' => ['required','string','max:2000'],
         ]);
 
-        $comment = $report->comments()->create([
-            'user_id' => $request->user()->id,
-            'body'    => $data['body'],
-        ])->load('user');
+        // Trim so "   " doesn't pass validation in practice
+        $body = (string) Str::of($validated['body'])->trim();
+        if ($body === '') {
+            $errors = ['body' => ['Comment can’t be empty.']];
+            if ($request->expectsJson()) {
+                return response()->json(['ok' => false, 'errors' => $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+            return back()->withErrors($errors)->withInput();
+        }
 
-        // Return JSON so fetch() sees 2xx and we can render the name like FB
-        return response()->json([
-            'ok'      => true,
-            'id'      => $comment->id,
-            'body'    => $comment->body,
-            'name'    => $comment->user->name ?? 'User',
-            'time'    => $comment->created_at->diffForHumans(),
-        ], 201);
+        try {
+            $comment = DB::transaction(function () use ($request, $report, $body) {
+                return $report->comments()->create([
+                    'user_id' => $request->user()->id,
+                    'body'    => $body,
+                ])->load('user:id,name');
+            });
+
+            $payload = [
+                'ok'   => true,
+                'id'   => $comment->id,
+                'body' => $comment->body,
+                'name' => $comment->user->name ?? 'User',
+                'time' => $comment->created_at->diffForHumans(),
+            ];
+
+            // If it’s an AJAX/JSON request, reply JSON 201; otherwise redirect back with a flash
+            if ($request->expectsJson()) {
+                return response()->json($payload, Response::HTTP_CREATED);
+            }
+
+            return back()->with('status', 'Comment posted.');
+        } catch (\Throwable $e) {
+            Log::error('Comment post failed', [
+                'report_id' => $report->id,
+                'user_id'   => optional($request->user())->id,
+                'error'     => $e->getMessage(),
+            ]);
+
+            $message = 'Failed to post comment. Please try again.';
+            if ($request->expectsJson()) {
+                return response()->json(['ok' => false, 'message' => $message], Response::HTTP_INTERNAL_SERVER_ERROR);
+            }
+            return back()->with('error', $message)->withInput();
+        }
     }
 }

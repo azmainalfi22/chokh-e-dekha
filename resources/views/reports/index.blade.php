@@ -628,58 +628,24 @@
               </div>
 
               {{-- Enhanced Comment Thread --}}
+              {{-- Comment Thread (via partial) --}}
+              {{-- Comment Thread (via partial) --}}
               @if($commentsEnabled && $commentsRouteName)
-                <div id="thread-{{ $report->id }}" class="cd-thread">
-                  <div class="cd-thread-content">
-                    {{-- Comments List --}}
-                    <ul class="js-thread-list space-y-3">
-                      @if(method_exists($report, 'comments'))
-                        @foreach($report->comments()->latest()->limit(3)->get() as $comment)
-                          <li class="comment-item">
-                            <div class="comment-avatar">
-                              {{ substr($comment->user->name ?? 'A', 0, 1) }}
-                            </div>
-                            <div class="comment-bubble">
-                              <div class="comment-author">{{ $comment->user->name ?? 'Anonymous' }}</div>
-                              <div class="comment-text">{{ $comment->body }}</div>
-                            </div>
-                          </li>
-                        @endforeach
-                      @endif
-                    </ul>
+                @php
+                  $prefetchComments = method_exists($report, 'comments')
+                    ? $report->comments()->latest()->limit(3)->with('user:id,name')->get()
+                    : collect();
+                @endphp
 
-                    {{-- Comment Form --}}
-                    @auth
-                      <form action="{{ route($commentsRouteName, $report) }}" method="POST" class="js-comment-form">
-                        @csrf
-                        <div class="flex gap-3">
-                          <div class="comment-avatar">
-                            {{ substr(auth()->user()->name, 0, 1) }}
-                          </div>
-                          <div class="flex-1">
-                            <textarea name="body" 
-                                  placeholder="Write a comment..." 
-                                  class="w-full rounded-xl border px-4 py-3 text-sm resize-none focus:ring-2 transition-all duration-200"
-                                  style="border-color:var(--ring); min-height:44px; color:var(--text);"
-                                  rows="1"></textarea>
-                            <div class="flex justify-end mt-2">
-                              <button type="submit" 
-                                      class="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200"
-                                      style="background: linear-gradient(135deg, var(--accent), #f97316);">
-                                Post
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </form>
-                    @else
-                      <div class="text-center py-4" style="color:var(--muted)">
-                        <a href="{{ route('login') }}" class="font-medium" style="color:var(--link)">
-                          Sign in to comment
-                        </a>
-                      </div>
-                    @endauth
-                  </div>
+                <div id="thread-{{ $report->id }}" class="cd-thread">
+                  @include('partials._comment_thread', [
+                    'threadId'   => 'thread-' . $report->id,
+                    'report'     => $report,
+                    'comments'   => $prefetchComments,
+                    'postAction' => route($commentsRouteName, $report),
+                    'canPost'    => auth()->check(),
+                    'totalCount' => (int) ($report->comments_count ?? $prefetchComments->count())
+                  ])
                 </div>
               @endif
             </div>

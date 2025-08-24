@@ -101,6 +101,9 @@ Route::middleware('auth')->group(function () {
         ->whereNumber('report')
         ->middleware('throttle:60,1')
         ->name('reports.endorse.toggle');
+
+     Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])
+    ->name('reports.comments.destroy');   
 });
 
 /* ---------------------------
