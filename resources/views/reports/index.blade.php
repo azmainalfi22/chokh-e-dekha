@@ -108,9 +108,10 @@
 
   /* Comment Thread */
   .cd-thread{
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height var(--duration-slow) var(--ease-out);
+    display: none;                            /* hidden by default */
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
     background: var(--surface-elevated);
     border: 1px solid var(--ring);
     border-radius: var(--radius-2xl);
@@ -118,7 +119,13 @@
     position: relative;
     z-index: var(--z-dropdown);
   }
-  .cd-thread.open { border-color: var(--ring-focus); box-shadow: var(--shadow-md); }
+  .cd-thread.open{
+    display: block;                           /* show instantly */
+    opacity: 1;
+    transform: translateY(0);
+    border-color: var(--ring-focus);
+    box-shadow: var(--shadow-md);
+  }
   .cd-thread-content { padding: var(--space-4); }
   .js-thread-list { max-height: 200px; overflow-y: auto; margin-bottom: var(--space-4); }
   .js-thread-list:empty { display: none; }
@@ -286,7 +293,7 @@
     <header class="mb-8">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div class="min-w-0">
-          <h1 class="text-4xl md:text-5xl font-black text-[color:var(--text)] mb-3">
+          <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
             All Reports
           </h1>
           <p class="text-base md:text-lg" style="color:var(--muted)">
@@ -860,54 +867,48 @@
   }
 
   /* ===== Enhanced Thread Toggle with Smooth Animation ===== */
-  function openThread(panel) {
-    panel.classList.add('open');
-    const height = panel.scrollHeight;
-    panel.style.maxHeight = `${height + 20}px`;
-    
-    // Focus first input in the thread
-    const firstInput = panel.querySelector('textarea, input');
-    if (firstInput) {
-      setTimeout(() => firstInput.focus(), 300);
-    }
-  }
-  
-  function closeThread(panel) {
-    panel.style.maxHeight = '0px';
-    panel.classList.remove('open');
-  }
-  
-  document.addEventListener('click', (e) => {
-    const toggleBtn = e.target.closest('.js-thread-toggle');
-    if (!toggleBtn) return;
-    
-    const panel = document.querySelector(toggleBtn.dataset.target);
-    if (!panel) return;
-    
-    const isOpen = panel.classList.contains('open');
-    
-    if (isOpen) {
-      closeThread(panel);
-      toggleBtn.setAttribute('aria-expanded', 'false');
-      toggleBtn.classList.remove('active');
-    } else {
-      // Close other threads first
-      document.querySelectorAll('.cd-thread.open').forEach(otherPanel => {
-        if (otherPanel !== panel) {
-          closeThread(otherPanel);
-          const otherBtn = document.querySelector(`[data-target="#${otherPanel.id}"]`);
-          if (otherBtn) {
-            otherBtn.setAttribute('aria-expanded', 'false');
-            otherBtn.classList.remove('active');
-          }
+/* ===== Thread Toggle (instant, no animation) ===== */
+function openThread(panel) {
+  panel.classList.add('open');          // display: block
+  const firstInput = panel.querySelector('textarea, input');
+  if (firstInput) firstInput.focus();   // no delay
+}
+
+function closeThread(panel) {
+  panel.classList.remove('open');       // display: none
+}
+
+document.addEventListener('click', (e) => {
+  const toggleBtn = e.target.closest('.js-thread-toggle');
+  if (!toggleBtn) return;
+
+  const panel = document.querySelector(toggleBtn.dataset.target);
+  if (!panel) return;
+
+  const isOpen = panel.classList.contains('open');
+
+  if (isOpen) {
+    closeThread(panel);
+    toggleBtn.setAttribute('aria-expanded', 'false');
+    toggleBtn.classList.remove('active');
+  } else {
+    // Close any other open threads
+    document.querySelectorAll('.cd-thread.open').forEach(otherPanel => {
+      if (otherPanel !== panel) {
+        closeThread(otherPanel);
+        const otherBtn = document.querySelector(`[data-target="#${otherPanel.id}"]`);
+        if (otherBtn) {
+          otherBtn.setAttribute('aria-expanded', 'false');
+          otherBtn.classList.remove('active');
         }
-      });
-      
-      openThread(panel);
-      toggleBtn.setAttribute('aria-expanded', 'true');
-      toggleBtn.classList.add('active');
-    }
-  });
+      }
+    });
+
+    openThread(panel);
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    toggleBtn.classList.add('active');
+  }
+});
 
   /* ===== Enhanced Endorsement System ===== */
   document.querySelectorAll('.js-endorse-form').forEach(endorseForm => {
