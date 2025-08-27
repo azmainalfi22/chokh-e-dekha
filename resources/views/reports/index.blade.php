@@ -867,23 +867,27 @@
   }
 
   /* ===== Enhanced Thread Toggle with Smooth Animation ===== */
-/* ===== Thread Toggle (instant, no animation) ===== */
+/* ===== Thread Toggle (instant, robust) ===== */
 function openThread(panel) {
-  panel.classList.add('open');          // display: block
+  panel.style.display = 'block';          // ensure visible even if CSS had display:none
+  panel.getBoundingClientRect();          // force reflow so transition applies
+  panel.classList.add('open');            // fade/slide handled by CSS
   const firstInput = panel.querySelector('textarea, input');
-  if (firstInput) firstInput.focus();   // no delay
+  if (firstInput) firstInput.focus();
 }
 
 function closeThread(panel) {
-  panel.classList.remove('open');       // display: none
+  panel.classList.remove('open');
+  panel.style.display = 'none';           // hide again
 }
 
 document.addEventListener('click', (e) => {
   const toggleBtn = e.target.closest('.js-thread-toggle');
   if (!toggleBtn) return;
 
-  const panel = document.querySelector(toggleBtn.dataset.target);
-  if (!panel) return;
+  const sel = toggleBtn.dataset.target;
+  const panel = sel ? document.querySelector(sel) : null;
+  if (!panel) return; // panel not in DOM (e.g., comments disabled)
 
   const isOpen = panel.classList.contains('open');
 
@@ -892,7 +896,7 @@ document.addEventListener('click', (e) => {
     toggleBtn.setAttribute('aria-expanded', 'false');
     toggleBtn.classList.remove('active');
   } else {
-    // Close any other open threads
+    // Close other threads
     document.querySelectorAll('.cd-thread.open').forEach(otherPanel => {
       if (otherPanel !== panel) {
         closeThread(otherPanel);
@@ -903,7 +907,6 @@ document.addEventListener('click', (e) => {
         }
       }
     });
-
     openThread(panel);
     toggleBtn.setAttribute('aria-expanded', 'true');
     toggleBtn.classList.add('active');
@@ -972,6 +975,7 @@ document.addEventListener('click', (e) => {
     });
   });
 
+
   /* ===== Enhanced Comment System ===== */
   document.querySelectorAll('.js-comment-form').forEach(commentForm => {
     const textarea = commentForm.querySelector('textarea[name="body"]');
@@ -984,107 +988,119 @@ document.addEventListener('click', (e) => {
       });
     }
     
-    commentForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      
-      const textContent = (textarea?.value || '').trim();
-      if (!textContent) {
-        textarea?.focus();
-        return;
-      }
-      
-      const thread = commentForm.closest('.cd-thread');
-      const commentsList = thread?.querySelector('.js-thread-list');
-      const reportCard = commentForm.closest('.report-card');
-      const commentsCountElement = reportCard?.querySelector('.js-comments-count');
-      const userName = document.querySelector('meta[name="user-name"]')?.content || 
-                       textarea?.getAttribute('data-user-name') || 
-                       'You';
-      
-      // Create optimistic comment
-      const commentElement = document.createElement('li');
-      commentElement.className = 'comment-item';
-      commentElement.innerHTML = `
-        <div class="comment-avatar">${userName.charAt(0).toUpperCase()}</div>
-        <div class="comment-bubble">
-          <div class="comment-author">${userName}</div>
-          <div class="comment-text">${textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-        </div>
-      `;
-      
-      // Add to list
-      if (commentsList) {
-        commentsList.appendChild(commentElement);
-        commentsList.scrollTop = commentsList.scrollHeight;
-      }
-      
-      // Update counter
-      const currentCount = parseInt(commentsCountElement?.textContent || '0', 10);
-      if (commentsCountElement) {
-        commentsCountElement.textContent = String(currentCount + 1);
-      }
-      
-      // Clear and disable form
-      if (textarea) {
-        textarea.value = '';
-        textarea.style.height = 'auto';
-        textarea.disabled = true;
-      }
-      
-      const submitBtn = commentForm.querySelector('button[type="submit"]');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.classList.add('loading');
-      }
-      
-      try {
-        const response = await fetch(commentForm.action, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-TOKEN': getCsrf(),
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-          },
-          body: new FormData(commentForm)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        // Success - comment stays
-        toast('Comment posted successfully!');
-        
-      } catch (error) {
-        // Remove optimistic comment
-        commentElement.remove();
-        
-        // Revert counter
-        if (commentsCountElement) {
-          commentsCountElement.textContent = String(currentCount);
-        }
-        
-        console.error('Comment submission failed:', error);
-        toast('Failed to post comment. Please try again.', 'error');
-        
-        // Restore form content
-        if (textarea) {
-          textarea.value = textContent;
-        }
-        
-      } finally {
-        // Re-enable form
-        if (textarea) {
-          textarea.disabled = false;
-        }
-        const submitBtn2 = commentForm.querySelector('button[type="submit"]');
-        if (submitBtn2) {
-          submitBtn2.disabled = false;
-          submitBtn2.classList.remove('loading');
-        }
-      }
+    commentForm.addEventListener('submit', async (event) => { 
+  event.preventDefault();
+
+  const textContent = (textarea?.value || '').trim();
+  if (!textContent) { textarea?.focus(); return; }
+
+  // ✅ capture before clearing textarea
+  const formData = new FormData(commentForm);
+
+  const thread = commentForm.closest('.cd-thread');
+  const commentsList = thread?.querySelector('.js-thread-list');
+  const reportCard = commentForm.closest('.report-card');
+  const commentsCountElement = reportCard?.querySelector('.js-comments-count');
+  const userName = document.querySelector('meta[name="user-name"]')?.content || 
+                   textarea?.getAttribute('data-user-name') || 
+                   'You';
+
+  // optimistic UI (unchanged)
+  const commentElement = document.createElement('li');
+  commentElement.className = 'comment-item';
+  commentElement.innerHTML = `
+    <div class="comment-avatar">${userName.charAt(0).toUpperCase()}</div>
+    <div class="comment-bubble">
+      <div class="comment-author">${userName}</div>
+      <div class="comment-text">${textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+    </div>
+  `;
+  if (commentsList) {
+    commentsList.appendChild(commentElement);
+    commentsList.scrollTop = commentsList.scrollHeight;
+  }
+  const currentCount = parseInt(commentsCountElement?.textContent || '0', 10);
+  if (commentsCountElement) commentsCountElement.textContent = String(currentCount + 1);
+
+  // clear & disable AFTER capturing formData (unchanged otherwise)
+  if (textarea) { textarea.value = ''; textarea.style.height = 'auto'; textarea.disabled = true; }
+  const submitBtn = commentForm.querySelector('button[type="submit"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('loading'); }
+
+  try {
+    const response = await fetch(commentForm.action, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': getCsrf(),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
+      },
+      body: formData                   // ✅ use captured data
     });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    toast('Comment posted successfully!');
+  } catch (error) {
+    // revert optimistic UI (unchanged)
+    commentElement.remove();
+    if (commentsCountElement) commentsCountElement.textContent = String(currentCount);
+    console.error('Comment submission failed:', error);
+    toast('Failed to post comment. Please try again.', 'error');
+    if (textarea) textarea.value = textContent;
+  } finally {
+    if (textarea) textarea.disabled = false;
+    const submitBtn2 = commentForm.querySelector('button[type="submit"]');
+    if (submitBtn2) { submitBtn2.disabled = false; submitBtn2.classList.remove('loading'); }
+  }
+});
+/* ===== Comment Delete (AJAX) ===== */
+document.querySelectorAll('.js-comment-delete-form').forEach(delForm => {
+  delForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn = delForm.querySelector('button[type="submit"]');
+    const li  = delForm.closest('.comment-item');
+    const reportCard = delForm.closest('.report-card');
+    const counterEl  = reportCard?.querySelector('.js-comments-count');
+    const currentCount = parseInt(counterEl?.textContent || '0', 10);
+
+    // disable button
+    if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+
+    try {
+      // Use POST + _method=DELETE for best CSRF compatibility
+      const body = new URLSearchParams();
+      body.set('_method', 'DELETE');
+
+      const resp = await fetch(delForm.action, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': getCsrf(),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      // Remove from DOM & decrement counter
+      li?.remove();
+      if (counterEl) {
+        counterEl.textContent = String(Math.max(0, currentCount - 1));
+      }
+
+      toast('Comment deleted.');
+    } catch (err) {
+      console.error('Delete failed:', err);
+      toast('Failed to delete comment.', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+    }
   });
+});
+});   // <-- ADD THIS: closes document.querySelectorAll(...).forEach
 
   /* ===== Enhanced Loading States ===== */
   window.addEventListener('beforeunload', () => {

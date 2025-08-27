@@ -61,17 +61,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Create/store (prevent admins from posting)
     Route::middleware('prevent-admin-report-create')->group(function () {
         Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
-        Route::post('/reports',        [ReportController::class, 'store'])->name('reports.store');
+        Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
 
         // Back-compat aliases (optional; remove when views updated)
         Route::get('/report/create', [ReportController::class, 'create'])->name('report.create');
-        Route::post('/report',       [ReportController::class, 'store'])->name('report.store');
+        Route::post('/report', [ReportController::class, 'store'])->name('report.store');
     });
 
     // User profile (needed by layouts.app link)
-    Route::get('/profile',  [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile',[ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 /* ---------------------------
@@ -81,29 +81,26 @@ Route::middleware('auth')->group(function () {
     // Comments
     Route::post('/reports/{report}/comments', [CommentController::class, 'store'])
         ->whereNumber('report')
-        ->middleware('throttle:20,1')   // up to 20 comment attempts per minute per IP
+        ->middleware('throttle:20,1')
         ->name('reports.comments.store');
 
     Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])
         ->whereNumber('report')
         ->whereNumber('comment')
-        ->middleware('throttle:60,1')   // reasonable protection
+        ->middleware('throttle:60,1')
         ->name('reports.comments.destroy');
 
     // Endorse (like)
     Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])
         ->whereNumber('report')
-        ->middleware('throttle:60,1')   // prevent spam-click storms
+        ->middleware('throttle:60,1')
         ->name('reports.endorse');
 
-    // Back-compat alias for older Blade code that used reports.endorse.toggle
+    // Back-compat alias
     Route::post('/reports/{report}/endorse-toggle', [EndorsementController::class, 'toggle'])
         ->whereNumber('report')
         ->middleware('throttle:60,1')
         ->name('reports.endorse.toggle');
-
-     Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])
-    ->name('reports.comments.destroy');   
 });
 
 /* ---------------------------
@@ -115,14 +112,14 @@ Route::prefix('admin')
     ->group(function () {
         // Dashboard & profile
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        Route::get('/profile',   [AdminProfileController::class, 'edit'])->name('profile.edit');
+        Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
         // Users
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
 
         // Reports (admin views)
-        Route::get('/reports',          [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/{report}', [AdminReportController::class, 'show'])
             ->whereNumber('report')
             ->name('reports.show');
@@ -132,8 +129,21 @@ Route::prefix('admin')
             ->whereNumber('report')
             ->name('reports.status');
 
+        // Matches Blade JS: POST /admin/reports/{id}/quick-action
+        Route::post('/reports/{report}/quick-action', [AdminReportController::class, 'quickAction'])
+            ->whereNumber('report')
+            ->name('reports.quick-action');
+
+        // Assign & bulk
+        Route::post('/reports/{report}/assign', [AdminReportController::class, 'assignToMe'])
+            ->whereNumber('report')
+            ->name('reports.assign');
+
+        Route::post('/reports/bulk-action', [AdminReportController::class, 'bulkAction'])
+            ->name('reports.bulk');
+
         // Notes
-        Route::post('/reports/{report}/notes',          [AdminReportController::class, 'storeNote'])
+        Route::post('/reports/{report}/notes', [AdminReportController::class, 'storeNote'])
             ->whereNumber('report')
             ->name('reports.notes.store');
         Route::delete('/reports/{report}/notes/{note}', [AdminReportController::class, 'destroyNote'])

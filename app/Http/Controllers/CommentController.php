@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
+use App\Models\Comment;
+
 class CommentController extends Controller
 {
     public function store(Request $request, Report $report)
@@ -64,5 +66,26 @@ class CommentController extends Controller
             }
             return back()->with('error', $message)->withInput();
         }
+    }
+    public function destroy(Request $request, Report $report, Comment $comment)
+    {
+        // 404 if the comment doesn't belong to the report (safety even without scoped bindings)
+        if ($comment->report_id !== $report->id) {
+            abort(404);
+        }
+
+        // Only the comment owner or an admin can delete
+        $user = $request->user();
+        if (! $user || ($user->id !== $comment->user_id && ! $user->is_admin)) {
+            abort(403);
+        }
+
+        $comment->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back()->with('success', 'Comment deleted.');
     }
 }

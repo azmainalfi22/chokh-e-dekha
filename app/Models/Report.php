@@ -388,4 +388,7 @@ class Report extends Model
         $path = preg_replace('#^storage/#', '', $path);// drop "storage/" if mistakenly saved
         return $path;
     }
+    // app/Models/Report.php
+public function assignee() { return $this->belongsTo(User::class, 'assigned_to'); }
+
 }

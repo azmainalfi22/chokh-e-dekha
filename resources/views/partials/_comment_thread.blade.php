@@ -77,7 +77,7 @@
     userName: @json($userName),
     userId: @json(auth()->id()),
     csrfToken: @json(csrf_token()),
-    deleteRoute: @json(route('reports.comments.destroy', ['report' => $report->id, 'comment' => ':id']))
+    deleteRoute: @json(route('reports.comments.destroy', ['report' => $report->id, 'comment' => '__ID__']))
   };
 </script>
 
@@ -247,7 +247,7 @@
     e.target.disabled = true;
     
     try {
-      const deleteUrl = commentsData.deleteRoute.replace(':id', commentId);
+      const deleteUrl = commentsData.deleteRoute.replace('__ID__', commentId);
       
       const res = await fetch(deleteUrl, {
         method: 'DELETE',
