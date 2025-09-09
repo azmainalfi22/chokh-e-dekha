@@ -85,13 +85,18 @@
     padding:var(--space-2) var(--space-3); border-radius:var(--radius-lg);
     font-size:var(--text-sm); font-weight:600; text-decoration:none;
     transition:all var(--duration-fast) ease; border:1px solid var(--ring); white-space:nowrap;
+    cursor: pointer;
+  }
+  .admin-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
   .admin-btn-primary { background:linear-gradient(135deg,var(--accent),#f97316); color:#fff; border-color:transparent; box-shadow:var(--shadow-md); }
-  .admin-btn-primary:hover { background:linear-gradient(135deg,var(--accent-600),#ea580c); transform:translateY(-1px); box-shadow:var(--shadow-lg);}
+  .admin-btn-primary:hover:not(:disabled) { background:linear-gradient(135deg,var(--accent-600),#ea580c); transform:translateY(-1px); box-shadow:var(--shadow-lg);}
   .admin-btn-secondary { background:var(--surface); color:var(--text-secondary); border-color:var(--ring); }
-  .admin-btn-secondary:hover { background:var(--surface-muted); color:var(--text); border-color:var(--accent);}
+  .admin-btn-secondary:hover:not(:disabled) { background:var(--surface-muted); color:var(--text); border-color:var(--accent);}
   .admin-btn-danger{ background:rgba(239,68,68,.1); color:#dc2626; border-color:rgba(239,68,68,.3);}
-  .admin-btn-danger:hover{ background:rgba(239,68,68,.2); border-color:#dc2626;}
+  .admin-btn-danger:hover:not(:disabled){ background:rgba(239,68,68,.2); border-color:#dc2626;}
 
   /* Filters Panel */
   .admin-filters-panel{ background:var(--surface); border:1px solid var(--ring); box-shadow:var(--shadow-xl); backdrop-filter:blur(12px); }
@@ -113,7 +118,7 @@
   .quick-actions{ background:var(--surface); border:1px solid var(--ring); border-radius:var(--radius-2xl); padding:var(--space-6); box-shadow:var(--shadow-lg); backdrop-filter:blur(8px); margin-bottom:var(--space-8);}
   .quick-actions h3{ color:var(--text); font-size:var(--text-lg); font-weight:700; margin-bottom:var(--space-4);}
   .quick-actions-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:var(--space-3);}
-  .quick-action-btn{ display:flex; flex-direction:column; align-items:center; gap:var(--space-2); padding:var(--space-4); border:1px solid var(--ring); border-radius:var(--radius-xl); background:var(--surface-muted); text-decoration:none; transition:all var(--duration-fast) ease; color:var(--text);}
+  .quick-action-btn{ display:flex; flex-direction:column; align-items:center; gap:var(--space-2); padding:var(--space-4); border:1px solid var(--ring); border-radius:var(--radius-xl); background:var(--surface-muted); text-decoration:none; transition:all var(--duration-fast) ease; color:var(--text); cursor: pointer;}
   .quick-action-btn:hover{ background:var(--accent); color:#fff; border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow-md);}
   .quick-action-icon{ width:2rem; height:2rem; }
   .quick-action-label{ font-size:var(--text-sm); font-weight:600; text-align:center;}
@@ -249,22 +254,22 @@
     <div class="quick-actions slide-in">
       <h3>Quick Actions</h3>
       <div class="quick-actions-grid">
-        <button type="button" class="quick-action-btn" onclick="filterByStatus('pending')">
+        <button type="button" class="quick-action-btn" onclick="AdminReports.filterByStatus('pending')">
           <svg class="quick-action-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-6V7h2v4h4v2z"/></svg>
           <span class="quick-action-label">View Pending</span>
         </button>
 
-        <button type="button" class="quick-action-btn" onclick="filterByStatus('in_progress')">
+        <button type="button" class="quick-action-btn" onclick="AdminReports.filterByStatus('in_progress')">
           <svg class="quick-action-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           <span class="quick-action-label">In Progress</span>
         </button>
 
-        <button type="button" class="quick-action-btn" onclick="filterByPriority()">
+        <button type="button" class="quick-action-btn" onclick="AdminReports.filterByPriority()">
           <svg class="quick-action-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           <span class="quick-action-label">High Priority</span>
         </button>
 
-        <button type="button" class="quick-action-btn" onclick="filterByDate('today')">
+        <button type="button" class="quick-action-btn" onclick="AdminReports.filterByDate('today')">
           <svg class="quick-action-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
           <span class="quick-action-label">Today's Reports</span>
         </button>
@@ -274,7 +279,7 @@
           <span class="quick-action-label">Bulk Actions</span>
         </button>
 
-        <button type="button" class="quick-action-btn" onclick="generateReport()">
+        <button type="button" class="quick-action-btn" onclick="AdminReports.generateReport()">
           <svg class="quick-action-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/></svg>
           <span class="quick-action-label">Generate Report</span>
         </button>
@@ -299,15 +304,15 @@
         </span>
 
         <div class="flex gap-2">
-          <button type="button" class="admin-btn admin-btn-secondary" onclick="bulkAction('approve')">
+          <button type="button" class="admin-btn admin-btn-secondary" onclick="AdminReports.bulkAction('approve')">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             Approve Selected
           </button>
-          <button type="button" class="admin-btn admin-btn-secondary" onclick="bulkAction('reject')">
+          <button type="button" class="admin-btn admin-btn-secondary" onclick="AdminReports.bulkAction('reject')">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
             Reject Selected
           </button>
-          <button type="button" class="admin-btn admin-btn-danger" onclick="bulkAction('delete')">
+          <button type="button" class="admin-btn admin-btn-danger" onclick="AdminReports.bulkAction('delete')">
             <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             Delete Selected
           </button>
@@ -358,15 +363,30 @@
         {{-- Second row --}}
         <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 mt-4">
           {{-- Date range --}}
-          <div class="flex items-center gap-2">
-            <label for="from" class="text-sm font-medium" style="color:var(--text)">From:</label>
-            <input type="date" name="from" id="from" value="{{ request('from') }}"
-                   class="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 transition-all duration-200" style="border-color:var(--ring)">
-          </div>
-          <div class="flex items-center gap-2">
-            <label for="to" class="text-sm font-medium" style="color:var(--text)">To:</label>
-            <input type="date" name="to" id="to" value="{{ request('to') }}"
-                   class="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 transition-all duration-200" style="border-color:var(--ring)">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium mb-1" style="color:var(--text)">Date range</label>
+
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+              <input
+                type="date"
+                name="from"
+                id="from"
+                value="{{ request('from') }}"
+                autocomplete="off"
+                class="w-full sm:w-44 md:w-52 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 flex-none relative z-10"
+                style="border-color:var(--ring);background:var(--surface);color:var(--text)"
+              >
+              <span class="px-2 text-sm opacity-70 whitespace-nowrap">to</span>
+              <input
+                type="date"
+                name="to"
+                id="to"
+                value="{{ request('to') }}"
+                autocomplete="off"
+                class="w-full sm:w-44 md:w-52 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-amber-300 flex-none relative z-10"
+                style="border-color:var(--ring);background:var(--surface);color:var(--text)"
+              >
+            </div>
           </div>
 
           {{-- Priority --}}
@@ -471,7 +491,7 @@
       $adminPill = function($status, $reportId = null) {
         $s = $status ?? 'pending';
         $label = \Illuminate\Support\Str::headline($s);
-        $clickable = $reportId ? 'onclick="quickStatusChange(this, '.$reportId.', \''.$s.'\')"' : '';
+        $clickable = $reportId ? 'onclick="AdminReports.quickStatusChange(this, '.$reportId.', \''.$s.'\')"' : '';
         return '<span class="admin-status-pill status-'.e($s).'" '.$clickable.'>● '.$label.'</span>';
       };
       $priorityBadge = function($priority) {
@@ -509,7 +529,7 @@
             <article class="admin-report-card slide-in rounded-2xl overflow-visible" style="animation-delay: {{ $loop->index * 0.05 }}s;" data-report-id="{{ $report->id }}">
               {{-- Bulk checkbox --}}
               <div class="absolute top-4 left-4 z-10">
-                <input type="checkbox" class="bulk-checkbox" value="{{ $report->id }}" onchange="updateBulkSelection()" style="display:none;">
+                <input type="checkbox" class="bulk-checkbox" value="{{ $report->id }}" onchange="AdminReports.updateBulkSelection()" style="display:none;">
               </div>
 
               {{-- Map header --}}
@@ -590,17 +610,17 @@
                       Review
                     </a>
 
-                    <div class="flex gap-1">
+                    <div class="flex gap-1" id="action-buttons-{{ $report->id }}">
                       @if($report->status === 'pending')
-                        <button type="button" onclick="quickAction(event, {{ $report->id }}, 'approve')" class="admin-btn admin-btn-secondary" title="Approve">
+                        <button type="button" onclick="AdminReports.quickAction(event, {{ $report->id }}, 'approve')" class="admin-btn admin-btn-secondary" title="Approve">
                           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                         </button>
-                        <button type="button" onclick="quickAction(event, {{ $report->id }}, 'reject')" class="admin-btn admin-btn-danger" title="Reject">
+                        <button type="button" onclick="AdminReports.quickAction(event, {{ $report->id }}, 'reject')" class="admin-btn admin-btn-danger" title="Reject">
                           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                         </button>
                       @endif
 
-                      <button type="button" onclick="assignToMe(event, {{ $report->id }})" class="admin-btn admin-btn-secondary" title="Assign to me">
+                      <button type="button" onclick="AdminReports.assignToMe(event, {{ $report->id }})" class="admin-btn admin-btn-secondary" title="Assign to me">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zM4 22v-2c0-2.2 3.8-3.3 6-3.3s6 1.1 6 3.3v2H4z"/></svg>
                       </button>
                     </div>
@@ -619,7 +639,7 @@
         <table>
           <thead>
             <tr>
-              <th class="w-8"><input type="checkbox" class="bulk-checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+              <th class="w-8"><input type="checkbox" class="bulk-checkbox" id="selectAll" onchange="AdminReports.toggleSelectAll()"></th>
               <th>Report</th><th>User</th><th>Location</th><th>Status</th><th>Priority</th><th>Created</th><th>Actions</th>
             </tr>
           </thead>
@@ -631,7 +651,7 @@
                 if ($report->status === 'pending' && $daysSinceCreated > 3) $priority = 'high';
               @endphp
               <tr data-report-id="{{ $report->id }}">
-                <td><input type="checkbox" class="bulk-checkbox" value="{{ $report->id }}" onchange="updateBulkSelection()"></td>
+                <td><input type="checkbox" class="bulk-checkbox" value="{{ $report->id }}" onchange="AdminReports.updateBulkSelection()"></td>
                 <td>
                   <div class="max-w-xs">
                     <a href="{{ route('admin.reports.show', $report) }}" class="font-medium hover:text-amber-600 transition-colors">{{ $report->title }}</a>
@@ -662,12 +682,12 @@
                   </div>
                 </td>
                 <td>
-                  <div class="flex gap-1">
+                  <div class="flex gap-1" id="table-action-buttons-{{ $report->id }}">
                     <a href="{{ route('admin.reports.show', $report) }}" class="admin-btn admin-btn-primary">
                       <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5z"/></svg>
                     </a>
                     @if($report->status === 'pending')
-                      <button type="button" onclick="quickAction(event, {{ $report->id }}, 'approve')" class="admin-btn admin-btn-secondary" title="Approve">
+                      <button type="button" onclick="AdminReports.quickAction(event, {{ $report->id }}, 'approve')" class="admin-btn admin-btn-secondary" title="Approve">
                         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                       </button>
                     @endif
@@ -707,303 +727,690 @@
   </div>
 </div>
 
+@endsection
+
 @push('scripts')
 <script>
-window.ADMIN_ROUTES = {
-  status: @json(route('admin.reports.status', ['report' => '__ID__'])),
-  assign: @json(route('admin.reports.assign', ['report' => '__ID__'])),
-  bulk:   @json(route('admin.reports.bulk')),
-};
-</script>
+// Define CSRF token meta tag check
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure CSRF token meta tag exists
+  if (!document.querySelector('meta[name="csrf-token"]')) {
+    const metaTag = document.createElement('meta');
+    metaTag.name = 'csrf-token';
+    metaTag.content = '{{ csrf_token() }}';
+    document.head.appendChild(metaTag);
+  }
+});
 
-<script>
-(function(){
+window.ADMIN_ROUTES = {
+  status: '{{ route("admin.reports.status", ["report" => "__ID__"]) }}',
+  assign: '{{ route("admin.reports.assign", ["report" => "__ID__"]) }}',
+  bulk:   '{{ route("admin.reports.bulk") }}',
+  approve: '{{ route("admin.reports.approve", ["report" => "__ID__"]) }}',
+  reject:  '{{ route("admin.reports.reject", ["report" => "__ID__"]) }}',
+};
+
+// Enhanced Admin Reports Management System
+window.AdminReports = (function(){
   'use strict';
 
-  const getCsrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
-  const form = document.getElementById('adminFiltersForm');
+  const state = {
+    selectedReports: new Set(),
+    bulkMode: false,
+    isLoading: false
+  };
 
-  /* Toast */
-  function toast(message, type = 'success') {
-    document.querySelectorAll('.toast').forEach(t => t.remove());
-    const el = document.createElement('div');
-    el.role = 'status'; el.ariaLive = 'polite'; el.textContent = message;
-    el.className = 'toast fixed left-1/2 transform -translate-x-1/2 bottom-8 z-50 px-6 py-3 rounded-xl font-medium text-white shadow-lg backdrop-blur-sm transition-all duration-300';
-    el.style.background = type==='error' ? 'linear-gradient(135deg,#ef4444,#dc2626)' :
-                         type==='warning' ? 'linear-gradient(135deg,#f59e0b,#d97706)' :
-                                            'linear-gradient(135deg,#10b981,#059669)';
-    document.body.appendChild(el);
-    setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translate(-50%,1rem)';}, 2500);
-    setTimeout(()=> el.remove(), 3000);
+  const elements = {
+    form: null,
+    loadingOverlay: null,
+    bulkActions: null,
+    selectedCount: null,
+    bulkCheckboxes: null,
+    selectAllCheckbox: null
+  };
+
+  function init() {
+    initializeElements();
+    bindEvents();
+    setupAutoSubmit();
+    setupViewToggle();
+    setupAnimations();
+    setupKeyboardShortcuts();
+    
+    console.log('AdminReports initialized successfully');
   }
 
-  /* View toggle */
-  const viewToggleButtons = document.querySelectorAll('.view-toggle-btn');
-  const cardsView = document.getElementById('cardsView');
-  const tableView = document.getElementById('tableView');
-  viewToggleButtons.forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const v = btn.dataset.view;
-      viewToggleButtons.forEach(b=>b.classList.remove('active')); btn.classList.add('active');
-      if (v==='cards'){ cardsView.style.display='block'; tableView.style.display='none'; localStorage.setItem('adminViewPreference','cards');}
-      else { cardsView.style.display='none'; tableView.style.display='block'; localStorage.setItem('adminViewPreference','table');}
-    });
-  });
-  const savedView = localStorage.getItem('adminViewPreference');
-  if (savedView) document.querySelector(`[data-view="${savedView}"]`)?.click();
+  function initializeElements() {
+    elements.form = document.getElementById('adminFiltersForm');
+    elements.loadingOverlay = document.getElementById('loadingOverlay');
+    elements.bulkActions = document.getElementById('bulkActions');
+    elements.selectedCount = document.getElementById('selectedCount');
+    elements.bulkCheckboxes = document.querySelectorAll('.bulk-checkbox:not(#selectAll)');
+    elements.selectAllCheckbox = document.getElementById('selectAll');
+  }
 
-  /* Auto-submit with loading */
-  if (form) {
-    const showLoading = ()=> document.getElementById('loadingOverlay').style.display='flex';
-    ['per_page','sort','city','category','status','priority','assigned_to'].forEach(name=>{
-      form.querySelector(`select[name="${name}"]`)?.addEventListener('change', ()=>{ showLoading(); form.submit();});
+  function getCsrfToken() {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (!metaTag) {
+      console.error('CSRF token meta tag not found');
+      return '';
+    }
+    return metaTag.content;
+  }
+
+  function showLoading() {
+    if (elements.loadingOverlay) {
+      elements.loadingOverlay.style.display = 'flex';
+    }
+    state.isLoading = true;
+  }
+
+  function hideLoading() {
+    if (elements.loadingOverlay) {
+      elements.loadingOverlay.style.display = 'none';
+    }
+    state.isLoading = false;
+  }
+
+  function toast(message, type = 'success') {
+    // Remove existing toasts
+    document.querySelectorAll('.toast').forEach(t => t.remove());
+    
+    const el = document.createElement('div');
+    el.role = 'status';
+    el.ariaLive = 'polite';
+    el.textContent = message;
+    el.className = 'toast fixed left-1/2 transform -translate-x-1/2 bottom-8 z-50 px-6 py-3 rounded-xl font-medium text-white shadow-lg backdrop-blur-sm transition-all duration-300';
+    
+    const bgColor = type === 'error' ? 'linear-gradient(135deg,#ef4444,#dc2626)' :
+                   type === 'warning' ? 'linear-gradient(135deg,#f59e0b,#d97706)' :
+                                        'linear-gradient(135deg,#10b981,#059669)';
+    el.style.background = bgColor;
+    
+    document.body.appendChild(el);
+    
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%,1rem)';
+    }, 2500);
+    
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  function bindEvents() {
+    // Export button
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', handleExport);
+    }
+
+    // Save filters button
+    const saveFiltersBtn = document.getElementById('saveFiltersBtn');
+    if (saveFiltersBtn) {
+      saveFiltersBtn.addEventListener('click', handleSaveFilters);
+    }
+
+    // Copy link button
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    if (copyLinkBtn) {
+      copyLinkBtn.addEventListener('click', handleCopyLink);
+    }
+
+    // Refresh button
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => window.location.reload());
+    }
+
+    // Bulk toggle button
+    const bulkToggleBtn = document.getElementById('bulkToggleBtn');
+    if (bulkToggleBtn) {
+      bulkToggleBtn.addEventListener('click', toggleBulkMode);
+    }
+  }
+
+  function setupAutoSubmit() {
+    if (!elements.form) return;
+
+    // Auto-submit for select elements
+    const selectElements = ['per_page', 'sort', 'city', 'category', 'status', 'priority', 'assigned_to'];
+    selectElements.forEach(name => {
+      const select = elements.form.querySelector(`select[name="${name}"]`);
+      if (select) {
+        select.addEventListener('change', () => {
+          showLoading();
+          setTimeout(() => elements.form.submit(), 100);
+        });
+      }
     });
-    const searchInput = form.querySelector('input[name="q"]');
+
+    // Auto-submit for date inputs
+    ['from', 'to'].forEach(name => {
+      const input = elements.form.querySelector(`input[name="${name}"]`);
+      if (input) {
+        input.addEventListener('change', () => {
+          showLoading();
+          setTimeout(() => elements.form.submit(), 100);
+        });
+      }
+    });
+
+    // Debounced search input
+    const searchInput = elements.form.querySelector('input[name="q"]');
     if (searchInput) {
-      let t, last = searchInput.value;
-      searchInput.addEventListener('input', e=>{
-        clearTimeout(t);
-        const v = e.target.value.trim();
-        if (v!==last && (v.length>=2 || v.length===0)) {
-          t = setTimeout(()=>{ last=v; showLoading(); form.submit(); }, 500);
+      let timeout;
+      let lastValue = searchInput.value;
+      
+      searchInput.addEventListener('input', (e) => {
+        clearTimeout(timeout);
+        const value = e.target.value.trim();
+        
+        if (value !== lastValue && (value.length >= 2 || value.length === 0)) {
+          timeout = setTimeout(() => {
+            lastValue = value;
+            showLoading();
+            elements.form.submit();
+          }, 500);
         }
       });
     }
-    ['from','to'].forEach(name=>{
-      form.querySelector(`input[name="${name}"]`)?.addEventListener('change', ()=>{ document.getElementById('loadingOverlay').style.display='flex'; form.submit();});
-    });
   }
 
-  /* Bulk selection */
-  let selectedReports = new Set();
-  const bulkActions = document.getElementById('bulkActions');
-  const selectedCount = document.getElementById('selectedCount');
-  const bulkCheckboxes = document.querySelectorAll('.bulk-checkbox:not(#selectAll)');
+  function setupViewToggle() {
+    const viewToggleButtons = document.querySelectorAll('.view-toggle-btn');
+    const cardsView = document.getElementById('cardsView');
+    const tableView = document.getElementById('tableView');
 
-  window.updateBulkSelection = function(){
-    selectedReports.clear();
-    bulkCheckboxes.forEach(cb=>{ if (cb.checked) selectedReports.add(cb.value); });
-    selectedCount.textContent = selectedReports.size;
-    bulkActions.classList.toggle('show', selectedReports.size>0);
-    const selectAll = document.getElementById('selectAll');
-    if (selectAll){
-      selectAll.checked = selectedReports.size>0 && selectedReports.size===bulkCheckboxes.length;
-      selectAll.indeterminate = selectedReports.size>0 && selectedReports.size<bulkCheckboxes.length;
-    }
-  };
-  window.toggleSelectAll = function(){
-    const on = document.getElementById('selectAll').checked;
-    bulkCheckboxes.forEach(cb=> cb.checked = on);
-    updateBulkSelection();
-  };
-
-  const bulkToggleBtn = document.getElementById('bulkToggleBtn');
-  let bulkMode = false;
-  bulkToggleBtn?.addEventListener('click', ()=>{
-    bulkMode = !bulkMode;
-    document.querySelectorAll('.bulk-checkbox').forEach(cb=> cb.style.display = bulkMode ? 'block' : 'none');
-    bulkToggleBtn.classList.toggle('active', bulkMode);
-    if (!bulkMode){ selectedReports.clear(); bulkActions.classList.remove('show'); document.querySelectorAll('.bulk-checkbox').forEach(cb=> cb.checked=false); }
-  });
-
-  /* Quick actions (status update + approve/reject mapping) */
-  window.quickAction = async function(e, reportId, action){
-  const btn = e?.currentTarget || document.body;
-  const original = btn.innerHTML;
-  const map = { approve:'in_progress', reject:'rejected' };
-  const status = map[action] ?? action;
-
-  // show tiny spinner only if element is a button
-  if (btn.tagName === 'BUTTON'){
-    btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner" style="width:1rem;height:1rem"></div>';
-  }
-
-  try{
-    const url = window.ADMIN_ROUTES.status.replace('__ID__', reportId);
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'X-CSRF-TOKEN': getCsrf(),
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({ status })
-    });
-    const data = await res.json().catch(()=> ({}));
-    if (!res.ok) throw new Error(data.message || 'Failed');
-
-    // Update pill in the closest card/row
-    const host = btn.closest('[data-report-id]');
-    const pill = host?.querySelector('.admin-status-pill');
-    if (pill){
-      pill.className = `admin-status-pill status-${status}`;
-      pill.textContent = '● ' + status.replace('_',' ').replace(/\b\w/g, m=>m.toUpperCase());
-    }
-
-    toast('Status updated');
-    
-    // FIXED: More precise button removal logic
-    if (action === 'approve' || action === 'reject'){
-      // Find the specific button group container that contains approve/reject buttons
-      const buttonGroup = btn.closest('.flex.gap-1, .admin-actions .flex.gap-1');
-      if (buttonGroup) {
-        // Only remove approve/reject buttons, not the assign button
-        const approveBtn = buttonGroup.querySelector('button[onclick*="approve"]');
-        const rejectBtn = buttonGroup.querySelector('button[onclick*="reject"]');
+    viewToggleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
         
-        if (approveBtn) approveBtn.remove();
-        if (rejectBtn) rejectBtn.remove();
+        // Update button states
+        viewToggleButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
         
-        // If this was the last action in a pending state, we can also hide the entire action group
-        // but preserve the "assign to me" button
-        const remainingActionButtons = buttonGroup.querySelectorAll('button[onclick*="quickAction"]');
-        if (remainingActionButtons.length === 0) {
-          // Only remove if there are no other action buttons besides assign
-          const hasOtherActions = buttonGroup.querySelector('button:not([onclick*="assignToMe"])');
-          if (!hasOtherActions) {
-            buttonGroup.style.display = 'none';
-          }
+        // Toggle views
+        if (view === 'cards') {
+          cardsView.style.display = 'block';
+          tableView.style.display = 'none';
+          localStorage.setItem('adminViewPreference', 'cards');
+        } else {
+          cardsView.style.display = 'none';
+          tableView.style.display = 'block';
+          localStorage.setItem('adminViewPreference', 'table');
         }
+      });
+    });
+
+    // Restore saved view preference
+    const savedView = localStorage.getItem('adminViewPreference');
+    if (savedView) {
+      const btn = document.querySelector(`[data-view="${savedView}"]`);
+      if (btn) btn.click();
+    }
+  }
+
+  function setupAnimations() {
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -5% 0px', threshold: 0.1 });
+
+    document.querySelectorAll('.slide-in, .fade-scale').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+  }
+
+  function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+K or Cmd+K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = elements.form?.querySelector('input[name="q"]');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+
+      // Escape to clear search
+      if (e.key === 'Escape') {
+        const activeElement = document.activeElement;
+        if (activeElement?.name === 'q') {
+          activeElement.value = '';
+          activeElement.blur();
+          if (elements.form) elements.form.submit();
+        }
+      }
+    });
+  }
+
+  // Public methods
+  function updateBulkSelection() {
+    state.selectedReports.clear();
+    elements.bulkCheckboxes.forEach(cb => {
+      if (cb.checked) {
+        state.selectedReports.add(cb.value);
+      }
+    });
+
+    if (elements.selectedCount) {
+      elements.selectedCount.textContent = state.selectedReports.size;
+    }
+
+    if (elements.bulkActions) {
+      elements.bulkActions.classList.toggle('show', state.selectedReports.size > 0);
+    }
+
+    // Update select all checkbox state
+    if (elements.selectAllCheckbox) {
+      const total = elements.bulkCheckboxes.length;
+      const selected = state.selectedReports.size;
+      
+      elements.selectAllCheckbox.checked = selected > 0 && selected === total;
+      elements.selectAllCheckbox.indeterminate = selected > 0 && selected < total;
+    }
+  }
+
+  function toggleSelectAll() {
+    const checked = elements.selectAllCheckbox?.checked || false;
+    elements.bulkCheckboxes.forEach(cb => {
+      cb.checked = checked;
+    });
+    updateBulkSelection();
+  }
+
+  function toggleBulkMode() {
+    state.bulkMode = !state.bulkMode;
+    const bulkToggleBtn = document.getElementById('bulkToggleBtn');
+    
+    // Toggle visibility of bulk checkboxes
+    document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+      cb.style.display = state.bulkMode ? 'block' : 'none';
+    });
+
+    // Update button state
+    if (bulkToggleBtn) {
+      bulkToggleBtn.classList.toggle('active', state.bulkMode);
+    }
+
+    // Clear selection if disabling bulk mode
+    if (!state.bulkMode) {
+      state.selectedReports.clear();
+      if (elements.bulkActions) {
+        elements.bulkActions.classList.remove('show');
+      }
+      document.querySelectorAll('.bulk-checkbox').forEach(cb => {
+        cb.checked = false;
+      });
+    }
+  }
+
+  async function quickAction(event, reportId, action) {
+    const btn = event?.currentTarget;
+    const originalContent = btn?.innerHTML;
+    const csrfToken = getCsrfToken();
+
+    if (!csrfToken) {
+      toast('Security token missing. Please refresh the page.', 'error');
+      return;
+    }
+
+    try {
+      let url, method, body, newStatus;
+
+      if (action === 'approve') {
+        url = window.ADMIN_ROUTES.approve.replace('__ID__', reportId);
+        method = 'POST';
+        body = null;
+        newStatus = 'in_progress';
+      } else if (action === 'reject') {
+        url = window.ADMIN_ROUTES.reject.replace('__ID__', reportId);
+        method = 'DELETE';
+        body = null;
+        newStatus = 'rejected';
       } else {
-        // Fallback: just remove the clicked button
-        btn.remove();
+        url = window.ADMIN_ROUTES.status.replace('__ID__', reportId);
+        method = 'PATCH';
+        body = new URLSearchParams({ status: action });
+        newStatus = action;
+      }
+
+      // Show loading state on button
+      if (btn?.tagName === 'BUTTON') {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner" style="width:1rem;height:1rem"></div>';
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'X-CSRF-TOKEN': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+          ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {})
+        },
+        body
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}: Request failed`);
+      }
+
+      // Update UI
+      updateReportStatus(reportId, newStatus, data.deleted);
+
+      // Show success message
+      if (data.deleted) {
+        toast('Report rejected and deleted successfully');
+      } else {
+        toast(`Report ${action}d successfully`);
+      }
+
+      // Remove approve/reject buttons after action
+      if (action === 'approve' || action === 'reject') {
+        removeActionButtons(reportId);
+      }
+
+    } catch (error) {
+      console.error('Quick action failed:', error);
+      toast(error.message || 'Action failed. Please try again.', 'error');
+    } finally {
+      if (btn?.tagName === 'BUTTON' && btn.parentNode) {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
       }
     }
-  } catch(err){
-    console.error(err); 
-    toast(err.message || 'Action failed','error');
-  } finally {
-    if (btn.tagName === 'BUTTON' && btn.parentNode){ 
-      btn.disabled = false; 
-      btn.innerHTML = original; 
+  }
+
+  function updateReportStatus(reportId, newStatus, deleted = false) {
+    const reportCard = document.querySelector(`[data-report-id="${reportId}"]`);
+    
+    if (deleted) {
+      if (reportCard) {
+        reportCard.style.transition = 'all 0.3s ease';
+        reportCard.style.opacity = '0';
+        reportCard.style.transform = 'translateY(-20px)';
+        setTimeout(() => reportCard.remove(), 300);
+      }
+      return;
+    }
+
+    // Update status pills
+    const statusPills = document.querySelectorAll(`[data-report-id="${reportId}"] .admin-status-pill`);
+    statusPills.forEach(pill => {
+      pill.className = `admin-status-pill status-${newStatus}`;
+      pill.textContent = `● ${newStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+    });
+  }
+
+  function removeActionButtons(reportId) {
+    // Remove from card view
+    const cardButtons = document.querySelector(`#action-buttons-${reportId}`);
+    if (cardButtons) {
+      cardButtons.querySelectorAll('button[onclick*="approve"], button[onclick*="reject"]').forEach(btn => {
+        btn.style.transition = 'all 0.2s ease';
+        btn.style.opacity = '0';
+        btn.style.transform = 'scale(0.8)';
+        setTimeout(() => btn.remove(), 200);
+      });
+    }
+
+    // Remove from table view
+    const tableButtons = document.querySelector(`#table-action-buttons-${reportId}`);
+    if (tableButtons) {
+      tableButtons.querySelectorAll('button[onclick*="approve"], button[onclick*="reject"]').forEach(btn => {
+        btn.style.transition = 'all 0.2s ease';
+        btn.style.opacity = '0';
+        btn.style.transform = 'scale(0.8)';
+        setTimeout(() => btn.remove(), 200);
+      });
     }
   }
-};
 
-  window.assignToMe = async function(e, reportId){
-    const btn = e?.currentTarget; if (btn) btn.disabled = true;
-    try{
+  async function assignToMe(event, reportId) {
+    const btn = event?.currentTarget;
+    const originalContent = btn?.innerHTML;
+    
+    if (btn) btn.disabled = true;
+
+    try {
       const url = window.ADMIN_ROUTES.assign.replace('__ID__', reportId);
-      const res = await fetch(url, { method:'POST', headers:{ 'X-CSRF-TOKEN': getCsrf(), 'X-Requested-With':'XMLHttpRequest', 'Accept':'application/json' }});
-      if (!res.ok) throw 0;
-      toast('Assigned to you');
-    } catch { toast('Assignment failed','error'); }
-    finally { if (btn) btn.disabled = false; }
-  };
-
-  window.bulkAction = async function(action){
-    if (selectedReports.size===0){ toast('Please select reports first','warning'); return; }
-    if (!confirm(`Are you sure you want to ${action} ${selectedReports.size} report(s)?`)) return;
-
-    const overlay = document.getElementById('loadingOverlay'); overlay.style.display='flex';
-    try{
-      const res = await fetch(window.ADMIN_ROUTES.bulk, {
-        method:'POST',
-        headers:{ 'X-CSRF-TOKEN': getCsrf(), 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify({ action, report_ids: Array.from(selectedReports) })
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': getCsrfToken(),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
       });
-      const data = await res.json().catch(()=> ({}));
-      if (!res.ok) throw new Error(data.message || 'Bulk failed');
-      toast(`Bulk: ${data.processed} updated`);
-      setTimeout(()=> location.reload(), 900);
-    } catch(e){ toast(e.message || 'Bulk failed','error'); }
-    finally { overlay.style.display='none'; }
-  };
 
-  /* Quick filters */
-  window.filterByStatus = function(status){
-    const el = form?.querySelector('select[name="status"]'); if (el){ el.value = status; form.submit(); }
-  };
-  window.filterByPriority = function(){
-    // Set priority=high and bound dates (last 7 days)
-    const fromInput = form?.querySelector('input[name="from"]');
-    const toInput = form?.querySelector('input[name="to"]');
-    const pSelect = form?.querySelector('select[name="priority"]');
-    const d = new Date(); const from = new Date(); from.setDate(d.getDate()-7);
-    if (fromInput) fromInput.value = from.toISOString().split('T')[0];
-    if (toInput) toInput.value = d.toISOString().split('T')[0];
-    if (pSelect) pSelect.value = 'high';
-    form?.submit();
-  };
-  window.filterByDate = function(period){
-    const f = form?.querySelector('input[name="from"]');
-    const t = form?.querySelector('input[name="to"]');
-    const now = new Date().toISOString().split('T')[0];
-    if (period==='today'){ if (f) f.value = now; if (t) t.value = now; }
-    form?.submit();
-  };
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Assignment failed`);
+      }
 
-  /* Copy link */
-  const copyBtn = document.getElementById('copyLinkBtn');
-  copyBtn?.addEventListener('click', async ()=>{
-    try{
-      await navigator.clipboard.writeText(window.location.href);
-      toast('Link copied to clipboard!');
-      const original = copyBtn.innerHTML;
-      copyBtn.innerHTML = `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Copied!`;
-      setTimeout(()=> copyBtn.innerHTML = original, 2000);
-    }catch{ toast('Failed to copy link','error');}
-  });
+      toast('Report assigned to you successfully');
+    } catch (error) {
+      console.error('Assignment failed:', error);
+      toast('Assignment failed. Please try again.', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+      }
+    }
+  }
 
-  /* Save filters */
-  document.getElementById('saveFiltersBtn')?.addEventListener('click', ()=>{
+  async function bulkAction(action) {
+    if (state.selectedReports.size === 0) {
+      toast('Please select reports first', 'warning');
+      return;
+    }
+
+    const confirmMessage = `Are you sure you want to ${action} ${state.selectedReports.size} report(s)?`;
+    if (!confirm(confirmMessage)) return;
+
+    showLoading();
+
+    try {
+      const response = await fetch(window.ADMIN_ROUTES.bulk, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': getCsrfToken(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          action,
+          report_ids: Array.from(state.selectedReports)
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Bulk action failed');
+      }
+
+      toast(`Bulk action completed: ${data.processed} reports updated`);
+      
+      // Reload page after a short delay
+      setTimeout(() => window.location.reload(), 1000);
+
+    } catch (error) {
+      console.error('Bulk action failed:', error);
+      toast(error.message || 'Bulk action failed', 'error');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // Filter functions
+  function filterByStatus(status) {
+    if (!elements.form) return;
+    
+    const statusSelect = elements.form.querySelector('select[name="status"]');
+    if (statusSelect) {
+      statusSelect.value = status;
+      showLoading();
+      elements.form.submit();
+    }
+  }
+
+  function filterByPriority() {
+    if (!elements.form) return;
+    
+    // Set high priority and date range (last 7 days)
+    const fromInput = elements.form.querySelector('input[name="from"]');
+    const toInput = elements.form.querySelector('input[name="to"]');
+    const prioritySelect = elements.form.querySelector('select[name="priority"]');
+    
+    const today = new Date();
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+    
+    if (fromInput) fromInput.value = weekAgo.toISOString().split('T')[0];
+    if (toInput) toInput.value = today.toISOString().split('T')[0];
+    if (prioritySelect) prioritySelect.value = 'high';
+    
+    showLoading();
+    elements.form.submit();
+  }
+
+  function filterByDate(period) {
+    if (!elements.form) return;
+    
+    const fromInput = elements.form.querySelector('input[name="from"]');
+    const toInput = elements.form.querySelector('input[name="to"]');
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (period === 'today') {
+      if (fromInput) fromInput.value = today;
+      if (toInput) toInput.value = today;
+    }
+    
+    showLoading();
+    elements.form.submit();
+  }
+
+  function generateReport() {
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) exportBtn.click();
+  }
+
+  function quickStatusChange(element, reportId, currentStatus) {
+    const statuses = ['pending', 'in_progress', 'resolved', 'rejected'];
+    const labels = ['Pending', 'In Progress', 'Resolved', 'Rejected'];
+    
+    const choice = prompt(
+      `Change status to:\n${labels.map((l, i) => `${i + 1}. ${l}`).join('\n')}\n\nEnter number (1-4):`
+    );
+    
+    const index = parseInt(choice, 10) - 1;
+    
+    if (index >= 0 && index < statuses.length && statuses[index] !== currentStatus) {
+      quickAction({ currentTarget: element }, reportId, statuses[index]);
+    }
+  }
+
+  // Event handlers
+  async function handleExport() {
+    const exportBtn = document.getElementById('exportBtn');
+    if (!exportBtn) return;
+
+    const originalContent = exportBtn.innerHTML;
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<div class="loading-spinner" style="width:1rem;height:1rem;"></div> Exporting...';
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set('export', 'csv');
+      
+      const response = await fetch(`${window.location.pathname}?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      
+      a.href = url;
+      a.download = `reports_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast('Export completed successfully!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast('Export failed. Please try again.', 'error');
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = originalContent;
+    }
+  }
+
+  function handleSaveFilters() {
     const name = prompt('Enter a name for this filter set:');
-    if (name){
-      localStorage.setItem(`adminFilter_${name}`, new URLSearchParams(window.location.search).toString());
+    if (name) {
+      const filterData = new URLSearchParams(window.location.search).toString();
+      localStorage.setItem(`adminFilter_${name}`, filterData);
       toast(`Filter "${name}" saved!`);
     }
-  });
+  }
 
-  /* Refresh */
-  document.getElementById('refreshBtn')?.addEventListener('click', ()=> window.location.reload());
+  async function handleCopyLink() {
+    const copyBtn = document.getElementById('copyLinkBtn');
+    if (!copyBtn) return;
 
-  /* Export */
-  const exportBtn = document.getElementById('exportBtn');
-  exportBtn?.addEventListener('click', async ()=>{
-    const original = exportBtn.innerHTML; exportBtn.disabled = true;
-    exportBtn.innerHTML = `<div class="loading-spinner" style="width:1rem;height:1rem;"></div> Exporting...`;
-    try{
-      const params = new URLSearchParams(window.location.search); params.set('export','csv');
-      const res = await fetch(`${window.location.pathname}?${params}`);
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download = `reports_export_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
-      toast('Export completed successfully!');
-    }catch{ toast('Export failed','error'); }
-    finally{ exportBtn.disabled = false; exportBtn.innerHTML = original; }
-  });
-
-  /* Status change from pill */
-  window.quickStatusChange = async function(el, reportId, currentStatus){
-    const statuses = ['pending','in_progress','resolved','rejected'];
-    const labels = ['Pending','In Progress','Resolved','Rejected'];
-    const choice = prompt(`Change status to:\n${labels.map((l,i)=>`${i+1}. ${l}`).join('\n')}\n\nEnter number (1-4):`);
-    const idx = parseInt(choice,10) - 1;
-    if (idx>=0 && idx<statuses.length && statuses[idx] !== currentStatus) {
-      await quickAction({ currentTarget: el }, reportId, statuses[idx]);
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast('Link copied to clipboard!');
+      
+      const originalContent = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Copied!';
+      setTimeout(() => {
+        copyBtn.innerHTML = originalContent;
+      }, 2000);
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast('Failed to copy link', 'error');
     }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Hide loading overlay on window load
+  window.addEventListener('load', hideLoading);
+
+  // Public API
+  return {
+    updateBulkSelection,
+    toggleSelectAll,
+    quickAction,
+    assignToMe,
+    bulkAction,
+    filterByStatus,
+    filterByPriority,
+    filterByDate,
+    generateReport,
+    quickStatusChange
   };
-
-  /* Animations on appear */
-  const observer = new IntersectionObserver((entries, obs)=>{
-    entries.forEach(entry=>{
-      if (entry.isIntersecting){ entry.target.style.animationPlayState='running'; obs.unobserve(entry.target); }
-    });
-  }, { rootMargin:'0px 0px -5% 0px', threshold:.1 });
-  document.querySelectorAll('.slide-in, .fade-scale').forEach(el=>{ el.style.animationPlayState='paused'; observer.observe(el); });
-
-  /* Shortcuts */
-  document.addEventListener('keydown', e=>{
-    if ((e.ctrlKey || e.metaKey) && e.key==='k'){ e.preventDefault(); const input = form?.querySelector('input[name="q"]'); input?.focus(); input?.select(); }
-    if (e.key==='Escape'){ const active = document.activeElement; if (active?.name==='q'){ active.value=''; active.blur(); form?.submit(); } }
-  });
-
-  console.log('Enhanced Admin Reports Index initialized');
-  window.addEventListener('load', ()=>{ document.getElementById('loadingOverlay').style.display='none'; });
 })();
 </script>
 @endpush
-@endsection

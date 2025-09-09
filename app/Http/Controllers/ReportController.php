@@ -17,20 +17,6 @@ class ReportController extends Controller
         return Schema::hasColumns('reports', ['latitude', 'longitude']);
     }
 
-    protected function hasComments(): bool
-    {
-        return Schema::hasTable('comments') && Schema::hasColumn('comments', 'report_id');
-    }
-
-    protected function hasEndorsements(): bool
-    {
-        return Schema::hasTable('endorsements')
-            && Schema::hasColumn('endorsements', 'report_id')
-            && Schema::hasColumn('endorsements', 'user_id');
-    }
-
-
-
     protected function validPoint($lat, $lng): bool
     {
         return is_numeric($lat) && is_numeric($lng)
@@ -55,7 +41,7 @@ class ReportController extends Controller
         $nearLng  = $geoOk ? $request->float('near_lng') : null;
         $radiusKm = $geoOk ? (float) $request->query('radius_km', 0) : 0;
 
-        // Sorting
+        // Sorting (now includes popular/discussed)
         $sortAllow = ['newest', 'oldest', 'status', 'city', 'category', 'nearest', 'popular', 'discussed'];
         $sort      = $request->query('sort', ($geoOk && $this->validPoint($nearLat, $nearLng)) ? 'nearest' : 'newest');
         if (!in_array($sort, $sortAllow, true)) $sort = 'newest';
@@ -82,26 +68,17 @@ class ReportController extends Controller
 
         $like = fn(string $s) => '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $s) . '%';
 
+        // Main list query — ensure counts are loaded for every card
         $reports = Report::query()
-            ->with('user:id,name');
+            ->with('user:id,name')
+            ->withCount(['likes', 'comments']);
 
-        // Optional aggregates (don’t break if tables don’t exist)
-        if ($this->hasComments()) {
-            $reports->withCount('comments');
+        // Add user's like state for the heart (when supported)
+        if (Auth::check() && method_exists($reports->getQuery(), 'withExists')) {
+            $reports->withExists([
+                'likes as liked_by_user' => fn ($q) => $q->where('user_id', Auth::id()),
+            ]);
         }
-        if ($this->hasEndorsements()) {
-            $reports->withCount('endorsements');
-
-            // Also know if the current user endorsed this report (for UI state)
-            if (Auth::check() && method_exists($reports->getQuery(), 'withExists')) {
-                $reports->withExists([
-                    'endorsements as endorsed_by_me' => function ($q) {
-                        $q->where('user_id', Auth::id());
-                    },
-                ]);
-            }
-        }
-
 
         // Text/field filters
         $reports->when($q !== '', function ($qb) use ($q, $like) {
@@ -125,22 +102,18 @@ class ReportController extends Controller
             }
         }
 
-        // Sorting
+        // Sorting (including engagement-based)
         $reports = match ($sort) {
-            'oldest'    => $reports->oldest(), // created_at asc
-            'status'    => $reports->orderBy('status')->latest('id'),
-            'city'      => $reports->orderBy('city_corporation')->latest('id'),
-            'category'  => $reports->orderBy('category')->latest('id'),
-            'nearest'   => ($geoOk && $this->validPoint($nearLat, $nearLng))
-                               ? $reports->orderByDistance($nearLat, $nearLng)
-                               : $reports->latest(),
-            'popular'   => ($this->hasEndorsements() ? $reports->orderByDesc('endorsements_count') : $reports)
-                               ->when($this->hasComments(), fn ($q) => $q->orderByDesc('comments_count'))
-                               ->latest('id'),
-            'discussed' => $this->hasComments()
-                               ? $reports->orderByDesc('comments_count')->latest('id')
-                               : $reports->latest(),
-            default     => $reports->latest(), // newest first
+            'oldest'     => $reports->oldest(),
+            'status'     => $reports->orderBy('status')->latest('id'),
+            'city'       => $reports->orderBy('city_corporation')->latest('id'),
+            'category'   => $reports->orderBy('category')->latest('id'),
+            'popular'    => $reports->orderByDesc('likes_count')->latest('id'),
+            'discussed'  => $reports->orderByDesc('comments_count')->latest('id'),
+            'nearest'    => ($geoOk && $this->validPoint($nearLat, $nearLng))
+                                ? $reports->orderByDistance($nearLat, $nearLng)
+                                : $reports->latest(),
+            default      => $reports->latest(),
         };
 
         $reports = $reports->paginate($perPage)->withQueryString();
@@ -170,41 +143,72 @@ class ReportController extends Controller
     }
 
     public function store(Request $request)
-    {
-        if (Auth::user()?->is_admin) {
-            abort(403, 'Admins cannot submit reports.');
-        }
-
-        $validated = $request->validate([
-            'title'            => ['required', 'string', 'max:255'],
-            'description'      => ['required', 'string'],
-            'category'         => ['required', 'string'],
-            'city_corporation' => ['required', 'string'],
-            'location'         => ['required', 'string'],
-
-            // Google Maps fields (from the map form)
-            'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
-            'place_id'          => ['nullable', 'string', 'max:128'],
-            'formatted_address' => ['nullable', 'string', 'max:255'],
-
-            'photo'             => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:4096'],
-        ]);
-
-        if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('reports', 'public');
-        }
-
-        $validated['user_id'] = Auth::id();
-        $validated['status']  = 'pending';
-        $validated = $this->normalizeGeo($validated);
-
-        Report::create($validated);
-
-        return redirect()
-            ->route('reports.index')
-            ->with('success', 'Report submitted successfully!');
+{
+    if (Auth::user()?->is_admin) {
+        abort(403, 'Admins cannot submit reports.');
     }
+
+    // Validate regular fields + accept either single "photo" or array "photos[]"
+    $validated = $request->validate([
+        'title'            => ['required', 'string', 'max:255'],
+        'description'      => ['required', 'string'],
+        'category'         => ['required', 'string'],
+        'city_corporation' => ['required', 'string'],
+        'location'         => ['required', 'string'],
+
+        // Google Maps fields (optional)
+        'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
+        'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
+        'place_id'          => ['nullable', 'string', 'max:128'],
+        'formatted_address' => ['nullable', 'string', 'max:255'],
+
+        // Media
+        'photo'     => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:4096'],
+        'photos'    => ['nullable', 'array'],
+        'photos.*'  => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,gif,mp4,mov,avi', 'max:10240'],
+    ]);
+
+    // Save ONE path into reports.photo:
+    // 1) prefer single "photo" if present
+    // 2) otherwise pick the first image from "photos[]", or fall back to the first file
+    $photoPath = null;
+
+    if ($request->hasFile('photo')) {
+        $photoPath = $request->file('photo')->store('reports', 'public'); // => "reports/xxxx.png"
+    } elseif ($request->hasFile('photos')) {
+        $files  = array_values((array) $request->file('photos'));
+        $chosen = collect($files)->first(function ($f) {
+            return str_starts_with($f->getMimeType(), 'image/');
+        }) ?? $files[0];
+
+        if ($chosen) {
+            $photoPath = $chosen->store('reports', 'public'); // => "reports/xxxx.png"
+        }
+    }
+
+    if ($photoPath) {
+        // IMPORTANT: store the STORAGE PATH, not just filename
+        $validated['photo'] = $photoPath;
+    }
+
+    $validated['user_id'] = Auth::id();
+    $validated['status']  = 'pending';
+    $validated = $this->normalizeGeo($validated);
+
+    $report = Report::create($validated);
+
+    // If the request came from your fetch() (AJAX), return JSON so the front-end can redirect
+    if ($request->ajax()) {
+        return response()->json([
+            'ok'       => true,
+            'redirect' => route('reports.show', $report),
+        ]);
+    }
+
+    return redirect()
+        ->route('reports.show', $report)
+        ->with('success', 'Report submitted successfully!');
+}
 
     /* ----------------------------
      | My reports
@@ -221,11 +225,8 @@ class ReportController extends Controller
         $like = fn($s) => '%'.str_replace(['\\','%','_'], ['\\\\','\\%','\\_'], $s).'%';
 
         $reports = Report::with('user')
+            ->withCount(['likes', 'comments'])
             ->where('user_id', $request->user()->id);
-
-        if ($this->hasComments())     $reports->withCount('comments');
-        if ($this->hasEndorsements()) $reports->withCount('endorsements');
-
 
         $reports = $reports
             ->when($q !== '', fn($qrb) => $qrb->where(function ($x) use ($q, $like) {
@@ -263,31 +264,32 @@ class ReportController extends Controller
     {
         abort_unless(auth()->check(), 403);
 
-        // Always load author
-        $report->load('user');
+        // Load relationships including engagement data
+        $report->load([
+            'user',
+            'likes' => fn ($q): mixed => $q->with('user:id,name')->latest(),
+        ])->loadCount(['likes', 'comments']);
+
+        // liked_by_user flag (when supported)
+        if (Auth::check() && method_exists($report, 'loadExists')) {
+            $report->loadExists([
+                'likes as liked_by_user' => fn ($q) => $q->where('user_id', Auth::id()),
+            ]);
+        }
 
         // Optionally load notes (admin side-table)
         if (Schema::hasTable('report_notes')) {
             $report->loadMissing('notes.admin');
         }
 
-        // Optional comments
-        $comments = null;
-        if ($this->hasComments()) {
-            $comments = $report->comments()
-                ->with('user:id,name')
-                ->latest()
-                ->paginate(10)
-                ->withQueryString();
-        }
-
-        return view('reports.show', compact('report', 'comments'));
+        return view('reports.show', compact('report'));
     }
 
     public function adminShow(Report $report)
     {
         abort_unless(Auth::check() && Auth::user()->is_admin, 403);
-        $report->load('user');
+
+        $report->load(['user'])->loadCount(['likes', 'comments']);
 
         return view('admin.reports.show', compact('report'));
     }
@@ -335,12 +337,6 @@ class ReportController extends Controller
     /* ----------------------------
      | Geolocation normalization
      * ---------------------------- */
-    /**
-     * Normalize geolocation fields.
-     * - If place_id is present, try Place Details.
-     * - Else if lat/lng are present, try Reverse Geocode.
-     * - If service class is missing, trust client fields.
-     */
     protected function normalizeGeo(array $data): array
     {
         $hasGeocodedAt = Schema::hasColumn('reports', 'geocoded_at');
@@ -404,7 +400,7 @@ class ReportController extends Controller
                 if ($hasGeocodedAt) $data['geocoded_at'] = now();
             }
         } catch (\Throwable $e) {
-            // Fail-soft: keep user-provided fields; don’t break submission
+            // Fail-soft: keep user-provided fields; don't break submission
             // report($e);
         }
 
@@ -429,6 +425,7 @@ class ReportController extends Controller
 
         $qbuilder = Report::query()
             ->with('user:id,name')
+            ->withCount(['likes', 'comments'])
             ->whereNotNull('latitude')->whereNotNull('longitude')
             ->when($q !== '', function ($qb) use ($q, $like) {
                 $qb->where(function ($x) use ($q, $like) {
@@ -449,28 +446,23 @@ class ReportController extends Controller
         }
 
         $items = $qbuilder->latest('id')->limit(500)->get([
-            'id','title','status','category','latitude','longitude','formatted_address','created_at'
+            'id','title','status','category','latitude','longitude','formatted_address','created_at','likes_count','comments_count'
         ]);
 
-        // Response shape:
-        // {
-        //   "count": N,
-        //   "items": [
-        //      { "id":1, "title":"...", "status":"pending", "lat":..., "lng":..., "address":"...", "url":"/reports/1" }
-        //   ]
-        // }
         return response()->json([
             'count' => $items->count(),
             'items' => $items->map(fn($r) => [
-                'id'      => $r->id,
-                'title'   => $r->title,
-                'status'  => $r->status,
-                'category'=> $r->category,
-                'lat'     => (float) $r->latitude,
-                'lng'     => (float) $r->longitude,
-                'address' => $r->formatted_address,
-                'created' => optional($r->created_at)->toIso8601String(),
-                'url'     => route('reports.show', $r),
+                'id'             => $r->id,
+                'title'          => $r->title,
+                'status'         => $r->status,
+                'category'       => $r->category,
+                'lat'            => (float) $r->latitude,
+                'lng'            => (float) $r->longitude,
+                'address'        => $r->formatted_address,
+                'created'        => optional($r->created_at)->toIso8601String(),
+                'likes_count'    => $r->likes_count,
+                'comments_count' => $r->comments_count,
+                'url'            => route('reports.show', $r),
             ]),
         ]);
     }

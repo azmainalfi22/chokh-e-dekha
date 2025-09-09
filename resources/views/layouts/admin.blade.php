@@ -5,6 +5,13 @@
 @endpush
 
 <head>
+  @push('styles')
+  @include('partials._theme')
+  @endpush
+  
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="turbo-visit-control" content="reload"> <!-- Turbo: always reload on back/forward -->
+
   <!-- Theme boot (prevents flash) -->
   <script>
     (function () {

@@ -216,9 +216,11 @@
     © {{ now()->year }} {{ config('app.name', 'Chokh-e-Dekha') }}. Made with ❤️ for civic good.
   </footer>
 </div>
+@endsection
 
-{{-- Counters --}}
+@push('scripts')
 <script>
+// Counters animation
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.counter').forEach(counter => {
     const target = Number(counter.getAttribute('data-target') || 0);
@@ -232,5 +234,86 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(tick);
   });
 });
+
+// Notification system handlers
+document.addEventListener('DOMContentLoaded', () => {
+  // Mark single notification as read
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.notif-read');
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const card = btn.closest('[data-notif-id]');
+
+    try {
+      const res = await window.ajax(`{{ route('notifications.read', ':id') }}`.replace(':id', id), {
+        method: 'POST',
+      });
+      if (res.ok) {
+        card?.remove();
+
+        // Decrease badge count
+        const badge = document.getElementById('notifCount');
+        if (badge) {
+          const currentCount = parseInt(badge.textContent || '1', 10);
+          const newCount = Math.max(0, currentCount - 1);
+          if (newCount > 0) {
+            badge.textContent = newCount;
+          } else {
+            badge.remove();
+          }
+        }
+
+        // Show empty state if no notifications left
+        const notifList = document.getElementById('notifList');
+        if (notifList && !notifList.querySelector('[data-notif-id]')) {
+          document.getElementById('notifEmpty')?.classList.remove('hidden');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  });
+
+  // Mark all notifications as read
+  document.getElementById('notifMarkAll')?.addEventListener('click', async () => {
+    try {
+      const res = await window.ajax(`{{ route('notifications.readAll') }}`, { method: 'POST' });
+      if (res.ok) {
+        // Clear all notifications from the list
+        const notifList = document.getElementById('notifList');
+        if (notifList) {
+          notifList.innerHTML = '';
+        }
+
+        // Remove the badge
+        document.getElementById('notifCount')?.remove();
+
+        // Show empty state
+        document.getElementById('notifEmpty')?.classList.remove('hidden');
+      }
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  });
+
+  // Close notification bar
+  document.getElementById('notifClose')?.addEventListener('click', () => {
+    const bar = document.getElementById('notifBar');
+    if (bar) {
+      bar.classList.add('hidden');
+    }
+  });
+
+  // Collapse/expand notification list
+  document.getElementById('notifCollapse')?.addEventListener('click', () => {
+    const list = document.getElementById('notifList');
+    const empty = document.getElementById('notifEmpty');
+    if (list) {
+      list.classList.toggle('hidden');
+      empty?.classList.toggle('hidden');
+    }
+  });
+});
 </script>
-@endsection
+@endpush

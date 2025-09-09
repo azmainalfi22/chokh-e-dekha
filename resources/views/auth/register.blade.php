@@ -31,7 +31,7 @@
                class="w-full rounded-xl border-0 ring-1 ring-amber-900/10 focus:ring-2 focus:ring-rose-400/60
                       bg-white/80 backdrop-blur px-3 py-2.5 shadow-inner placeholder:text-amber-900/40">
         <p class="text-xs text-amber-900/60">
-            Use <span class="font-medium">@chokh.e-dekha.com</span> to be auto‑approved as admin.
+            Use <span class="font-medium">@chokh.e-dekha.com</span> to be approved as admin.
         </p>
         @error('email') <p class="text-xs text-rose-600 mt-1">{{ $message }}</p> @enderror
     </div>

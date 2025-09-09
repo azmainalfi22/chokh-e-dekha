@@ -51,14 +51,19 @@ class Report extends Model
         'formatted_address',
         'place_id',
         'geocoded_at',
+        // Engagement counters:
+        'likes_count',
+        'comments_count',
     ];
 
     protected $casts = [
-        'created_at'  => 'datetime',
-        'updated_at'  => 'datetime',
-        'geocoded_at' => 'datetime',
-        'latitude'    => 'float',
-        'longitude'   => 'float',
+        'created_at'     => 'datetime',
+        'updated_at'     => 'datetime',
+        'geocoded_at'    => 'datetime',
+        'latitude'       => 'float',
+        'longitude'      => 'float',
+        'likes_count'    => 'integer',
+        'comments_count' => 'integer',
     ];
 
     /** Accessors appended to JSON (used in Blade) */
@@ -79,39 +84,88 @@ class Report extends Model
     }
 
     /** Admin/internal notes on a report (newest first) */
-    public function notes(): HasMany
+/** Admin/internal notes on a report (newest first) */
+public function notes(): HasMany
+{
+    // Only define this relationship if ReportNote model exists
+    if (class_exists(\App\Models\ReportNote::class)) {
+        return $this->hasMany(\App\Models\ReportNote::class)->latest();
+    }
+    
+    // Return empty relationship if ReportNote doesn't exist
+    return $this->hasMany(\App\Models\ReportComment::class)->whereRaw('1 = 0');
+}
+
+    /** Public likes/endorsements */
+    public function likes(): HasMany
     {
-        return $this->hasMany(ReportNote::class)->latest();
+        return $this->hasMany(ReportLike::class);
     }
 
     /** Public comments (newest first) */
     public function comments(): HasMany
     {
-        return $this->hasMany(Comment::class)->latest();
+        return $this->hasMany(ReportComment::class)->whereNull('parent_id')->latest();
     }
 
-    /** Endorsements / upvotes */
-    public function endorsements(): HasMany
+    /** All comments including replies */
+    public function allComments(): HasMany
     {
-        return $this->hasMany(Endorsement::class);
+        return $this->hasMany(ReportComment::class)->latest();
+    }
+
+    /** Media attachments */
+    public function media(): HasMany
+    {
+        return $this->hasMany(\App\Models\ReportMedia::class);
+    }
+
+    /** Admin assignment */
+    public function assignee(): BelongsTo
+    { 
+        return $this->belongsTo(User::class, 'assigned_to'); 
     }
 
     /* ----------------------------
-     | Convenience helpers for UI
+     | Engagement Helper Methods
      * ---------------------------- */
-
-    public function statusColor(): string
-    {
-        return self::STATUS_COLORS[$this->status] ?? '#6b7280'; // gray-500
-    }
-
-    public function isEndorsedBy(?int $userId): bool
+    
+    /**
+     * Check if a user has liked this report
+     */
+    public function isLikedBy(?int $userId): bool
     {
         if (!$userId) return false;
-        if (!Schema::hasTable('endorsements') || !Schema::hasColumn('endorsements', 'report_id')) {
-            return false;
+        
+        return $this->likes()->where('user_id', $userId)->exists();
+    }
+
+    /**
+     * Get engagement summary for this report
+     */
+    public function getEngagementSummary(): array
+    {
+        return [
+            'likes_count' => $this->likes_count ?? $this->likes()->count(),
+            'comments_count' => $this->comments_count ?? $this->comments()->count(),
+            'total_engagement' => ($this->likes_count ?? 0) + ($this->comments_count ?? 0),
+        ];
+    }
+
+    /**
+     * Refresh counter cache columns if they exist
+     */
+    public function refreshEngagementCounts(): self
+    {
+        if (Schema::hasColumn('reports', 'likes_count')) {
+            $this->update(['likes_count' => $this->likes()->count()]);
         }
-        return $this->endorsements()->where('user_id', $userId)->exists();
+        
+        if (Schema::hasColumn('reports', 'comments_count')) {
+            $this->update(['comments_count' => $this->comments()->count()]);
+        }
+        
+        return $this->fresh();
     }
 
     /* ----------------------------
@@ -300,6 +354,64 @@ class Report extends Model
     }
 
     /* ----------------------------
+     | Engagement scopes
+     * ---------------------------- */
+
+    public function scopePopular($q, string $timeframe = 'all')
+    {
+        $query = $q->withCount('likes');
+        
+        if ($timeframe !== 'all') {
+            $date = match($timeframe) {
+                'week' => now()->subWeek(),
+                'month' => now()->subMonth(),
+                'year' => now()->subYear(),
+                default => now()->subWeek(),
+            };
+            
+            $query->where('created_at', '>=', $date);
+        }
+        
+        return $query->orderByDesc('likes_count');
+    }
+
+    public function scopeDiscussed($q, string $timeframe = 'all')
+    {
+        $query = $q->withCount('comments');
+        
+        if ($timeframe !== 'all') {
+            $date = match($timeframe) {
+                'week' => now()->subWeek(),
+                'month' => now()->subMonth(),
+                'year' => now()->subYear(),
+                default => now()->subWeek(),
+            };
+            
+            $query->where('created_at', '>=', $date);
+        }
+        
+        return $query->orderByDesc('comments_count');
+    }
+
+    public function scopeEngaging($q, string $timeframe = 'all')
+    {
+        $query = $q->withCount(['likes', 'comments']);
+        
+        if ($timeframe !== 'all') {
+            $date = match($timeframe) {
+                'week' => now()->subWeek(),
+                'month' => now()->subMonth(),
+                'year' => now()->subYear(),
+                default => now()->subWeek(),
+            };
+            
+            $query->where('created_at', '>=', $date);
+        }
+        
+        return $query->orderByRaw('(likes_count + comments_count) DESC');
+    }
+
+    /* ----------------------------
      | GEO scopes (maps, clustering)
      * ---------------------------- */
 
@@ -357,22 +469,6 @@ class Report extends Model
         return $q->orderBy('distance_km')->orderByDesc('id');
     }
 
-    public function scopePopular($q)
-    {
-        if (Schema::hasTable('endorsements') && Schema::hasColumn('endorsements', 'report_id')) {
-            return $q->withCount('endorsements')->orderByDesc('endorsements_count');
-        }
-        return $q->latest();
-    }
-
-    public function scopeDiscussed($q)
-    {
-        if (Schema::hasTable('comments') && Schema::hasColumn('comments', 'report_id')) {
-            return $q->withCount('comments')->orderByDesc('comments_count');
-        }
-        return $q->latest();
-    }
-
     /* ----------------------------
      | Internals
      * ---------------------------- */
@@ -388,7 +484,4 @@ class Report extends Model
         $path = preg_replace('#^storage/#', '', $path);// drop "storage/" if mistakenly saved
         return $path;
     }
-    // app/Models/Report.php
-public function assignee() { return $this->belongsTo(User::class, 'assigned_to'); }
-
 }

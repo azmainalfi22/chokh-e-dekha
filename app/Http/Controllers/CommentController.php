@@ -1,91 +1,66 @@
 <?php
 
-// app/Http/Controllers/CommentController.php
 namespace App\Http\Controllers;
 
 use App\Models\Report;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
-
-use App\Models\Comment;
+use App\Models\ReportComment;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use App\Http\Requests\StoreReportCommentRequest;
 
 class CommentController extends Controller
 {
-    public function store(Request $request, Report $report)
+    public function index(Report $report)
     {
-        // Must be logged in (route should use auth middleware)
-        $validated = $request->validate([
-            'body' => ['required','string','max:2000'],
-        ]);
+        $comments = $report->comments()
+            ->with('user:id,name')
+            ->latest()
+            ->paginate(10);
 
-        // Trim so "   " doesn't pass validation in practice
-        $body = (string) Str::of($validated['body'])->trim();
-        if ($body === '') {
-            $errors = ['body' => ['Comment can’t be empty.']];
-            if ($request->expectsJson()) {
-                return response()->json(['ok' => false, 'errors' => $errors], Response::HTTP_UNPROCESSABLE_ENTITY);
-            }
-            return back()->withErrors($errors)->withInput();
-        }
-
-        try {
-            $comment = DB::transaction(function () use ($request, $report, $body) {
-                return $report->comments()->create([
-                    'user_id' => $request->user()->id,
-                    'body'    => $body,
-                ])->load('user:id,name');
-            });
-
-            $payload = [
-                'ok'   => true,
-                'id'   => $comment->id,
-                'body' => $comment->body,
-                'name' => $comment->user->name ?? 'User',
-                'time' => $comment->created_at->diffForHumans(),
-            ];
-
-            // If it’s an AJAX/JSON request, reply JSON 201; otherwise redirect back with a flash
-            if ($request->expectsJson()) {
-                return response()->json($payload, Response::HTTP_CREATED);
-            }
-
-            return back()->with('status', 'Comment posted.');
-        } catch (\Throwable $e) {
-            Log::error('Comment post failed', [
-                'report_id' => $report->id,
-                'user_id'   => optional($request->user())->id,
-                'error'     => $e->getMessage(),
-            ]);
-
-            $message = 'Failed to post comment. Please try again.';
-            if ($request->expectsJson()) {
-                return response()->json(['ok' => false, 'message' => $message], Response::HTTP_INTERNAL_SERVER_ERROR);
-            }
-            return back()->with('error', $message)->withInput();
-        }
+        // NOTE: pass $report so the partial can print correct data-* attrs
+        return view('partials.comments._list', compact('comments', 'report'))->render();
     }
-    public function destroy(Request $request, Report $report, Comment $comment)
+
+    public function store(StoreReportCommentRequest $request, Report $report)
     {
-        // 404 if the comment doesn't belong to the report (safety even without scoped bindings)
+        $comment = $report->comments()->create([
+            'user_id' => auth()->id(),
+            'body'    => $request->validated()['body'],
+        ])->load('user:id,name');
+
+        // render a single comment row
+        $html  = view('partials.comments._item', ['comment' => $comment, 'report' => $report])->render();
+        $count = $report->comments()->count();
+
+        return response()->json([
+            'success'        => true,     // JS checks this
+            'comment'        => $html,    // JS expects 'comment' not 'html'
+            'comments_count' => $count,   // used to live-update button count
+        ]);
+    }
+
+    public function destroy(Report $report, ReportComment $comment)
+    {
+        // extra guard: only delete if this comment belongs to this report
         if ($comment->report_id !== $report->id) {
             abort(404);
         }
 
-        // Only the comment owner or an admin can delete
-        $user = $request->user();
-        if (! $user || ($user->id !== $comment->user_id && ! $user->is_admin)) {
-            abort(403);
+        // Option 1: Use Gate facade instead of $this->authorize
+        if (!Gate::allows('destroy', $comment)) {
+            abort(403, 'Unauthorized');
         }
+        
+        // Alternative Option 2 (simpler): Direct permission check
+        // if (auth()->id() !== $comment->user_id && !auth()->user()->is_admin) {
+        //     abort(403, 'Unauthorized');
+        // }
 
         $comment->delete();
 
-        if ($request->expectsJson()) {
-            return response()->json(['ok' => true]);
-        }
-
-        return back()->with('success', 'Comment deleted.');
+        return response()->json([
+            'success'        => true,                         // JS checks this
+            'comments_count' => $report->comments()->count(), // update count
+        ]);
     }
 }

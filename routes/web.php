@@ -2,11 +2,15 @@
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 // USER controllers (non-admin)
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\LikeController;
+use App\Http\Controllers\CommentController;
 
 // ADMIN controllers
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -14,10 +18,6 @@ use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ReportMapController;
-
-// Engagement controllers
-use App\Http\Controllers\CommentController;
-use App\Http\Controllers\EndorsementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +68,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/report', [ReportController::class, 'store'])->name('report.store');
     });
 
+    // === ENGAGEMENT ROUTES ===
+    // Likes
+    Route::post('/reports/{report}/like', [LikeController::class, 'toggle'])
+        ->whereNumber('report')
+        ->middleware('throttle:60,1')
+        ->name('reports.like');
+
+    // Comments
+    Route::get('/reports/{report}/comments', [CommentController::class, 'index'])
+        ->whereNumber('report')
+        ->name('reports.comments.index');
+    
+    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])
+        ->whereNumber('report')
+        ->middleware('throttle:20,1')
+        ->name('reports.comments.store');
+    
+    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])
+        ->whereNumber('report')
+        ->whereNumber('comment')
+        ->middleware('throttle:60,1')
+        ->name('reports.comments.destroy');
+
     // User profile (needed by layouts.app link)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -75,32 +98,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 /* ---------------------------
- | Engagement (auth only, NO email verification)
+ | Notifications (auth only; NO email verification needed)
  * --------------------------- */
 Route::middleware('auth')->group(function () {
-    // Comments
-    Route::post('/reports/{report}/comments', [CommentController::class, 'store'])
-        ->whereNumber('report')
-        ->middleware('throttle:20,1')
-        ->name('reports.comments.store');
+    // === BASIC NOTIFICATION ROUTES ===
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])
+        ->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAll'])
+        ->name('notifications.readAll');
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
 
-    Route::delete('/reports/{report}/comments/{comment}', [CommentController::class, 'destroy'])
-        ->whereNumber('report')
-        ->whereNumber('comment')
-        ->middleware('throttle:60,1')
-        ->name('reports.comments.destroy');
+    // === ENHANCED ROUTES ===
+    // Clear/Delete notifications
+    Route::delete('/notifications/{id}/clear', [NotificationController::class, 'clear'])
+        ->name('notifications.clear');
+    Route::delete('/notifications/clear-all', [NotificationController::class, 'clearAll'])
+        ->name('notifications.clearAll');
 
-    // Endorse (like)
-    Route::post('/reports/{report}/endorse', [EndorsementController::class, 'toggle'])
-        ->whereNumber('report')
-        ->middleware('throttle:60,1')
-        ->name('reports.endorse');
+    // Bulk operations
+    Route::post('/notifications/bulk-read', [NotificationController::class, 'bulkMarkRead'])
+        ->name('notifications.bulkRead');
+    Route::delete('/notifications/bulk-clear', [NotificationController::class, 'bulkClear'])
+        ->name('notifications.bulkClear');
 
-    // Back-compat alias
-    Route::post('/reports/{report}/endorse-toggle', [EndorsementController::class, 'toggle'])
-        ->whereNumber('report')
-        ->middleware('throttle:60,1')
-        ->name('reports.endorse.toggle');
+    // Statistics and analytics
+    Route::get('/notifications/stats', [NotificationController::class, 'stats'])
+        ->name('notifications.stats');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])
+        ->name('notifications.unreadCount');
+
+    // Real-time features
+    Route::get('/notifications/poll', [NotificationController::class, 'poll'])
+        ->name('notifications.poll');
+
+    // Advanced features
+    Route::post('/notifications/{id}/snooze', [NotificationController::class, 'snooze'])
+        ->name('notifications.snooze');
+    Route::delete('/notifications/archive-old', [NotificationController::class, 'archiveOld'])
+        ->name('notifications.archiveOld');
 });
 
 /* ---------------------------
@@ -114,6 +150,14 @@ Route::prefix('admin')
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+
+        Route::post('/reports/{report}/approve', [AdminReportController::class, 'approve'])
+            ->whereNumber('report')
+            ->name('reports.approve');
+
+        Route::delete('/reports/{report}/reject', [AdminReportController::class, 'reject'])
+            ->whereNumber('report')
+            ->name('reports.reject');
 
         // Users
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
@@ -148,11 +192,31 @@ Route::prefix('admin')
             ->name('reports.notes.store');
         Route::delete('/reports/{report}/notes/{note}', [AdminReportController::class, 'destroyNote'])
             ->whereNumber('report')
-            ->whereNumber('note')
+            ->whereNumber('note')  // FIXED: removed "parameters:"
             ->name('reports.notes.destroy');
 
         // LIVE map data (JSON for dashboard map)
         Route::get('/reports/map', [ReportMapController::class, 'index'])->name('reports.map');
     });
+
+// Temporary debug route
+Route::get('/debug-engagement', function() {
+    return response()->json([
+        'tables_exist' => [
+            'report_likes' => Schema::hasTable('report_likes'),
+            'report_comments' => Schema::hasTable('report_comments'),
+        ],
+        'columns_exist' => Schema::hasColumns('reports', ['likes_count', 'comments_count']),
+        'routes_exist' => [
+            'like' => Route::has('reports.like'),
+            'comments_index' => Route::has('reports.comments.index'),
+            'comments_store' => Route::has('reports.comments.store'),
+        ],
+        'user_authenticated' => auth()->check(),
+        'user_name' => auth()->user()->name ?? 'Not logged in',
+        'first_report_id' => \App\Models\Report::first()?->id ?? 'No reports',
+        'csrf_token' => csrf_token()
+    ]);
+});
 
 require __DIR__.'/auth.php';

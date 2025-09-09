@@ -106,72 +106,6 @@
     border-color: var(--status-rejected-border);
   }
 
-  /* Comment Thread */
-  .cd-thread{
-    display: none;                            /* hidden by default */
-    opacity: 0;
-    transform: translateY(-6px);
-    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-    background: var(--surface-elevated);
-    border: 1px solid var(--ring);
-    border-radius: var(--radius-2xl);
-    margin-top: var(--space-4);
-    position: relative;
-    z-index: var(--z-dropdown);
-  }
-  .cd-thread.open{
-    display: block;                           /* show instantly */
-    opacity: 1;
-    transform: translateY(0);
-    border-color: var(--ring-focus);
-    box-shadow: var(--shadow-md);
-  }
-  .cd-thread-content { padding: var(--space-4); }
-  .js-thread-list { max-height: 200px; overflow-y: auto; margin-bottom: var(--space-4); }
-  .js-thread-list:empty { display: none; }
-
-  .comment-item {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
-  }
-  .comment-item:last-child { margin-bottom: 0; }
-
-  .comment-avatar{
-    width: 2rem; height: 2rem; border-radius: var(--radius-full);
-    background: linear-gradient(135deg, var(--accent), #f97316);
-    display:flex; align-items:center; justify-content:center;
-    color:#fff; font-weight:600; font-size: var(--text-xs); flex-shrink:0;
-  }
-  .comment-bubble{
-    background: var(--surface-muted);
-    border: 1px solid var(--ring);
-    border-radius: var(--radius-2xl);
-    padding: var(--space-3) var(--space-4);
-    flex: 1; min-width: 0;
-  }
-  .comment-author{ font-weight:600; color:var(--text); font-size: var(--text-sm); }
-  .comment-text{ color:var(--text-secondary); font-size: var(--text-sm); margin-top: var(--space-1); line-height: 1.4; }
-
-  /* >>> Fix: Dark-mode safe textarea for comments <<< */
-  .js-comment-form textarea{
-    background: var(--surface);               /* dark-safe surface */
-    color: var(--text);                       /* uses tokens: white in dark, slate in light */
-    border: 1px solid var(--ring);
-    caret-color: var(--accent);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 1px 2px rgba(0,0,0,.04);
-  }
-  .js-comment-form textarea::placeholder{
-    color: var(--text-secondary);
-    opacity: .85;
-  }
-  .js-comment-form textarea:focus{
-    outline: none;
-    border-color: var(--ring-focus);
-    box-shadow: 0 0 0 3px rgba(245,158,11,.12), inset 0 1px 0 rgba(255,255,255,.45);
-  }
-
   /* Animations */
   @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
@@ -219,18 +153,6 @@
     background: var(--surface-muted) !important; border-color: var(--accent) !important;
   }
 
-  /* Engagement Buttons */
-  .engagement-bar{ border-top:1px solid var(--ring); padding-top: var(--space-4); margin-top: var(--space-4); }
-  .engagement-btn{
-    display:inline-flex; align-items:center; gap: var(--space-2);
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-xl); font-size: var(--text-sm); font-weight:500;
-    transition: all var(--duration-fast) ease; border:1px solid var(--ring);
-    background: var(--surface); color: var(--text-secondary);
-  }
-  .engagement-btn:hover{ background: var(--surface-muted); border-color: var(--accent); color: var(--text); }
-  .engagement-btn.active{ background: rgba(245,158,11,.1); border-color: var(--accent); color: var(--accent-700); }
-
   /* Loading shimmer */
   .skeleton{
     background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface) 50%, var(--surface-muted) 75%);
@@ -263,23 +185,9 @@
 @endpush
 
 @section('content')
-{{-- Your existing content here, unchanged --}}
-{{-- The rest of your Blade template remains exactly the same --}}
-
 @php
-  use Illuminate\Support\Facades\Schema;
   use Illuminate\Support\Facades\Route;
   use Illuminate\Support\Str;
-
-  // Feature flags – resilient on fresh DBs
-  $commentsEnabled     = Schema::hasTable('comments')     && Schema::hasColumn('comments','report_id');
-  $endorsementsEnabled = Schema::hasTable('endorsements') && Schema::hasColumn('endorsements','report_id') && Schema::hasColumn('endorsements','user_id');
-
-  // Route names (truthy only if registered)
-  $endorseRouteName  = Route::has('reports.endorse.toggle')
-                        ? 'reports.endorse.toggle'
-                        : (Route::has('reports.endorse') ? 'reports.endorse' : null);
-  $commentsRouteName = Route::has('reports.comments.store') ? 'reports.comments.store' : null;
 @endphp
 
 <div class="relative grainy min-h-screen">
@@ -287,8 +195,6 @@
   <div class="pointer-events-none fixed -top-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-200 via-orange-200 to-rose-200 "></div>
   <div class="pointer-events-none fixed -bottom-32 -left-32 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-200 via-amber-200 to-pink-200 " style="animation-delay:1s;"></div>
 
-  {{-- Rest of your content... --}}
-  {{-- All your existing HTML structure remains unchanged --}}
   <div class="max-w-7xl mx-auto p-4 md:p-8 relative z-[1]">
     <header class="mb-8">
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -417,6 +323,8 @@
                   style="border-color:var(--ring)">
             <option value="newest"   @selected($sort==='newest')>Newest first</option>
             <option value="oldest"   @selected($sort==='oldest')>Oldest first</option>
+            <option value="popular"  @selected($sort==='popular')>Most liked</option>
+            <option value="discussed" @selected($sort==='discussed')>Most discussed</option>
             <option value="status"   @selected($sort==='status')>Status (A→Z)</option>
             <option value="city"     @selected($sort==='city')>City (A→Z)</option>
             <option value="category" @selected($sort==='category')>Category (A→Z)</option>
@@ -506,23 +414,6 @@
     @else
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         @foreach($reports as $report)
-          @php
-            $commentsCount = $commentsEnabled
-              ? ($report->comments_count ?? ($report->relationLoaded('comments') ? $report->comments->count() : (method_exists($report,'comments') ? $report->comments()->count() : 0)))
-              : 0;
-
-            $endorseCount  = $endorsementsEnabled
-              ? ($report->endorsements_count ?? (method_exists($report,'endorsements') ? $report->endorsements()->count() : 0))
-              : 0;
-
-            $endorsed = false;
-            if ($endorsementsEnabled && auth()->check() && method_exists($report,'endorsements')) {
-              $endorsed = isset($report->endorsed_by_me)
-                ? (bool) $report->endorsed_by_me
-                : $report->endorsements()->where('user_id', auth()->id())->exists();
-            }
-          @endphp
-
           <article class="report-card appear rounded-2xl overflow-visible">
             {{-- Enhanced Map Header --}}
             @if($report->static_map_url)
@@ -597,64 +488,8 @@
                 </li>
               </ul>
 
-              {{-- Enhanced Engagement Bar --}}
-              <div class="engagement-bar">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    {{-- Enhanced Endorse Button --}}
-                    @includeWhen($endorsementsEnabled && $endorseRouteName, 'partials._endorse_button', [
-                      'report'        => $report,
-                      'endorseCount'  => $endorseCount ?? 0,
-                      'endorsed'      => $endorsed ?? false,
-                      'routeName'     => $endorseRouteName
-                    ])
-
-                    {{-- Enhanced Comments Button --}}
-                    <button type="button"
-                            class="engagement-btn js-thread-toggle @if($commentsCount > 0) active @endif"
-                            data-target="#thread-{{ $report->id }}"
-                            aria-expanded="false"
-                            aria-label="Toggle comments">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-                      </svg>
-                      <span class="js-comments-count">{{ $commentsCount }}</span>
-                      <span class="hidden sm:inline">{{ $commentsCount === 1 ? 'Comment' : 'Comments' }}</span>
-                    </button>
-                  </div>
-
-                  <a href="{{ route('reports.show', $report) }}"
-                     class="inline-flex items-center gap-2 font-semibold text-sm hover:gap-3 transition-all duration-200"
-                     style="color:var(--link)">
-                    View details
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M10 6l6 6-6 6-1.4-1.4L12.2 12 8.6 7.4z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-
-              {{-- Enhanced Comment Thread --}}
-              {{-- Comment Thread (via partial) --}}
-              {{-- Comment Thread (via partial) --}}
-              @if($commentsEnabled && $commentsRouteName)
-                @php
-                  $prefetchComments = method_exists($report, 'comments')
-                    ? $report->comments()->latest()->limit(3)->with('user:id,name')->get()
-                    : collect();
-                @endphp
-
-                <div id="thread-{{ $report->id }}" class="cd-thread">
-                  @include('partials._comment_thread', [
-                    'threadId'   => 'thread-' . $report->id,
-                    'report'     => $report,
-                    'comments'   => $prefetchComments,
-                    'postAction' => route($commentsRouteName, $report),
-                    'canPost'    => auth()->check(),
-                    'totalCount' => (int) ($report->comments_count ?? $prefetchComments->count())
-                  ])
-                </div>
-              @endif
+              {{-- Engagement Bar --}}
+              @include('partials.engagement._bar', ['report' => $report])
             </div>
           </article>
         @endforeach
@@ -672,9 +507,8 @@
   </div>
 </div>
 
+@endsection
 
-
-{{-- All your existing JavaScript remains unchanged --}}
 @push('scripts')
 <script>
 (function(){
@@ -705,6 +539,96 @@
     setTimeout(() => toast.classList.add('hide'), 2500);
     setTimeout(() => toast.remove(), 3000);
   }
+
+  /* ===== Notification System Integration ===== */
+  // Mark single notification as read
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.notif-read');
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const card = btn.closest('[data-notif-id]');
+
+    try {
+      const res = await fetch(`{{ route('notifications.read', ':id') }}`.replace(':id', id), {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': getCsrf(),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (res.ok) {
+        card?.remove();
+
+        // Decrease badge count
+        const badge = document.getElementById('notifCount');
+        if (badge) {
+          const currentCount = parseInt(badge.textContent || '1', 10);
+          const newCount = Math.max(0, currentCount - 1);
+          if (newCount > 0) {
+            badge.textContent = newCount;
+          } else {
+            badge.remove();
+          }
+        }
+
+        // Show empty state if no notifications left
+        const notifList = document.getElementById('notifList');
+        if (notifList && !notifList.querySelector('[data-notif-id]')) {
+          notifList.innerHTML = '<div class="p-4 text-sm text-slate-600 dark:text-slate-300">No notifications yet.</div>';
+        }
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      toast('Failed to mark notification as read', 'error');
+    }
+  });
+
+  // Mark all notifications as read
+  document.getElementById('notifMarkAll')?.addEventListener('click', async () => {
+    try {
+      const res = await fetch(`{{ route('notifications.readAll') }}`, { 
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': getCsrf(),
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (res.ok) {
+        // Clear all notifications from the list
+        const notifList = document.getElementById('notifList');
+        if (notifList) {
+          notifList.innerHTML = '<div class="p-4 text-sm text-slate-600 dark:text-slate-300">No notifications yet.</div>';
+        }
+
+        // Remove the badge
+        document.getElementById('notifCount')?.remove();
+      }
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      toast('Failed to mark all notifications as read', 'error');
+    }
+  });
+
+  // Close notification bar
+  document.getElementById('notifClose')?.addEventListener('click', () => {
+    const bar = document.getElementById('notifBar');
+    if (bar) {
+      bar.classList.add('hidden');
+    }
+  });
+
+  // Collapse/expand notification list
+  document.getElementById('notifCollapse')?.addEventListener('click', () => {
+    const list = document.getElementById('notifList');
+    if (list) {
+      list.classList.toggle('hidden');
+    }
+  });
 
   /* ===== Enhanced Auto-appear Animation ===== */
   const observerOptions = {
@@ -866,242 +790,6 @@
     });
   }
 
-  /* ===== Enhanced Thread Toggle with Smooth Animation ===== */
-/* ===== Thread Toggle (instant, robust) ===== */
-function openThread(panel) {
-  panel.style.display = 'block';          // ensure visible even if CSS had display:none
-  panel.getBoundingClientRect();          // force reflow so transition applies
-  panel.classList.add('open');            // fade/slide handled by CSS
-  const firstInput = panel.querySelector('textarea, input');
-  if (firstInput) firstInput.focus();
-}
-
-function closeThread(panel) {
-  panel.classList.remove('open');
-  panel.style.display = 'none';           // hide again
-}
-
-document.addEventListener('click', (e) => {
-  const toggleBtn = e.target.closest('.js-thread-toggle');
-  if (!toggleBtn) return;
-
-  const sel = toggleBtn.dataset.target;
-  const panel = sel ? document.querySelector(sel) : null;
-  if (!panel) return; // panel not in DOM (e.g., comments disabled)
-
-  const isOpen = panel.classList.contains('open');
-
-  if (isOpen) {
-    closeThread(panel);
-    toggleBtn.setAttribute('aria-expanded', 'false');
-    toggleBtn.classList.remove('active');
-  } else {
-    // Close other threads
-    document.querySelectorAll('.cd-thread.open').forEach(otherPanel => {
-      if (otherPanel !== panel) {
-        closeThread(otherPanel);
-        const otherBtn = document.querySelector(`[data-target="#${otherPanel.id}"]`);
-        if (otherBtn) {
-          otherBtn.setAttribute('aria-expanded', 'false');
-          otherBtn.classList.remove('active');
-        }
-      }
-    });
-    openThread(panel);
-    toggleBtn.setAttribute('aria-expanded', 'true');
-    toggleBtn.classList.add('active');
-  }
-});
-
-  /* ===== Enhanced Endorsement System ===== */
-  document.querySelectorAll('.js-endorse-form').forEach(endorseForm => {
-    endorseForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      
-      const button = endorseForm.querySelector('button');
-      const countElement = endorseForm.querySelector('.js-endorse-count');
-      
-      if (!button || !countElement) return;
-      
-      const wasEndorsed = button.dataset.endorsed === '1';
-      const currentCount = parseInt(countElement.textContent || '0', 10);
-      
-      // Optimistic update
-      button.dataset.endorsed = wasEndorsed ? '0' : '1';
-      countElement.textContent = String(currentCount + (wasEndorsed ? -1 : 1));
-      button.classList.toggle('active', !wasEndorsed);
-      
-      // Add loading state
-      button.classList.add('loading');
-      
-      try {
-        const response = await fetch(endorseForm.action, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-TOKEN': getCsrf(),
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new FormData(endorseForm)
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Update with server response if available
-        if (data.endorsed !== undefined) {
-          button.dataset.endorsed = data.endorsed ? '1' : '0';
-          button.classList.toggle('active', data.endorsed);
-        }
-        if (data.count !== undefined) {
-          countElement.textContent = String(data.count);
-        }
-        
-      } catch (error) {
-        // Revert optimistic update
-        button.dataset.endorsed = wasEndorsed ? '1' : '0';
-        countElement.textContent = String(currentCount);
-        button.classList.toggle('active', wasEndorsed);
-        
-        console.error('Endorsement failed:', error);
-        toast('Failed to update endorsement. Please try again.', 'error');
-      } finally {
-        button.classList.remove('loading');
-      }
-    });
-  });
-
-
-  /* ===== Enhanced Comment System ===== */
-  document.querySelectorAll('.js-comment-form').forEach(commentForm => {
-    const textarea = commentForm.querySelector('textarea[name="body"]');
-    
-    // Auto-resize textarea
-    if (textarea) {
-      textarea.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = Math.max(44, this.scrollHeight) + 'px';
-      });
-    }
-    
-    commentForm.addEventListener('submit', async (event) => { 
-  event.preventDefault();
-
-  const textContent = (textarea?.value || '').trim();
-  if (!textContent) { textarea?.focus(); return; }
-
-  // ✅ capture before clearing textarea
-  const formData = new FormData(commentForm);
-
-  const thread = commentForm.closest('.cd-thread');
-  const commentsList = thread?.querySelector('.js-thread-list');
-  const reportCard = commentForm.closest('.report-card');
-  const commentsCountElement = reportCard?.querySelector('.js-comments-count');
-  const userName = document.querySelector('meta[name="user-name"]')?.content || 
-                   textarea?.getAttribute('data-user-name') || 
-                   'You';
-
-  // optimistic UI (unchanged)
-  const commentElement = document.createElement('li');
-  commentElement.className = 'comment-item';
-  commentElement.innerHTML = `
-    <div class="comment-avatar">${userName.charAt(0).toUpperCase()}</div>
-    <div class="comment-bubble">
-      <div class="comment-author">${userName}</div>
-      <div class="comment-text">${textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-    </div>
-  `;
-  if (commentsList) {
-    commentsList.appendChild(commentElement);
-    commentsList.scrollTop = commentsList.scrollHeight;
-  }
-  const currentCount = parseInt(commentsCountElement?.textContent || '0', 10);
-  if (commentsCountElement) commentsCountElement.textContent = String(currentCount + 1);
-
-  // clear & disable AFTER capturing formData (unchanged otherwise)
-  if (textarea) { textarea.value = ''; textarea.style.height = 'auto'; textarea.disabled = true; }
-  const submitBtn = commentForm.querySelector('button[type="submit"]');
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('loading'); }
-
-  try {
-    const response = await fetch(commentForm.action, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': getCsrf(),
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json'
-      },
-      body: formData                   // ✅ use captured data
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    toast('Comment posted successfully!');
-  } catch (error) {
-    // revert optimistic UI (unchanged)
-    commentElement.remove();
-    if (commentsCountElement) commentsCountElement.textContent = String(currentCount);
-    console.error('Comment submission failed:', error);
-    toast('Failed to post comment. Please try again.', 'error');
-    if (textarea) textarea.value = textContent;
-  } finally {
-    if (textarea) textarea.disabled = false;
-    const submitBtn2 = commentForm.querySelector('button[type="submit"]');
-    if (submitBtn2) { submitBtn2.disabled = false; submitBtn2.classList.remove('loading'); }
-  }
-});
-/* ===== Comment Delete (AJAX) ===== */
-document.querySelectorAll('.js-comment-delete-form').forEach(delForm => {
-  delForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const btn = delForm.querySelector('button[type="submit"]');
-    const li  = delForm.closest('.comment-item');
-    const reportCard = delForm.closest('.report-card');
-    const counterEl  = reportCard?.querySelector('.js-comments-count');
-    const currentCount = parseInt(counterEl?.textContent || '0', 10);
-
-    // disable button
-    if (btn) { btn.disabled = true; btn.classList.add('loading'); }
-
-    try {
-      // Use POST + _method=DELETE for best CSRF compatibility
-      const body = new URLSearchParams();
-      body.set('_method', 'DELETE');
-
-      const resp = await fetch(delForm.action, {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': getCsrf(),
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body
-      });
-
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-      // Remove from DOM & decrement counter
-      li?.remove();
-      if (counterEl) {
-        counterEl.textContent = String(Math.max(0, currentCount - 1));
-      }
-
-      toast('Comment deleted.');
-    } catch (err) {
-      console.error('Delete failed:', err);
-      toast('Failed to delete comment.', 'error');
-    } finally {
-      if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
-    }
-  });
-});
-});   // <-- ADD THIS: closes document.querySelectorAll(...).forEach
-
   /* ===== Enhanced Loading States ===== */
   window.addEventListener('beforeunload', () => {
     if (form) {
@@ -1136,26 +824,12 @@ document.querySelectorAll('.js-comment-delete-form').forEach(delForm => {
 
   /* ===== Enhanced Keyboard Navigation ===== */
   document.addEventListener('keydown', (e) => {
-    // Toggle comments with 'c' key when focused on a report card
-    if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      const focusedCard = document.activeElement?.closest('.report-card');
-      if (focusedCard) {
-        const toggleBtn = focusedCard.querySelector('.js-thread-toggle');
-        if (toggleBtn) {
-          e.preventDefault();
-          toggleBtn.click();
-        }
-      }
-    }
-    
-    // Close threads with Escape
+    // Close any open overlays with Escape
     if (e.key === 'Escape') {
-      document.querySelectorAll('.cd-thread.open').forEach(thread => {
-        closeThread(thread);
-        const toggleBtn = document.querySelector(`[data-target="#${thread.id}"]`);
-        if (toggleBtn) {
-          toggleBtn.setAttribute('aria-expanded', 'false');
-          toggleBtn.classList.remove('active');
+      // Close loading overlays or any modal-like elements
+      document.querySelectorAll('.fixed.inset-0').forEach(overlay => {
+        if (overlay.textContent.includes('Loading')) {
+          overlay.remove();
         }
       });
     }
@@ -1221,7 +895,7 @@ document.querySelectorAll('.js-comment-delete-form').forEach(delForm => {
 
   // Announce filter changes
   const originalToast = toast;
-  toast = function(message, type = 'success') {
+  window.toast = function(message, type = 'success') {
     originalToast(message, type);
     
     // Also announce to screen readers
@@ -1249,4 +923,3 @@ document.querySelectorAll('.js-comment-delete-form').forEach(delForm => {
 })();
 </script>
 @endpush
-@endsection

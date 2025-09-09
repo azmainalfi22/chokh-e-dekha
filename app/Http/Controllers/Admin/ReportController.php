@@ -9,9 +9,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Notifications\ReportStatusNotification;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
+    private function notifyReportAuthor(Report $report, string $status): void
+    {
+        // Guard: report may have no user (seeded/anon)
+        if ($report->relationLoaded('user') === false) {
+            $report->loadMissing('user');
+        }
+    if ($report->user) {
+        $report->user->notify(new ReportStatusNotification($status, $report));
+    }
+}
+
     /** All statuses used in UI */
     private const STATUSES = ['pending', 'in_progress', 'resolved', 'rejected'];
 
@@ -169,42 +182,116 @@ class ReportController extends Controller
 
         return view('admin.reports.show', compact('report'));
     }
+public function approve(Request $request, Report $report)
+{
+    $report->update([
+        'status' => 'in_progress',
+        'status_updated_at' => now(),
+    ]);
+
+    $this->notifyReportAuthor($report, 'approved');
+
+    if ($request->expectsJson()) {
+        return response()->json(['ok' => true, 'id' => $report->id, 'status' => $report->status]);
+    }
+    return back()->with('success', 'Report approved.');
+}
+
+public function reject(Request $request, Report $report)
+{
+    // notify before delete (so notification can reference title/id)
+    $this->notifyReportAuthor($report, 'rejected');
+
+    $report->delete();
+
+    if ($request->expectsJson()) {
+        return response()->json(['ok' => true, 'deleted' => true, 'id' => $report->id]);
+    }
+    return back()->with('success', 'Report rejected and deleted.');
+}
 
     /** PUT/PATCH /admin/reports/{report}/status (used by named route admin.reports.status) */
-    public function updateStatus(Request $request, Report $report)
-    {
-        $validated = $request->validate([
-            'status' => ['required','string', Rule::in(self::STATUSES)],
-        ]);
+/** PUT/PATCH /admin/reports/{report}/status (used by named route admin.reports.status) */
+public function updateStatus(Request $request, Report $report)
+{
+    $validated = $request->validate([
+        'status' => ['required','string', Rule::in(self::STATUSES)],
+    ]);
 
-        $report->update([
-            'status' => strtolower(trim($validated['status'])),
-            'status_updated_at' => now(),
-        ]);
+    $newStatus = strtolower(trim($validated['status']));
 
-        return response()->json(['status' => $report->status]);
+    // If rejected via this endpoint, notify then delete
+    if ($newStatus === 'rejected') {
+        $this->notifyReportAuthor($report, 'rejected');
+        $report->delete();
+
+        if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+            return response()->json(['ok' => true, 'deleted' => true, 'id' => $report->id]);
+        }
+        return to_route('admin.reports.index')->with('success', 'Report rejected and deleted.');
     }
+
+    $report->update([
+        'status' => $newStatus,
+        'status_updated_at' => now(),
+    ]);
+
+    // notify for other statuses (optional; keep if you want users to know every change)
+    $this->notifyReportAuthor($report, $newStatus);
+
+    if ($request->expectsJson() || $request->ajax() || $request->wantsJson()) {
+        return response()->json([
+            'ok'     => true,
+            'id'     => $report->id,
+            'status' => $report->status,
+            'label'  => \Illuminate\Support\Str::headline($report->status),
+        ]);
+    }
+
+    return to_route('admin.reports.show', $report)
+        ->with('success', 'Status updated to '.\Illuminate\Support\Str::headline($report->status).'.');
+}
+
+
 
     /** POST /admin/reports/{report}/quick-action (used by Blade JS) */
     public function quickAction(Request $request, Report $report)
-    {
-        $data = $request->validate([
-            'action' => ['required', Rule::in(array_merge(['approve','reject'], self::STATUSES))],
-        ]);
+{
+    $data = $request->validate([
+        'action' => ['required', Rule::in(array_merge(['approve','reject'], self::STATUSES))],
+    ]);
 
-        $map = [
-            'approve' => 'in_progress',
-            'reject'  => 'rejected',
-        ];
-        $new = $map[$data['action']] ?? $data['action'];
+    $action = $data['action'];
 
+    // Approve → set in_progress + notify
+    if ($action === 'approve') {
         $report->update([
-            'status' => $new,
+            'status' => 'in_progress',
             'status_updated_at' => now(),
         ]);
+        $this->notifyReportAuthor($report, 'approved');
 
         return response()->json(['status' => $report->status]);
     }
+
+    // Reject (button or explicit) → notify then hard delete
+    if ($action === 'reject' || $action === 'rejected') {
+        $this->notifyReportAuthor($report, 'rejected');
+        $report->delete();
+
+        return response()->json(['deleted' => true]);
+    }
+
+    // Other statuses (pending | in_progress | resolved)
+    $report->update([
+        'status' => $action,
+        'status_updated_at' => now(),
+    ]);
+    $this->notifyReportAuthor($report, $action);
+
+    return response()->json(['status' => $report->status]);
+}
+
 
     /** POST /admin/reports/{report}/assign */
     public function assignToMe(Request $request, Report $report)
@@ -219,44 +306,63 @@ class ReportController extends Controller
 
     /** POST /admin/reports/bulk-action */
     public function bulkAction(Request $request)
-    {
-        $data = $request->validate([
-            'action'       => ['required', Rule::in(array_merge(['approve','reject','delete'], self::STATUSES))],
-            'report_ids'   => ['required','array','min:1'],
-            'report_ids.*' => ['integer','exists:reports,id'],
+{
+    $data = $request->validate([
+        'action'       => ['required', Rule::in(array_merge(['approve','reject','delete'], self::STATUSES))],
+        'report_ids'   => ['required','array','min:1'],
+        'report_ids.*' => ['integer','exists:reports,id'],
+    ]);
+
+    $ids = $data['report_ids'];
+    $action = $data['action'];
+    $processed = 0;
+
+    if ($action === 'reject') {
+        // notify each, then delete
+        $reports = Report::with('user')->whereIn('id', $ids)->get();
+        foreach ($reports as $r) {
+            $this->notifyReportAuthor($r, 'rejected');
+        }
+        $processed = Report::whereIn('id', $ids)->delete();
+
+        return response()->json(['processed' => $processed, 'deleted' => true]);
+    }
+
+    if ($action === 'delete') {
+        $processed = Report::whereIn('id', $ids)->delete();
+        return response()->json(['processed' => $processed, 'deleted' => true]);
+    }
+
+    if ($action === 'approve') {
+        $processed = Report::whereIn('id', $ids)->update([
+            'status' => 'in_progress',
+            'status_updated_at' => now(),
         ]);
 
-        $q = Report::query()->whereIn('id', $data['report_ids']);
-        $processed = 0;
-
-        switch ($data['action']) {
-            case 'delete':
-                $processed = (clone $q)->delete();
-                break;
-            case 'approve':
-                $processed = (clone $q)->update([
-                    'status' => 'in_progress',
-                    'status_updated_at' => now(),
-                ]);
-                break;
-            case 'reject':
-                $processed = (clone $q)->update([
-                    'status' => 'rejected',
-                    'status_updated_at' => now(),
-                ]);
-                break;
-            case 'resolved':
-            case 'in_progress':
-            case 'pending':
-                $processed = (clone $q)->update([
-                    'status' => $data['action'],
-                    'status_updated_at' => now(),
-                ]);
-                break;
+        // optional: notify users about approval
+        $reports = Report::with('user')->whereIn('id', $ids)->get();
+        foreach ($reports as $r) {
+            $this->notifyReportAuthor($r, 'approved');
         }
 
-        return response()->json(['processed' => $processed]);
+        return response()->json(['processed' => $processed, 'status' => 'in_progress']);
     }
+
+    // direct bulk status set (pending | in_progress | resolved)
+    $processed = Report::whereIn('id', $ids)->update([
+        'status' => $action,
+        'status_updated_at' => now(),
+    ]);
+
+    // optional: notify for other statuses
+    $reports = Report::with('user')->whereIn('id', $ids)->get();
+    foreach ($reports as $r) {
+        $this->notifyReportAuthor($r, $action);
+    }
+
+    return response()->json(['processed' => $processed, 'status' => $action]);
+}
+
 
     /** Notes (your routes expect these) */
     public function storeNote(Request $request, Report $report)

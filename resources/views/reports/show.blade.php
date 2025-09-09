@@ -39,6 +39,9 @@
     @endif
 
     @php
+      use Illuminate\Support\Facades\Storage;
+      use Illuminate\Support\Str;
+
       $status = $report->status ?? 'pending';
       $badge = [
         'pending'     => 'bg-amber-100 text-amber-800 ring-amber-200',
@@ -47,7 +50,23 @@
         'rejected'    => 'bg-rose-100 text-rose-800 ring-rose-200',
       ][$status] ?? 'bg-gray-100 text-gray-800 ring-gray-200';
 
-      $photoUrl = $report->photo_url ?? ($report->photo ? asset('storage/'.$public->disk('public')->url($report->photo)) : null);
+      /* -------- FIXED PHOTO URL RESOLUTION --------
+         Priority:
+         1) $report->photo_url (already absolute)
+         2) $report->photo (relative path on 'public' disk or absolute URL)
+      ------------------------------------------------ */
+      $photoUrl = null;
+      if (!empty($report->photo_url)) {
+          $photoUrl = $report->photo_url;
+      } elseif (!empty($report->photo)) {
+          $p = ltrim($report->photo, '/');
+          if (Str::startsWith($p, ['http://','https://'])) {
+              $photoUrl = $p;
+          } else {
+              // Stored via ->store('reports','public')
+              $photoUrl = Storage::disk('public')->url($p);
+          }
+      }
 
       $lat = $report->latitude  ? (float)$report->latitude  : null;
       $lng = $report->longitude ? (float)$report->longitude : null;
