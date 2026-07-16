@@ -17,11 +17,12 @@ import { STATUS_LABELS, type Status } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/reports/status-badge";
 import { StatusTracker } from "@/components/reports/status-tracker";
 import { SlaBadge } from "@/components/reports/sla-badge";
 import { ReportMap } from "@/components/map/report-map";
+import { EngagementBar } from "@/components/reports/engagement-bar";
+import { Comments, type CommentData } from "@/components/reports/comments";
 
 type Params = Promise<{ id: string }>;
 
@@ -50,19 +51,74 @@ export default async function ReportDetailPage({
   if (!Number.isInteger(reportId) || reportId <= 0) notFound();
 
   const supabase = await createClient();
-  const { data: report } = await supabase
-    .from("reports")
-    .select(
-      `*,
-       profiles!reports_user_id_fkey ( display_name ),
-       report_media ( id, storage_path ),
-       report_status_logs ( id, from_status, to_status, note, created_at )`
-    )
-    .eq("id", reportId)
-    .maybeSingle();
+  const [{ data: report }, userRes] = await Promise.all([
+    supabase
+      .from("reports")
+      .select(
+        `*,
+         profiles!reports_user_id_fkey ( display_name ),
+         report_media ( id, storage_path ),
+         report_status_logs ( id, from_status, to_status, note, created_at )`
+      )
+      .eq("id", reportId)
+      .maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
 
   // RLS hides unapproved reports from non-owners — treat as not found.
   if (!report) notFound();
+
+  const user = userRes.data.user;
+
+  const [commentsRes, endorsedRes, bookmarkedRes, viewerProfileRes] =
+    await Promise.all([
+      supabase
+        .from("report_comments")
+        .select(
+          "id, body, parent_id, created_at, user_id, profiles ( display_name )"
+        )
+        .eq("report_id", reportId)
+        .order("created_at", { ascending: true }),
+      user
+        ? supabase
+            .from("report_endorsements")
+            .select("report_id")
+            .eq("report_id", reportId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("report_bookmarks")
+            .select("report_id")
+            .eq("report_id", reportId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single()
+        : Promise.resolve({ data: null }),
+    ]);
+
+  const comments: CommentData[] = (commentsRes.data ?? []).map((c) => ({
+    id: c.id,
+    body: c.body,
+    parent_id: c.parent_id,
+    created_at: c.created_at,
+    user_id: c.user_id,
+    authorName: c.profiles?.display_name ?? "Citizen",
+  }));
+
+  // Count the view (best-effort, approved reports only).
+  if (report.is_approved) {
+    supabase
+      .rpc("increment_view_count", { p_report_id: reportId })
+      .then(() => {});
+  }
 
   const created = new Date(report.created_at).toLocaleString("en-GB", {
     day: "numeric",
@@ -122,6 +178,18 @@ export default async function ReportDetailPage({
           <StatusTracker status={report.status} className="mx-auto max-w-md" />
         </CardContent>
       </Card>
+
+      {report.is_approved ? (
+        <EngagementBar
+          reportId={report.id}
+          title={report.title}
+          endorseCount={report.endorse_count}
+          commentCount={comments.length}
+          endorsed={!!endorsedRes.data}
+          bookmarked={!!bookmarkedRes.data}
+          isAuthed={!!user}
+        />
+      ) : null}
 
       {report.report_media.length > 0 ? (
         <div
@@ -256,10 +324,18 @@ export default async function ReportDetailPage({
         </CardContent>
       </Card>
 
-      <Separator />
-      <p className="text-muted-foreground text-center text-xs">
-        Endorsements, comments and sharing arrive in the next build phase.
-      </p>
+      {report.is_approved ? (
+        <Card>
+          <CardContent className="pt-6">
+            <Comments
+              reportId={report.id}
+              comments={comments}
+              currentUserId={user?.id ?? null}
+              isAdmin={viewerProfileRes.data?.role === "admin"}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

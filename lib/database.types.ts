@@ -513,6 +513,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_share_count: {
+        Args: { p_report_id: number }
+        Returns: undefined
+      }
+      increment_view_count: {
+        Args: { p_report_id: number }
+        Returns: undefined
+      }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {

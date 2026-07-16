@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 
@@ -22,14 +23,38 @@ export async function SiteHeader() {
     avatar_url: string | null;
     role: string;
   } | null = null;
+  let notifications: {
+    id: number;
+    report_id: number | null;
+    title: string;
+    body: string | null;
+    is_read: boolean;
+    created_at: string;
+  }[] = [];
+  let unread = 0;
 
   if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("display_name, avatar_url, role")
-      .eq("id", user.id)
-      .single();
+    const [{ data }, { data: notifs }, { count }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("display_name, avatar_url, role")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("notifications")
+        .select("id, report_id, title, body, is_read, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false),
+    ]);
     profile = data;
+    notifications = notifs ?? [];
+    unread = count ?? 0;
   }
 
   return (
@@ -55,6 +80,11 @@ export async function SiteHeader() {
           <ThemeToggle />
           {user && profile ? (
             <>
+              <NotificationBell
+                userId={user.id}
+                initialNotifications={notifications}
+                initialUnread={unread}
+              />
               <Button size="sm" className="bg-brand-gradient border-0 text-white hover:opacity-90" asChild>
                 <Link href="/submit">
                   <Plus className="size-4" />
