@@ -1,70 +1,51 @@
-*.log
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
+# dependencies
 /node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-Homestead.json
-Homestead.yaml
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+
+# production
+/dist
+
+# misc
+.DS_Store
+*.pem
+*.log
 Thumbs.db
 
-# Large binary archives and video
-*.zip
-*.mp4
-structure.txt
-chokhedhekha
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Data exports
+# env files (keep .env.example tracked)
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# supabase
+supabase/.branches
+supabase/.temp
+supabase/.env
+
+# editor
+.idea
+.zed
+.nova
+.fleet
+.vscode/*
+!.vscode/extensions.json
+
+# data exports
 reports_export_*.csv
-
-# Auto-generated session summary docs
-ALL_IMPROVEMENTS_COMPLETE.md
-ALL_ISSUES_RESOLVED.md
-ALL_TODOS_COMPLETED.md
-COMPREHENSIVE_IMPROVEMENTS_SUMMARY.md
-CONTINUOUS_IMPROVEMENTS.md
-CONTINUOUS_UPGRADES_COMPLETE.md
-DESIGN_SYSTEM_OVERHAUL.md
-FACEBOOK_NEWSFEED_DESIGN.md
-FINAL_IMPLEMENTATION_REPORT.md
-FINAL_IMPROVEMENTS_SUMMARY.md
-FINAL_STATUS_REPORT.md
-FIXED_DATABASE_ERROR.md
-FIXED_ROUTE_ERROR.md
-GOOGLE_MAPS_FIX.md
-IMPROVEMENTS_AND_BUGFIXES.md
-IMPROVEMENTS_APPLIED.md
-IMPROVEMENTS_COMPLETE.md
-MAINSTREAM_MEDIA_ENHANCEMENTS.md
-MAINSTREAM_MEDIA_IMPROVEMENTS_COMPLETE.md
-MASTER_PLAN.md
-PLATFORM_COMPLETE.md
-PROFESSIONAL_PLATFORM_TRANSFORMATION.md
-PROJECT_READY.md
-READY_TO_TEST.md
-REPORT_FORM_COMPLETE.md
-REPORT_SUBMISSION_IMPROVEMENTS_APPLIED.md
-REPORT_SUBMISSION_UPGRADE_PLAN.md
-SECURITY_IMPROVEMENTS.md
-SOCIAL_FEATURES_COMPLETE.md
-TESTING_CHECKLIST.md
-TESTING_GUIDE.md
-TEST_SERVER.md
-TODOS_COMPLETE_SUMMARY.md
-UPGRADE_SUMMARY.md
-WARM_VIBRANT_THEME.md
