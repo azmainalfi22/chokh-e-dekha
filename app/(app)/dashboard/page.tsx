@@ -9,23 +9,12 @@ import {
   UserPen,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { STATUS_LABELS, type Status } from "@/lib/constants";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KpiCard } from "@/components/kpi-card";
+import { StatusBadge } from "@/components/reports/status-badge";
 
 export const metadata: Metadata = { title: "Dashboard" };
-
-const STATUS_BADGE: Record<Status, string> = {
-  pending: "bg-status-pending/15 text-status-pending border-status-pending/30",
-  in_progress:
-    "bg-status-progress/15 text-status-progress border-status-progress/30",
-  resolved:
-    "bg-status-resolved/15 text-status-resolved border-status-resolved/30",
-  rejected:
-    "bg-status-rejected/15 text-status-rejected border-status-rejected/30",
-};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -173,12 +162,7 @@ export default async function DashboardPage() {
                       })}
                     </p>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={STATUS_BADGE[r.status as Status]}
-                  >
-                    {STATUS_LABELS[r.status as Status]}
-                  </Badge>
+                  <StatusBadge status={r.status} />
                 </li>
               ))}
             </ul>
