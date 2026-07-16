@@ -53,6 +53,29 @@ export const reportSchema = z.object({
 });
 export type ReportInput = z.infer<typeof reportSchema>;
 
+export const rtiSchema = z.object({
+  authority: z.string().trim().min(3, "Enter the public authority").max(160),
+  subject: z
+    .string()
+    .trim()
+    .min(5, "Enter a subject")
+    .max(160, "Subject must be under 160 characters"),
+  informationSought: z
+    .string()
+    .trim()
+    .min(15, "Describe the information you need (at least 15 characters)")
+    .max(3000),
+  reason: z.string().trim().max(1000).optional(),
+  deliveryMode: z.enum(["certified_copy", "inspection", "email"]),
+  applicantName: z.string().trim().min(2, "Enter your name").max(80),
+  applicantAddress: z.string().trim().min(5, "Enter your address").max(300),
+  applicantPhone: z.string().trim().max(20).optional(),
+  applicantEmail: z.email("Enter a valid email").or(z.literal("")).optional(),
+  language: z.enum(["en", "bn"]),
+  reportId: z.number().int().positive().nullable().optional(),
+});
+export type RtiFormInput = z.infer<typeof rtiSchema>;
+
 export const commentSchema = z.object({
   body: z
     .string()
