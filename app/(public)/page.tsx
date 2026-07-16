@@ -14,6 +14,8 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { APP_NAME_BN } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { CountUp } from "@/components/count-up";
+import { Tilt } from "@/components/tilt";
 import {
   ReportCard,
   type ReportCardData,
@@ -133,7 +135,7 @@ export default async function HomePage() {
               {stats.map((s) => (
                 <div key={s.label} className="rounded-lg border p-4">
                   <dt className="text-primary text-3xl font-bold tabular-nums">
-                    {s.value.toLocaleString("en-US")}
+                    <CountUp value={s.value} />
                   </dt>
                   <dd className="text-muted-foreground mt-1 text-xs font-medium">
                     {s.label}
@@ -185,7 +187,7 @@ export default async function HomePage() {
               body: "Each report follows a Pending → In Progress → Resolved lifecycle against a response deadline, with notifications at every change.",
             },
           ].map(({ n, icon: Icon, title, body }) => (
-            <div key={title} className="bg-card rounded-xl border p-6">
+            <Tilt key={title} className="bg-card card-lift rounded-xl border p-6">
               <div className="flex items-center justify-between">
                 <span className="bg-primary/10 text-primary inline-flex size-10 items-center justify-center rounded-md">
                   <Icon className="size-5" aria-hidden />
@@ -198,7 +200,7 @@ export default async function HomePage() {
               <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
                 {body}
               </p>
-            </div>
+            </Tilt>
           ))}
         </div>
       </section>

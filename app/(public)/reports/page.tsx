@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
-import { FileSearch } from "lucide-react";
+import { FileSearch, Map as MapIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PAGE_SIZE } from "@/lib/constants";
+import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/reports/filter-bar";
 import {
   ReportCard,
@@ -30,13 +32,18 @@ export default async function ReportsPage({
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6">
-      <div>
-        <h1 className="text-brand-gradient text-3xl font-extrabold tracking-tight">
-          All Reports
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Search and filter reports submitted across all city corporations.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">All Reports</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Search and filter reports submitted across all city corporations.
+          </p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/map">
+            <MapIcon className="size-4" /> Map view
+          </Link>
+        </Button>
       </div>
 
       <Suspense>

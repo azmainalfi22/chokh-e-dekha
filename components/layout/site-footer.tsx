@@ -7,6 +7,7 @@ const COLUMNS = [
     title: "Platform",
     links: [
       { href: "/reports", label: "All Reports" },
+      { href: "/map", label: "Reports Map" },
       { href: "/submit", label: "Report an Issue" },
       { href: "/surveys", label: "Community Surveys" },
       { href: "/rti", label: "RTI Wizard" },
