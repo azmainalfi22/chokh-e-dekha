@@ -1,23 +1,26 @@
 import { cn } from "@/lib/utils";
 
-const VARIANTS = {
-  brand: "bg-brand-gradient",
-  amber: "bg-gradient-to-br from-amber-500 to-orange-600",
-  green: "bg-gradient-to-br from-emerald-500 to-emerald-700",
-  blue: "bg-gradient-to-br from-blue-500 to-blue-700",
-  purple: "bg-gradient-to-br from-violet-500 to-purple-700",
-  red: "bg-gradient-to-br from-rose-500 to-red-700",
-} as const;
+const ACCENT: Record<string, string> = {
+  brand: "var(--brand-green)",
+  amber: "var(--status-pending)",
+  green: "var(--status-resolved)",
+  blue: "var(--status-progress)",
+  purple: "var(--chart-5)",
+  red: "var(--status-breach)",
+};
 
 type Props = {
   value: React.ReactNode;
   label: string;
-  variant?: keyof typeof VARIANTS;
+  variant?: keyof typeof ACCENT | string;
   icon?: React.ReactNode;
   className?: string;
 };
 
-/** Gradient KPI stat card (SPEC §3 — dashboard reference design). */
+/**
+ * Sober stat card: white surface, a colored left accent + icon, ink number.
+ * Reads as an official data dashboard rather than a consumer app.
+ */
 export function KpiCard({
   value,
   label,
@@ -25,23 +28,33 @@ export function KpiCard({
   icon,
   className,
 }: Props) {
+  const accent = ACCENT[variant] ?? ACCENT.brand;
   return (
     <div
       className={cn(
-        "glow-brand relative overflow-hidden rounded-xl p-5 text-white shadow-md",
-        VARIANTS[variant],
+        "bg-card relative overflow-hidden rounded-lg border p-5 shadow-sm",
         className
       )}
+      style={{ borderLeft: `3px solid ${accent}` }}
     >
-      {icon ? (
-        <span className="absolute top-4 right-4 opacity-30" aria-hidden>
-          {icon}
-        </span>
-      ) : null}
-      <p className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-        {value}
-      </p>
-      <p className="mt-1 text-xs font-semibold tracking-wider uppercase opacity-90">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+          {value}
+        </p>
+        {icon ? (
+          <span
+            className="flex size-9 items-center justify-center rounded-md"
+            style={{
+              color: accent,
+              backgroundColor: `color-mix(in oklch, ${accent} 14%, transparent)`,
+            }}
+            aria-hidden
+          >
+            {icon}
+          </span>
+        ) : null}
+      </div>
+      <p className="text-muted-foreground mt-1 text-xs font-semibold tracking-wide uppercase">
         {label}
       </p>
     </div>

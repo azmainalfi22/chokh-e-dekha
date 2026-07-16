@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Megaphone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 const NAV_LINKS = [
-  { href: "/reports", label: "All Reports" },
+  { href: "/reports", label: "Reports" },
   { href: "/surveys", label: "Surveys" },
   { href: "/rti", label: "RTI Wizard" },
 ];
@@ -59,55 +60,97 @@ export async function SiteHeader() {
   }
 
   return (
-    <header className="bg-background/80 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
-        <div className="flex items-center gap-6">
-          <Logo />
-          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
-            {NAV_LINKS.map((link) => (
-              <Button key={link.href} variant="ghost" size="sm" asChild>
-                <Link href={link.href}>{link.label}</Link>
-              </Button>
-            ))}
-            {user ? (
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-            ) : null}
-          </nav>
-        </div>
+    <header className="sticky top-0 z-40">
+      {/* national flag ribbon */}
+      <div className="ribbon-bd h-1" aria-hidden />
 
-        <div className="flex items-center gap-1.5">
-          <ThemeToggle />
-          {user && profile ? (
-            <>
-              <NotificationBell
-                userId={user.id}
-                initialNotifications={notifications}
-                initialUnread={unread}
-              />
-              <Button size="sm" className="bg-brand-gradient border-0 text-white hover:opacity-90" asChild>
-                <Link href="/submit">
-                  <Plus className="size-4" />
-                  <span className="hidden sm:inline">New Report</span>
+      {/* utility bar */}
+      <div className="bg-brand-green-strong text-white/90">
+        <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-xs sm:px-6">
+          <p className="font-bengali truncate">
+            গণমুখী নাগরিক প্ল্যাটফর্ম — a citizens&apos; civic accountability
+            platform
+          </p>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+
+      {/* masthead */}
+      <div className="bg-background/95 border-b backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex items-center gap-7">
+            <Logo />
+            <nav aria-label="Main" className="hidden items-center gap-6 md:flex">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
+                >
+                  {link.label}
                 </Link>
-              </Button>
-              <UserMenu
-                displayName={profile.display_name}
-                avatarUrl={profile.avatar_url}
-                isAdmin={profile.role === "admin"}
-              />
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/login">Log in</Link>
-              </Button>
-              <Button size="sm" className="bg-brand-gradient border-0 text-white hover:opacity-90" asChild>
-                <Link href="/signup">Get started</Link>
-              </Button>
-            </>
-          )}
+              ))}
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
+                >
+                  Dashboard
+                </Link>
+              ) : null}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {user && profile ? (
+              <>
+                <NotificationBell
+                  userId={user.id}
+                  initialNotifications={notifications}
+                  initialUnread={unread}
+                />
+                <Button
+                  size="sm"
+                  className="hidden bg-brand-gradient border-0 text-white hover:opacity-95 sm:inline-flex"
+                  asChild
+                >
+                  <Link href="/submit">
+                    <Megaphone className="size-4" />
+                    Report an issue
+                  </Link>
+                </Button>
+                <UserMenu
+                  displayName={profile.display_name}
+                  avatarUrl={profile.avatar_url}
+                  isAdmin={profile.role === "admin"}
+                />
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-brand-gradient border-0 text-white hover:opacity-95"
+                  asChild
+                >
+                  <Link href="/submit">
+                    <Megaphone className="size-4" />
+                    <span className="hidden sm:inline">Report an issue</span>
+                    <span className="sm:hidden">Report</span>
+                  </Link>
+                </Button>
+              </>
+            )}
+            <MobileNav
+              isAuthed={!!user}
+              isAdmin={profile?.role === "admin"}
+              links={NAV_LINKS}
+            />
+          </div>
         </div>
       </div>
     </header>
