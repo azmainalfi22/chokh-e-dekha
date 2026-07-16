@@ -5,123 +5,124 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ---------------------------------------------------------------------------
-   Chokh-e-Dekha design tokens (SPEC.md §3)
-   Warm Bangladeshi civic brand: orange→red primary, semantic status colors.
-   Light = warm cream surfaces on white cards; dark = near-black with glows.
+   Chokh-e-Dekha design system — national civic platform.
+   Palette: Bangladesh bottle-green primary (#006A4E) with flag-red accent
+   (#F42A41). Flat, restrained, authoritative — modelled on national civic
+   portals (gov.bd) and proven reporting platforms (FixMyStreet, 311).
 --------------------------------------------------------------------------- */
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
   /* surfaces */
-  --background: oklch(0.985 0.012 75);          /* warm cream */
-  --foreground: oklch(0.216 0.02 50);
+  --background: oklch(0.984 0.004 160);         /* cool near-white */
+  --foreground: oklch(0.23 0.021 165);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.216 0.02 50);
+  --card-foreground: oklch(0.23 0.021 165);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.216 0.02 50);
+  --popover-foreground: oklch(0.23 0.021 165);
 
-  /* brand */
-  --primary: oklch(0.705 0.187 41.5);           /* orange-500 #F97316 */
-  --primary-foreground: oklch(0.99 0.01 60);
-  --secondary: oklch(0.954 0.023 70);
-  --secondary-foreground: oklch(0.35 0.06 45);
-  --muted: oklch(0.954 0.015 75);
-  --muted-foreground: oklch(0.51 0.025 55);
-  --accent: oklch(0.954 0.03 60);
-  --accent-foreground: oklch(0.35 0.06 45);
-  --destructive: oklch(0.637 0.208 25.3);       /* red-500 #EF4444 */
-  --destructive-foreground: oklch(0.99 0.01 60);
+  /* brand — Bangladesh bottle green */
+  --primary: oklch(0.475 0.088 168);
+  --primary-foreground: oklch(0.985 0.01 160);
+  --secondary: oklch(0.955 0.008 160);
+  --secondary-foreground: oklch(0.32 0.05 168);
+  --muted: oklch(0.962 0.006 160);
+  --muted-foreground: oklch(0.475 0.018 165);
+  --accent: oklch(0.948 0.02 165);
+  --accent-foreground: oklch(0.32 0.05 168);
+  --destructive: oklch(0.62 0.222 22);          /* flag red #F42A41 */
+  --destructive-foreground: oklch(0.985 0.01 20);
 
-  --border: oklch(0.912 0.016 70);
-  --input: oklch(0.912 0.016 70);
-  --ring: oklch(0.705 0.187 41.5);
+  --border: oklch(0.9 0.008 160);
+  --input: oklch(0.9 0.008 160);
+  --ring: oklch(0.475 0.088 168);
 
-  /* status system (SPEC §3): pending=amber, in-progress=blue,
-     resolved=green, rejected=rose, SLA breach=red */
-  --status-pending: oklch(0.769 0.155 70.7);    /* amber-500 #F59E0B */
-  --status-progress: oklch(0.623 0.188 259.8);  /* blue-500 #3B82F6 */
-  --status-resolved: oklch(0.696 0.145 162.5);  /* emerald-500 #10B981 */
-  --status-rejected: oklch(0.637 0.208 25.3);   /* rose/red #EF4444 */
-  --status-breach: oklch(0.577 0.226 27.3);     /* red-600 */
+  /* status system — pending amber, in-progress blue, resolved emerald,
+     rejected/breach red. Kept distinct from the bottle-green brand. */
+  --status-pending: oklch(0.75 0.14 72);
+  --status-progress: oklch(0.55 0.15 250);
+  --status-resolved: oklch(0.6 0.128 158);
+  --status-rejected: oklch(0.62 0.222 22);
+  --status-breach: oklch(0.565 0.238 25);
 
-  /* accent family */
-  --brand-orange: oklch(0.705 0.187 41.5);      /* #F97316 */
-  --brand-red: oklch(0.637 0.208 25.3);         /* #EF4444 */
-  --brand-purple: oklch(0.541 0.224 293.9);     /* #7C3AED */
+  /* national accents */
+  --brand-green: oklch(0.475 0.088 168);
+  --brand-green-strong: oklch(0.4 0.086 168);
+  --brand-red: oklch(0.62 0.222 22);
 
-  /* charts */
-  --chart-1: oklch(0.705 0.187 41.5);
-  --chart-2: oklch(0.623 0.188 259.8);
-  --chart-3: oklch(0.696 0.145 162.5);
-  --chart-4: oklch(0.541 0.224 293.9);
-  --chart-5: oklch(0.769 0.155 70.7);
+  /* charts — single-hue green by default */
+  --chart-1: oklch(0.475 0.088 168);
+  --chart-2: oklch(0.55 0.15 250);
+  --chart-3: oklch(0.75 0.14 72);
+  --chart-4: oklch(0.62 0.222 22);
+  --chart-5: oklch(0.58 0.09 200);
 
-  /* admin sidebar */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.216 0.02 50);
-  --sidebar-primary: oklch(0.705 0.187 41.5);
-  --sidebar-primary-foreground: oklch(0.99 0.01 60);
-  --sidebar-accent: oklch(0.954 0.023 70);
-  --sidebar-accent-foreground: oklch(0.35 0.06 45);
-  --sidebar-border: oklch(0.912 0.016 70);
-  --sidebar-ring: oklch(0.705 0.187 41.5);
+  /* admin sidebar — deep green masthead */
+  --sidebar: oklch(0.3 0.055 168);
+  --sidebar-foreground: oklch(0.95 0.015 160);
+  --sidebar-primary: oklch(0.985 0.01 160);
+  --sidebar-primary-foreground: oklch(0.32 0.05 168);
+  --sidebar-accent: oklch(0.36 0.05 168);
+  --sidebar-accent-foreground: oklch(0.97 0.012 160);
+  --sidebar-border: oklch(0.4 0.05 168);
+  --sidebar-ring: oklch(0.7 0.1 165);
 }
 
 .dark {
-  --background: oklch(0.155 0.008 285);         /* near-black #0A0A0B */
-  --foreground: oklch(0.93 0.008 75);
-  --card: oklch(0.205 0.01 285);
-  --card-foreground: oklch(0.93 0.008 75);
-  --popover: oklch(0.205 0.01 285);
-  --popover-foreground: oklch(0.93 0.008 75);
+  --background: oklch(0.17 0.008 165);
+  --foreground: oklch(0.92 0.008 160);
+  --card: oklch(0.212 0.012 165);
+  --card-foreground: oklch(0.92 0.008 160);
+  --popover: oklch(0.212 0.012 165);
+  --popover-foreground: oklch(0.92 0.008 160);
 
-  --primary: oklch(0.75 0.17 45);
-  --primary-foreground: oklch(0.16 0.02 45);
-  --secondary: oklch(0.26 0.012 285);
-  --secondary-foreground: oklch(0.93 0.008 75);
-  --muted: oklch(0.26 0.012 285);
-  --muted-foreground: oklch(0.68 0.015 75);
-  --accent: oklch(0.29 0.02 60);
-  --accent-foreground: oklch(0.93 0.008 75);
-  --destructive: oklch(0.66 0.19 25.3);
-  --destructive-foreground: oklch(0.98 0.01 60);
+  --primary: oklch(0.66 0.11 166);
+  --primary-foreground: oklch(0.16 0.03 168);
+  --secondary: oklch(0.27 0.014 165);
+  --secondary-foreground: oklch(0.92 0.008 160);
+  --muted: oklch(0.27 0.014 165);
+  --muted-foreground: oklch(0.7 0.015 160);
+  --accent: oklch(0.3 0.025 168);
+  --accent-foreground: oklch(0.95 0.01 160);
+  --destructive: oklch(0.67 0.2 22);
+  --destructive-foreground: oklch(0.98 0.01 20);
 
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.75 0.17 45);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.66 0.11 166);
 
-  --status-pending: oklch(0.8 0.15 75);
-  --status-progress: oklch(0.68 0.17 259.8);
-  --status-resolved: oklch(0.73 0.14 162.5);
-  --status-rejected: oklch(0.66 0.19 25.3);
-  --status-breach: oklch(0.62 0.21 27.3);
+  --status-pending: oklch(0.79 0.14 75);
+  --status-progress: oklch(0.68 0.15 250);
+  --status-resolved: oklch(0.7 0.13 158);
+  --status-rejected: oklch(0.67 0.2 22);
+  --status-breach: oklch(0.63 0.22 25);
 
-  --brand-orange: oklch(0.75 0.17 45);
-  --brand-red: oklch(0.66 0.19 25.3);
-  --brand-purple: oklch(0.62 0.2 293.9);
+  --brand-green: oklch(0.66 0.11 166);
+  --brand-green-strong: oklch(0.56 0.1 167);
+  --brand-red: oklch(0.67 0.2 22);
 
-  --chart-1: oklch(0.75 0.17 45);
-  --chart-2: oklch(0.68 0.17 259.8);
-  --chart-3: oklch(0.73 0.14 162.5);
-  --chart-4: oklch(0.62 0.2 293.9);
-  --chart-5: oklch(0.8 0.15 75);
+  --chart-1: oklch(0.66 0.11 166);
+  --chart-2: oklch(0.68 0.15 250);
+  --chart-3: oklch(0.79 0.14 75);
+  --chart-4: oklch(0.67 0.2 22);
+  --chart-5: oklch(0.7 0.09 200);
 
-  --sidebar: oklch(0.185 0.009 285);
-  --sidebar-foreground: oklch(0.93 0.008 75);
-  --sidebar-primary: oklch(0.75 0.17 45);
-  --sidebar-primary-foreground: oklch(0.16 0.02 45);
-  --sidebar-accent: oklch(0.26 0.012 285);
-  --sidebar-accent-foreground: oklch(0.93 0.008 75);
+  --sidebar: oklch(0.2 0.014 166);
+  --sidebar-foreground: oklch(0.92 0.008 160);
+  --sidebar-primary: oklch(0.66 0.11 166);
+  --sidebar-primary-foreground: oklch(0.16 0.03 168);
+  --sidebar-accent: oklch(0.28 0.016 166);
+  --sidebar-accent-foreground: oklch(0.92 0.008 160);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.75 0.17 45);
+  --sidebar-ring: oklch(0.66 0.11 166);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -148,9 +149,9 @@
   --color-status-resolved: var(--status-resolved);
   --color-status-rejected: var(--status-rejected);
   --color-status-breach: var(--status-breach);
-  --color-brand-orange: var(--brand-orange);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-strong: var(--brand-green-strong);
   --color-brand-red: var(--brand-red);
-  --color-brand-purple: var(--brand-purple);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -182,35 +183,42 @@
   .font-bengali {
     font-family: var(--font-bengali);
   }
+  h1, h2, h3 {
+    @apply tracking-tight;
+  }
 }
 
 @layer utilities {
-  /* Signature brand gradient (orange → red) used on CTAs and KPI cards */
+  /* Solid national green with a whisper of depth — reads flat, not flashy.
+     Kept as .bg-brand-gradient so brand surfaces update system-wide. */
   .bg-brand-gradient {
+    background-color: var(--brand-green);
     background-image: linear-gradient(
-      135deg,
-      var(--brand-orange),
-      var(--brand-red)
+      160deg,
+      var(--brand-green),
+      var(--brand-green-strong)
     );
   }
   .text-brand-gradient {
-    background-image: linear-gradient(
-      135deg,
-      var(--brand-orange),
-      var(--brand-red)
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
+    color: var(--brand-green);
   }
-  /* soft glow behind gradient cards in dark mode */
+  /* Restrained shadow — no neon glow. */
   .glow-brand {
-    box-shadow: 0 8px 32px -8px
-      color-mix(in oklch, var(--brand-orange) 45%, transparent);
+    box-shadow: 0 10px 30px -12px color-mix(in oklch, var(--brand-green) 40%, transparent);
+  }
+  /* Thin national ribbon (green→red) — a subtle flag cue for mastheads. */
+  .ribbon-bd {
+    background-image: linear-gradient(
+      90deg,
+      var(--brand-green) 0%,
+      var(--brand-green) 62%,
+      var(--brand-red) 62%,
+      var(--brand-red) 100%
+    );
   }
 }
 
-/* Leaflet fixes: keep map below dialogs/dropdowns, match theme */
+/* Leaflet: keep below dialogs, match theme */
 .leaflet-container {
   z-index: 0;
   border-radius: var(--radius);
@@ -221,7 +229,7 @@
     saturate(0.35) brightness(0.8);
 }
 .dark .leaflet-container {
-  background: oklch(0.2 0.01 285);
+  background: oklch(0.22 0.01 165);
 }
 
 /* Print styles for RTI letters */
