@@ -7,6 +7,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   Map,
+  MessageSquarePlus,
   Users,
 } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
@@ -17,6 +18,7 @@ const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/admin/map", label: "Map", icon: Map },
+  { href: "/admin/surveys", label: "Surveys", icon: MessageSquarePlus },
   { href: "/admin/users", label: "Users", icon: Users },
 ];
 

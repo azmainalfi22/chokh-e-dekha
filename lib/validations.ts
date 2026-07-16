@@ -76,6 +76,24 @@ export const rtiSchema = z.object({
 });
 export type RtiFormInput = z.infer<typeof rtiSchema>;
 
+export const surveyQuestionSchema = z.object({
+  id: z.string(),
+  label: z.string().trim().min(1, "Question text is required").max(240),
+  type: z.enum(["text", "single", "rating"]),
+  options: z.array(z.string().trim().min(1)).optional(),
+});
+export type SurveyQuestion = z.infer<typeof surveyQuestionSchema>;
+
+export const surveySchema = z.object({
+  title: z.string().trim().min(4, "Enter a title").max(160),
+  description: z.string().trim().max(1000).optional(),
+  questions: z
+    .array(surveyQuestionSchema)
+    .min(1, "Add at least one question")
+    .max(20, "At most 20 questions"),
+});
+export type SurveyInput = z.infer<typeof surveySchema>;
+
 export const commentSchema = z.object({
   body: z
     .string()

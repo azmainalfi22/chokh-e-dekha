@@ -9,6 +9,7 @@ import { UserMenu } from "@/components/layout/user-menu";
 
 const NAV_LINKS = [
   { href: "/reports", label: "All Reports" },
+  { href: "/surveys", label: "Surveys" },
   { href: "/rti", label: "RTI Wizard" },
 ];
 
