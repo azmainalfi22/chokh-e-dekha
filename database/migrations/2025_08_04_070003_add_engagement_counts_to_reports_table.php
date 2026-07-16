@@ -9,11 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->unsignedInteger('likes_count')->default(0)->after('status');
-            $table->unsignedInteger('comments_count')->default(0)->after('likes_count');
-            
-            $table->index('likes_count');
-            $table->index('comments_count');
+            if (!Schema::hasColumn('reports', 'likes_count')) {
+                $table->unsignedInteger('likes_count')->default(0)->after('status');
+                $table->index('likes_count');
+            }
+            if (!Schema::hasColumn('reports', 'comments_count')) {
+                $table->unsignedInteger('comments_count')->default(0)->after('likes_count');
+                $table->index('comments_count');
+            }
         });
     }
 

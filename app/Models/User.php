@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * Mass assignable attributes.
@@ -81,6 +82,24 @@ class User extends Authenticatable
     public function likedReports(): BelongsToMany
     {
         return $this->belongsToMany(Report::class, 'report_likes')
+                    ->withTimestamps()
+                    ->orderByPivot('created_at', 'desc');
+    }
+
+    /**
+     * Bookmarks created by this user
+     */
+    public function reportBookmarks(): HasMany
+    {
+        return $this->hasMany(ReportBookmark::class);
+    }
+
+    /**
+     * Reports this user has bookmarked
+     */
+    public function bookmarkedReports(): BelongsToMany
+    {
+        return $this->belongsToMany(Report::class, 'report_bookmarks')
                     ->withTimestamps()
                     ->orderByPivot('created_at', 'desc');
     }

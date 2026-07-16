@@ -8,14 +8,18 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->text('admin_note')->nullable()->after('status');
+            if (!Schema::hasColumn('reports', 'admin_note')) {
+                $table->text('admin_note')->nullable()->after('status');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->dropColumn('admin_note');
+            if (Schema::hasColumn('reports', 'admin_note')) {
+                $table->dropColumn('admin_note');
+            }
         });
     }
 };

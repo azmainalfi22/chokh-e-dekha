@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ReportController as ApiReportController;
 use App\Http\Controllers\Api\CommentController as ApiCommentController;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 use App\Http\Controllers\Api\EndorsementController as ApiEndorsementController;
+use App\Http\Controllers\Api\SurveyController as ApiSurveyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,9 +38,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/', [ApiReportController::class, 'index']);
         Route::get('/{report}', [ApiReportController::class, 'show'])->whereNumber('report');
         Route::get('/map/data', [ApiReportController::class, 'mapData']);
+        Route::get('/heatmap', [ApiReportController::class, 'heatmap']);
         Route::get('/search', [ApiReportController::class, 'search']);
         Route::get('/categories', [ApiReportController::class, 'categories']);
         Route::get('/cities', [ApiReportController::class, 'cities']);
+    });
+
+    // === PUBLIC SURVEYS ===
+    Route::prefix('surveys')->group(function () {
+        Route::get('/', [ApiSurveyController::class, 'index']);
+        Route::get('/{survey}', [ApiSurveyController::class, 'show'])->whereNumber('survey');
     });
 });
 
@@ -119,6 +127,11 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
                     ->middleware('can:moderate,comment');
             });
         });
+    });
+
+    // === SURVEY RESPONSES (auth required for now) ===
+    Route::prefix('surveys')->group(function () {
+        Route::post('/{survey}/responses', [ApiSurveyController::class, 'submit'])->whereNumber('survey');
     });
 
     // === NOTIFICATIONS ===

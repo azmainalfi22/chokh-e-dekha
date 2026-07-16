@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Report;
+use App\Http\Requests\StoreReportRequest;
+use App\Http\Requests\UpdateReportRequest;
+use App\Services\TrendingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 
 class ReportController extends Controller
 {
@@ -73,8 +77,8 @@ class ReportController extends Controller
             ->with('user:id,name')
             ->withCount(['likes', 'comments']);
 
-        // Add user's like state for the heart (when supported)
-        if (Auth::check() && method_exists($reports->getQuery(), 'withExists')) {
+        // Add user's like state for the heart
+        if (Auth::check()) {
             $reports->withExists([
                 'likes as liked_by_user' => fn ($q) => $q->where('user_id', Auth::id()),
             ]);
@@ -142,52 +146,39 @@ class ReportController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreReportRequest $request)
 {
-    if (Auth::user()?->is_admin) {
-        abort(403, 'Admins cannot submit reports.');
-    }
+    // ✅ Authorization and validation handled by StoreReportRequest
+    $validated = $request->validated();
 
-    // Validate regular fields + accept either single "photo" or array "photos[]"
-    $validated = $request->validate([
-        'title'            => ['required', 'string', 'max:255'],
-        'description'      => ['required', 'string'],
-        'category'         => ['required', 'string'],
-        'city_corporation' => ['required', 'string'],
-        'location'         => ['required', 'string'],
-
-        // Google Maps fields (optional)
-        'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
-        'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
-        'place_id'          => ['nullable', 'string', 'max:128'],
-        'formatted_address' => ['nullable', 'string', 'max:255'],
-
-        // Media
-        'photo'     => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:4096'],
-        'photos'    => ['nullable', 'array'],
-        'photos.*'  => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp,gif,mp4,mov,avi', 'max:10240'],
-    ]);
-
-    // Save ONE path into reports.photo:
-    // 1) prefer single "photo" if present
-    // 2) otherwise pick the first image from "photos[]", or fall back to the first file
+    // 🎯 NEW: Handle multiple photo uploads properly
     $photoPath = null;
+    $additionalPhotos = [];
 
     if ($request->hasFile('photo')) {
-        $photoPath = $request->file('photo')->store('reports', 'public'); // => "reports/xxxx.png"
+        // Single photo upload (legacy support)
+        $photoPath = $request->file('photo')->store('reports', 'public');
     } elseif ($request->hasFile('photos')) {
-        $files  = array_values((array) $request->file('photos'));
-        $chosen = collect($files)->first(function ($f) {
-            return str_starts_with($f->getMimeType(), 'image/');
-        }) ?? $files[0];
-
-        if ($chosen) {
-            $photoPath = $chosen->store('reports', 'public'); // => "reports/xxxx.png"
+        // Multiple photos upload (new feature)
+        $files = array_values((array) $request->file('photos'));
+        
+        foreach ($files as $index => $file) {
+            if ($index === 0) {
+                // First photo becomes the main photo
+                $photoPath = $file->store('reports', 'public');
+            } else {
+                // Additional photos stored separately
+                $additionalPhotos[] = [
+                    'file_path' => $file->store('reports', 'public'),
+                    'file_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                    'file_name' => $file->getClientOriginalName(),
+                ];
+            }
         }
     }
 
     if ($photoPath) {
-        // IMPORTANT: store the STORAGE PATH, not just filename
         $validated['photo'] = $photoPath;
     }
 
@@ -195,24 +186,81 @@ class ReportController extends Controller
     $validated['status']  = 'pending';
     $validated = $this->normalizeGeo($validated);
 
-    $report = Report::create($validated);
+    // ✅ Wrap in try-catch for better error handling
+    try {
+        $report = Report::create($validated);
+        
+        // 🎯 NEW: Store additional photos in report_media table
+        foreach ($additionalPhotos as $photoData) {
+            $report->media()->create($photoData);
+        }
+        
+        // ✅ Logging handled by ReportObserver
 
-    // If the request came from your fetch() (AJAX), return JSON so the front-end can redirect
-    if ($request->ajax()) {
-        return response()->json([
-            'ok'       => true,
-            'redirect' => route('reports.show', $report),
+        // If the request came from your fetch() (AJAX), return JSON
+        if ($request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'success' => true,
+                'redirect' => route('reports.show', $report),
+                'message' => __('app.report_submitted'),
+                'report_id' => $report->id,
+                'photos_count' => count($additionalPhotos) + ($photoPath ? 1 : 0),
+            ]);
+        }
+
+        return redirect()
+            ->route('reports.show', $report)
+            ->with('success', __('app.report_submitted'));
+
+    } catch (\Exception $e) {
+        Log::error('Report creation failed', [
+            'user_id' => Auth::id(),
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
         ]);
-    }
 
-    return redirect()
-        ->route('reports.show', $report)
-        ->with('success', 'Report submitted successfully!');
+        if ($request->ajax()) {
+            return response()->json([
+                'ok' => false,
+                'success' => false,
+                'error' => __('app.error_occurred'),
+            ], 500);
+        }
+
+        return back()
+            ->withInput()
+            ->withErrors(['error' => __('app.error_occurred')]);
+    }
 }
 
     /* ----------------------------
      | My reports
      * ---------------------------- */
+    /**
+     * Track share action
+     */
+    public function trackShare(Report $report)
+    {
+        try {
+            \DB::table('reports')
+                ->where('id', $report->id)
+                ->increment('shares_count');
+                
+            return response()->json([
+                'success' => true,
+                'shares_count' => $report->fresh()->shares_count,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Share tracking failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to track share',
+            ], 500);
+        }
+    }
+
     public function myReports(Request $request)
     {
         $statuses = ['pending', 'in_progress', 'resolved', 'rejected'];
@@ -260,29 +308,36 @@ class ReportController extends Controller
     /* ----------------------------
      | Show (public) + Admin Show
      * ---------------------------- */
-    public function show(Report $report, Request $request)
+    public function show(Report $report, Request $request, TrendingService $trendingService)
     {
         abort_unless(auth()->check(), 403);
+
+        // Track view (increment atomically)
+        $trendingService->incrementViews($report);
 
         // Load relationships including engagement data
         $report->load([
             'user',
             'likes' => fn ($q): mixed => $q->with('user:id,name')->latest(),
+            'logs' => fn ($q) => $q->with('admin:id,name')->latest('created_at'),
         ])->loadCount(['likes', 'comments']);
 
-        // liked_by_user flag (when supported)
-        if (Auth::check() && method_exists($report, 'loadExists')) {
+        // liked_by_user flag
+        if (Auth::check()) {
             $report->loadExists([
                 'likes as liked_by_user' => fn ($q) => $q->where('user_id', Auth::id()),
             ]);
         }
+
+        // Get related reports
+        $relatedReports = $trendingService->getRelatedReports($report, 5);
 
         // Optionally load notes (admin side-table)
         if (Schema::hasTable('report_notes')) {
             $report->loadMissing('notes.admin');
         }
 
-        return view('reports.show', compact('report'));
+        return view('reports.show', compact('report', 'relatedReports'));
     }
 
     public function adminShow(Report $report)
@@ -297,20 +352,10 @@ class ReportController extends Controller
     /* ----------------------------
      | Admin update/toggle
      * ---------------------------- */
-    public function update(Request $request, Report $report)
+    public function update(UpdateReportRequest $request, Report $report)
     {
-        abort_unless(Auth::check() && Auth::user()->is_admin, 403);
-
-        $validated = $request->validate([
-            'status'     => ['required', 'in:pending,in_progress,resolved,rejected'],
-            'admin_note' => ['nullable', 'string', 'max:5000'],
-
-            // Allow admins to correct location if needed (optional)
-            'latitude'          => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude'         => ['nullable', 'numeric', 'between:-180,180'],
-            'place_id'          => ['nullable', 'string', 'max:128'],
-            'formatted_address' => ['nullable', 'string', 'max:255'],
-        ]);
+        // ✅ Authorization handled by UpdateReportRequest
+        $validated = $request->validated();
 
         $validated['status'] = strtolower(trim($validated['status']));
 
@@ -319,9 +364,21 @@ class ReportController extends Controller
             $validated = $this->normalizeGeo($validated);
         }
 
-        $report->update($validated);
+        try {
+            $report->update($validated);
+            // ✅ Status change logging handled by ReportObserver
 
-        return back()->with('success', 'Report updated successfully.');
+            return back()->with('success', __('app.updated'));
+
+        } catch (\Exception $e) {
+            Log::error('Report update failed', [
+                'report_id' => $report->id,
+                'error' => $e->getMessage(),
+                'admin_id' => Auth::id(),
+            ]);
+
+            return back()->withErrors(['error' => __('app.error_occurred')]);
+        }
     }
 
     public function toggleStatus(Report $report)

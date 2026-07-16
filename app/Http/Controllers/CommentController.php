@@ -7,6 +7,7 @@ use App\Models\ReportComment;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use App\Http\Requests\StoreReportCommentRequest;
+use App\Services\NotificationService;
 
 class CommentController extends Controller
 {
@@ -27,6 +28,13 @@ class CommentController extends Controller
             'user_id' => auth()->id(),
             'body'    => $request->validated()['body'],
         ])->load('user:id,name');
+
+        // Notify report author (fail-soft)
+        try {
+            app(NotificationService::class)->notifyReportComment($report, $comment);
+        } catch (\Throwable $e) {
+            // log silently in future if needed
+        }
 
         // render a single comment row
         $html  = view('partials.comments._item', ['comment' => $comment, 'report' => $report])->render();

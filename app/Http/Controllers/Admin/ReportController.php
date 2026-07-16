@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Notifications\ReportStatusNotification;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class ReportController extends Controller
 {
@@ -386,5 +387,110 @@ public function updateStatus(Request $request, Report $report)
         $note->delete();
 
         return back()->with('success', 'Note deleted.');
+    }
+
+    /**
+     * GET /admin/reports/map-data
+     * JSON endpoint for Google Maps integration
+     */
+    public function mapData(Request $request)
+    {
+        $query = Report::query()
+            ->select([
+                'id',
+                'title',
+                'description',
+                'category',
+                'status',
+                'priority',
+                'location',
+                'latitude',
+                'longitude',
+                'sla_due_at',
+                'created_at',
+                'status_updated_at',
+            ])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude');
+
+        // Optional filters
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        // Limit to recent reports for performance
+        $reports = $query->latest()->limit(500)->get();
+
+        return response()->json($reports);
+    }
+
+    /**
+     * GET /admin/command-center
+     * Government Command Center Dashboard
+     */
+    public function commandCenter()
+    {
+        $slaBreached = Report::whereIn('status', ['pending', 'in_progress'])
+            ->where('created_at', '<', now()->subDays(7))
+            ->latest()
+            ->take(10)
+            ->get(['id','title','status','city_corporation','category','created_at']);
+
+        $pendingQueue = Report::where('status', 'pending')
+            ->with('user:id,name')
+            ->latest()
+            ->take(12)
+            ->get(['id','user_id','title','category','city_corporation','created_at','latitude','longitude']);
+
+        $cityStats = Report::select('city_corporation')
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status='resolved' THEN 1 ELSE 0 END) as resolved")
+            ->selectRaw("SUM(CASE WHEN status='pending' THEN 1 ELSE 0 END) as pending")
+            ->selectRaw("SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) as in_progress")
+            ->whereNotNull('city_corporation')
+            ->groupBy('city_corporation')
+            ->orderByDesc('total')
+            ->take(8)
+            ->get();
+
+        $categoryStats = Report::select('category')
+            ->selectRaw('COUNT(*) as total')
+            ->whereNotNull('category')
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->take(8)
+            ->get();
+
+        $weeklyTrend = collect(range(6, 0))->map(fn($d) => [
+            'date'  => now()->subDays($d)->format('M d'),
+            'count' => Report::whereDate('created_at', now()->subDays($d))->count(),
+        ]);
+
+        $totals = [
+            'total'       => Report::count(),
+            'pending'     => Report::where('status','pending')->count(),
+            'in_progress' => Report::where('status','in_progress')->count(),
+            'resolved'    => Report::where('status','resolved')->count(),
+            'rejected'    => Report::where('status','rejected')->count(),
+            'sla_breached'=> $slaBreached->count(),
+        ];
+
+        $recentActivity = Report::with('user:id,name')
+            ->latest('updated_at')
+            ->take(8)
+            ->get(['id','user_id','title','status','city_corporation','updated_at']);
+
+        return view('admin.dashboard-govt', compact(
+            'slaBreached','pendingQueue','cityStats','categoryStats',
+            'weeklyTrend','totals','recentActivity'
+        ));
     }
 }

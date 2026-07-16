@@ -13,7 +13,7 @@ class ReportMapController extends Controller
         $q = Report::query()->withCoords();
 
         if ($req->filled('status')) $q->where('status', $req->string('status'));
-        if ($req->filled('category_id')) $q->where('category_id', $req->integer('category_id'));
+        if ($req->filled('category')) $q->where('category', $req->string('category'));
 
         if ($req->filled('nelat')) {
             $ne = ['lat'=>$req->float('nelat'), 'lng'=>$req->float('nelng')];

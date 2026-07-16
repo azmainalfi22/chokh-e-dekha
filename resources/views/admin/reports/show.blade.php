@@ -1,281 +1,396 @@
 @extends(auth()->user()->is_admin ? 'layouts.admin' : 'layouts.app')
-@section('title', 'Report Details')
+@section('title', 'Report #' . $report->id)
 
 @push('styles')
 <style>
-  /* ---- Page-specific polish (keeps your global tokens if present) ---- */
-  .cd-card{ background: var(--surface, rgba(255,255,255,.88)); backdrop-filter: blur(8px);
-            border: 1px solid var(--ring, #e2e8f0); border-radius: 1rem; box-shadow: var(--shadow-lg, 0 20px 40px -20px rgba(0,0,0,.25));}
-  .cd-chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.25rem .6rem; border-radius: 999px;
-            font-weight: 600; font-size: .75rem; line-height: 1; border:1px solid transparent; }
-  .cd-meta dt{ color: #6b7280 } /* slate-500/600 */
-  .cd-meta dd{ color: var(--text, #0f172a) }
-
-  /* Status colors (light & dark) */
-  .st-pending     { background:#fef3c7; color:#92400e; border-color:#fde68a; }    /* amber */
-  .st-in_progress { background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }    /* blue */
-  .st-resolved    { background:#dcfce7; color:#065f46; border-color:#bbf7d0; }    /* emerald */
-  .st-rejected    { background:#ffe4e6; color:#9f1239; border-color:#fecdd3; }    /* rose */
-
-  /* Timeline (visual only; no feature change) */
-  .step { position:relative; display:flex; align-items:center; gap:.5rem; font-size:.8rem; }
-  .step:before{ content:""; width:.75rem; height:.75rem; border-radius:999px; border:2px solid currentColor; }
-  .step.active:before{ background: currentColor; }
-  .step + .step { margin-top:.5rem; }
-  .step:after{ content:""; position:absolute; left:.31rem; top:1rem; width:2px; height: calc(100% - 1rem); background: currentColor; opacity:.2; }
-  .step:last-child:after{ display:none; }
-
-  /* Attachment grid */
-  .att-grid{ display:grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap:.75rem; }
-  @media (min-width:768px){ .att-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
-  .att-item{ display:flex; align-items:center; justify-content:space-between; gap:.75rem;
-             padding:.6rem .75rem; border-radius:.75rem; border:1px solid var(--ring,#e5e7eb);
-             background: rgba(250, 250, 250, .7); }
-  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; font-weight:600;
-        border-radius:.75rem; padding:.6rem .9rem; transition: box-shadow .2s, transform .2s, background .2s; }
-  .btn-ghost{ background: var(--surface, #fff); border:1px solid var(--ring, #e5e7eb); color:#0f172a; }
-  .btn-ghost:hover{ box-shadow: 0 10px 20px -12px rgba(0,0,0,.25); transform: translateY(-1px);}
-  .btn-primary{ color:white; background: linear-gradient(90deg, #d97706, #e11d48); } /* amber → rose */
-  .btn-primary:hover{ filter:brightness(0.98); box-shadow: 0 16px 30px -18px rgba(225,29,72,.6); transform: translateY(-1px); }
-
-  /* Dark mode adjustments (respect your global .dark) */
-  .dark .cd-card{ background: var(--surface, rgba(15,23,42,.75)); border-color: var(--ring, rgba(148,163,184,.25)); }
-  .dark .cd-meta dt{ color:#94a3b8 } .dark .cd-meta dd{ color:#e5e7eb }
-  .dark .att-item{ background: rgba(2,6,23,.35); border-color: rgba(148,163,184,.25); }
-  .dark .btn-ghost{ background: rgba(2,6,23,.4); border-color: rgba(148,163,184,.25); color:#e5e7eb; }
+  .cd-chip{ display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .65rem; border-radius:999px;
+            font-weight:600; font-size:.72rem; line-height:1; border:1px solid transparent; }
+  .st-pending     { background:#fef3c7; color:#92400e; border-color:#fde68a; }
+  .st-in_progress { background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }
+  .st-resolved    { background:#dcfce7; color:#065f46; border-color:#bbf7d0; }
+  .st-rejected    { background:#ffe4e6; color:#9f1239; border-color:#fecdd3; }
+  .dark .st-pending     { background:#78350f33; color:#fcd34d; border-color:#78350f66; }
+  .dark .st-in_progress { background:#1e3a5f33; color:#93c5fd; border-color:#1e40af66; }
+  .dark .st-resolved    { background:#065f4633; color:#6ee7b7; border-color:#05966966; }
+  .dark .st-rejected    { background:#9f123933; color:#fda4af; border-color:#9f123966; }
+  .progress-step{ display:flex; align-items:center; gap:.75rem; padding:.5rem 0; }
+  .progress-step .dot{ width:1.75rem; height:1.75rem; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .progress-step .line{ position:absolute; left:.875rem; top:2.25rem; width:2px; height:calc(100% - 1.75rem); }
 </style>
 @endpush
 
 @section('content')
-<div class="relative">
-  {{-- background accents --}}
-  <div class="pointer-events-none absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300 z-0"></div>
-  <div class="pointer-events-none absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300 z-0"></div>
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-  <div class="max-w-6xl mx-auto p-4 md:p-8 relative z-10">
-    {{-- flashes --}}
-    @if(session('success'))
-      <div role="alert" class="mb-4 rounded-xl bg-green-50 ring-1 ring-green-200 px-4 py-3 text-green-800 dark:bg-emerald-900/20 dark:text-emerald-100 dark:ring-emerald-800/40">
-        {{ session('success') }}
-      </div>
-    @endif
-    @if($errors->any())
-      <div role="alert" class="mb-4 rounded-xl bg-rose-50 ring-1 ring-rose-200 px-4 py-3 text-rose-800 dark:bg-rose-900/20 dark:text-rose-100 dark:ring-rose-800/40">
-        <ul class="list-disc space-y-1 pl-5">
-          @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
-        </ul>
-      </div>
-    @endif
+  {{-- Flash messages --}}
+  @if(session('success'))
+    <div class="mb-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      {{ session('success') }}
+    </div>
+  @endif
+  @if($errors->any())
+    <div class="mb-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 px-4 py-3 text-sm text-rose-800 dark:text-rose-200">
+      <ul class="list-disc space-y-1 pl-4">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+    </div>
+  @endif
 
-    @php
-      $status = $report->status ?? 'pending';
-      $map = [
-        'pending'     => 'st-pending',
-        'in_progress' => 'st-in_progress',
-        'resolved'    => 'st-resolved',
-        'rejected'    => 'st-rejected',
-      ];
-      $statusClass = $map[$status] ?? 'st-pending';
-    @endphp
+  @php
+    $status = $report->status ?? 'pending';
+    $statusMap = ['pending'=>'st-pending','in_progress'=>'st-in_progress','resolved'=>'st-resolved','rejected'=>'st-rejected'];
+    $statusClass = $statusMap[$status] ?? 'st-pending';
 
-    <div class="cd-card p-6 md:p-8">
-      {{-- Header --}}
-      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-        <div class="space-y-1">
-          <h1 class="text-2xl md:text-3xl font-extrabold text-amber-800 dark:text-amber-300">
-            {{ $report->title ?? ('Report #'.$report->id) }}
-          </h1>
-          <p class="text-sm text-gray-600 dark:text-slate-300">
-            Submitted by <span class="font-medium">{{ $report->user->name ?? 'Unknown' }}</span>
-            • {{ $report->created_at?->format('M d, Y h:i a') }}
-            @if($report->updated_at && $report->updated_at->ne($report->created_at))
-              <span class="text-gray-400 dark:text-slate-400"> • Updated {{ $report->updated_at->diffForHumans() }}</span>
-            @endif
-          </p>
-          <div class="flex items-center gap-2 pt-1">
-            <span class="cd-chip {{ $statusClass }}" title="Current status">
-              {{-- tiny indicator --}}
-              <svg width="10" height="10" viewBox="0 0 10 10" class="-ml-0.5"><circle cx="5" cy="5" r="5" fill="currentColor" /></svg>
-              {{ \Illuminate\Support\Str::headline($status) }}
-            </span>
+    $daysOld = (int) $report->created_at->diffInDays(now());
+    $slaDue  = $report->sla_due_at ?? $report->created_at->addDays(7);
+    $slaBreached = $slaDue->isPast() && !in_array($status, ['resolved','rejected']);
+    $daysUntilSla = (int) max(0, now()->diffInDays($slaDue, false));
+  @endphp
 
-            {{-- Reference / copy link --}}
-            <span class="cd-chip btn-ghost" title="Internal reference">#{{ $report->id }}</span>
-            <button type="button" id="copyLinkBtn" class="btn btn-ghost" title="Copy link">
-              {{-- link icon --}}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M13.5 6.75h3.75a2.25 2.25 0 012.25 2.25v6a2.25 2.25 0 01-2.25 2.25H13.5m-3 0H6.75A2.25 2.25 0 014.5 15V9a2.25 2.25 0 012.25-2.25H10.5m-3 6h9" />
-              </svg>
-              Copy link
-            </button>
-          </div>
-        </div>
-
-        {{-- Status quick visual (timeline) --}}
-        <div class="hidden md:block min-w-[220px]">
-          <div class="cd-card p-4">
-            <div class="text-xs font-semibold text-slate-500 mb-2 dark:text-slate-300">Progress</div>
-            <div class="step {{ in_array($status, ['pending','in_progress','resolved','rejected']) ? 'active text-amber-700 dark:text-amber-300' : '' }}">Pending</div>
-            <div class="step {{ in_array($status, ['in_progress','resolved']) ? 'active text-blue-700 dark:text-blue-300' : 'text-slate-400 dark:text-slate-500' }}">In progress</div>
-            <div class="step {{ $status==='resolved' ? 'active text-emerald-700 dark:text-emerald-300' : 'text-slate-400 dark:text-slate-500' }}">Resolved</div>
-          </div>
-        </div>
-      </div>
-
-      {{-- Body --}}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Left: details + attachment + notes --}}
-        <div class="lg:col-span-2 space-y-6">
-          {{-- Details --}}
-          <section class="cd-card p-6">
-            <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-3">Details</h2>
-            <dl class="cd-meta grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <div>
-                <dt>Location</dt>
-                <dd class="font-medium">{{ $report->location ?? '—' }}</dd>
-              </div>
-              <div>
-                <dt>Category</dt>
-                <dd class="font-medium">{{ $report->category ?? '—' }}</dd>
-              </div>
-              <div>
-                <dt>City Corporation</dt>
-                <dd class="font-medium">{{ $report->city_corporation ?? '—' }}</dd>
-              </div>
-              <div>
-                <dt>Current Status</dt>
-                <dd class="font-medium">{{ \Illuminate\Support\Str::headline($status) }}</dd>
-              </div>
-              <div class="sm:col-span-2">
-                <dt>Description</dt>
-                <dd class="mt-1 whitespace-pre-line text-slate-700 dark:text-slate-200">
-                  {{ $report->description ?? 'No description provided.' }}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          {{-- Attachments --}}
-          <section class="cd-card p-6">
-            <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-3">Attachment</h2>
-            @php
-              $files = $report->attachments ?? [];
-              $files = is_array($files) ? $files : (empty($files) ? [] : [$files]);
-            @endphp
-            @if(!empty($files))
-              <div class="att-grid">
-                @foreach($files as $file)
-                  <div class="att-item">
-                    <div class="min-w-0">
-                      <div class="text-sm font-medium truncate">{{ basename($file) }}</div>
-                      <div class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ $file }}</div>
-                    </div>
-                    <a href="{{ \Illuminate\Support\Facades\Storage::url($file) }}"
-                       target="_blank" class="btn btn-ghost">View</a>
-                  </div>
-                @endforeach
-              </div>
-            @elseif(!empty($report->photo_url))
-              <img src="{{ $report->photo_url }}" alt="Attachment"
-                   class="w-full max-h-[26rem] object-cover rounded-xl border border-[var(--ring,#e5e7eb)]" loading="lazy">
-            @elseif(!empty($report->photo))
-              <img src="{{ asset('storage/'.$report->photo) }}" alt="Attachment"
-                   class="w-full max-h-[26rem] object-cover rounded-xl border border-[var(--ring,#e5e7eb)]" loading="lazy">
-            @else
-              <div class="w-full h-44 grid place-items-center rounded-xl border border-[var(--ring,#e5e7eb)] text-slate-500 dark:text-slate-400">
-                No attachment
-              </div>
-            @endif
-          </section>
-
-          {{-- Admin Notes (public) --}}
-          <section id="notes" class="cd-card p-6">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-amber-800 dark:text-amber-300">Admin Notes</h2>
-              <span class="text-xs text-slate-500 dark:text-slate-400">(visible to everyone)</span>
-            </div>
-
-            @if(auth()->user()->is_admin && Route::has('admin.reports.notes.store'))
-              <form method="POST" action="{{ route('admin.reports.notes.store', $report) }}" class="space-y-3 mb-5">
-                @csrf
-                <label class="sr-only" for="noteBody">Write an update visible to everyone</label>
-                <textarea id="noteBody" name="body" rows="4"
-                          class="w-full rounded-xl border border-[var(--ring,#e5e7eb)] px-3 py-2 focus:ring-2 focus:ring-amber-300 dark:bg-transparent dark:text-slate-100"
-                          placeholder="Write an update/response visible to everyone..." required></textarea>
-                <div class="flex justify-end">
-                  <button class="btn btn-primary">Publish Note</button>
-                </div>
-              </form>
-            @endif
-
-            <div class="space-y-3">
-              @forelse($report->notes as $note)
-                <article class="rounded-xl border border-[var(--ring,#e5e7eb)] bg-amber-50/60 dark:bg-amber-900/10 p-4">
-                  <div class="text-sm text-slate-800 dark:text-slate-100">{{ $note->body }}</div>
-                  <div class="mt-2 text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between">
-                    <span>— {{ $note->admin?->name ?? 'Admin' }} • {{ $note->created_at->diffForHumans() }}</span>
-                    @if(auth()->user()->is_admin && Route::has('admin.reports.notes.destroy'))
-                      <form method="POST" action="{{ route('admin.reports.notes.destroy', [$report, $note]) }}"
-                            onsubmit="return confirm('Delete this note?');">
-                        @csrf
-                        @method('DELETE')
-                        <button class="text-rose-700 dark:text-rose-300 hover:underline text-xs">Delete</button>
-                      </form>
-                    @endif
-                  </div>
-                </article>
-              @empty
-                <p class="text-sm text-slate-500 dark:text-slate-300">No notes yet.</p>
-              @endforelse
-            </div>
-          </section>
-        </div>
-
-        {{-- Right: actions --}}
-        <aside class="space-y-6">
-          @if(auth()->user()->is_admin && Route::has('admin.reports.status'))
-            <section id="status" class="cd-card p-6">
-              <h3 class="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-3">Update Status</h3>
-              <form method="POST" action="{{ route('admin.reports.status', $report) }}" class="space-y-3">
-                @csrf
-                @method('PUT')
-                <label class="sr-only" for="statusSel">Status</label>
-                <select id="statusSel" name="status"
-                        class="w-full rounded-xl border border-[var(--ring,#e5e7eb)] px-3 py-2 focus:ring-2 focus:ring-amber-300 dark:bg-transparent dark:text-slate-100">
-                  <option value="pending"     @selected(($report->status ?? '') === 'pending')>Pending</option>
-                  <option value="in_progress" @selected(($report->status ?? '') === 'in_progress')>In progress</option>
-                  <option value="resolved"    @selected(($report->status ?? '') === 'resolved')>Resolved</option>
-                </select>
-                <button class="w-full btn btn-primary">Update Status</button>
-              </form>
-              <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Tip: choose “In progress” when a team is assigned.</p>
-            </section>
-          @endif
-
-          <a href="{{ route('admin.reports.index') }}" class="block text-center btn btn-ghost">
-            ← Back
-          </a>
-        </aside>
+  {{-- ── Page Header ──────────────────────────────────────────────────── --}}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <div class="flex items-center gap-2">
+      <a href="{{ route('admin.reports.index') }}"
+         class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </a>
+      <div>
+        <div class="text-xs text-slate-400 dark:text-slate-500 font-medium">Reports / #{{ $report->id }}</div>
+        <h1 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">{{ $report->title }}</h1>
       </div>
     </div>
+    <div class="flex items-center gap-2">
+      <span class="cd-chip {{ $statusClass }}">
+        <svg width="7" height="7" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>
+        {{ \Illuminate\Support\Str::headline($status) }}
+      </span>
+      @if($slaBreached)
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          SLA Breached
+        </span>
+      @endif
+      <button type="button" id="copyLinkBtn"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        Copy Link
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {{-- ── LEFT COLUMN ───────────────────────────────────────────────── --}}
+    <div class="lg:col-span-2 space-y-5">
+
+      {{-- Report info card --}}
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+        <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Report Details</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm mb-5">
+          <div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Reporter</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $report->user->name ?? 'Anonymous' }}</div>
+            @if($report->user?->email)
+              <div class="text-xs text-slate-400">{{ $report->user->email }}</div>
+            @endif
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Category</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100">{{ ucfirst($report->category ?? '—') }}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">City Corporation</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $report->city_corporation ?? '—' }}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Location</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100 text-xs leading-snug">{{ $report->location ?? '—' }}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Submitted</div>
+            <div class="font-semibold text-slate-800 dark:text-slate-100">{{ $report->created_at->format('M d, Y') }}</div>
+            <div class="text-xs text-slate-400">{{ $report->created_at->diffForHumans() }}</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Age</div>
+            <div class="font-semibold {{ $daysOld >= 7 ? 'text-rose-600 dark:text-rose-400' : ($daysOld >= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-slate-100') }}">
+              {{ $daysOld }} {{ $daysOld === 1 ? 'day' : 'days' }} old
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-100 dark:border-slate-700 pt-4">
+          <div class="text-xs text-slate-400 dark:text-slate-500 mb-1.5">Description</div>
+          <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">{{ $report->description ?? 'No description.' }}</p>
+        </div>
+      </div>
+
+      {{-- Photo / Attachment --}}
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2">
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Evidence / Attachments</h2>
+        </div>
+        <div class="p-4">
+          @php
+            $files = $report->attachments ?? [];
+            $files = is_array($files) ? $files : (empty($files) ? [] : [$files]);
+          @endphp
+          @if(!empty($files))
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              @foreach($files as $file)
+                <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/40">
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{{ basename($file) }}</div>
+                    <div class="text-xs text-slate-400 truncate">{{ $file }}</div>
+                  </div>
+                  <a href="{{ \Illuminate\Support\Facades\Storage::url($file) }}" target="_blank"
+                     class="flex-shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 transition-colors">View</a>
+                </div>
+              @endforeach
+            </div>
+          @elseif(!empty($report->photo))
+            <img src="{{ asset('storage/'.$report->photo) }}" alt="Report photo"
+                 class="w-full max-h-96 object-cover rounded-xl" loading="lazy">
+          @else
+            <div class="flex items-center justify-center h-32 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400 text-sm">
+              No attachments submitted
+            </div>
+          @endif
+        </div>
+      </div>
+
+      {{-- Admin Notes --}}
+      <div id="notes" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Admin Notes
+          </h2>
+          <span class="text-xs text-slate-400 dark:text-slate-500">Visible to the public</span>
+        </div>
+
+        @if(auth()->user()->is_admin && Route::has('admin.reports.notes.store'))
+          <form method="POST" action="{{ route('admin.reports.notes.store', $report) }}" class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/30">
+            @csrf
+            <textarea name="body" rows="3"
+                      class="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none transition"
+                      placeholder="Write an official update visible to the public…" required></textarea>
+            <div class="flex justify-end mt-2">
+              <button class="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                Publish Note
+              </button>
+            </div>
+          </form>
+        @endif
+
+        <div class="divide-y divide-slate-100 dark:divide-slate-700">
+          @forelse($report->notes as $note)
+            <div class="px-6 py-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <div class="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                      {{ strtoupper(substr($note->admin?->name ?? 'A', 0, 1)) }}
+                    </div>
+                    <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">{{ $note->admin?->name ?? 'Admin' }}</span>
+                    <span class="text-xs text-slate-400">{{ $note->created_at->diffForHumans() }}</span>
+                  </div>
+                  <p class="text-sm text-slate-700 dark:text-slate-300 pl-8">{{ $note->body }}</p>
+                </div>
+                @if(auth()->user()->is_admin && Route::has('admin.reports.notes.destroy'))
+                  <form method="POST" action="{{ route('admin.reports.notes.destroy', [$report, $note]) }}"
+                        onsubmit="return confirm('Delete this note?');">
+                    @csrf @method('DELETE')
+                    <button class="text-xs text-rose-500 dark:text-rose-400 hover:text-rose-700 transition-colors">Delete</button>
+                  </form>
+                @endif
+              </div>
+            </div>
+          @empty
+            <div class="px-6 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
+              No notes yet. Add one above to post an official update.
+            </div>
+          @endforelse
+        </div>
+      </div>
+    </div>
+
+    {{-- ── RIGHT COLUMN ─────────────────────────────────────────────── --}}
+    <aside class="space-y-4">
+
+      {{-- Status Progress --}}
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+        <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Case Progress</h3>
+        <div class="space-y-0">
+          @php
+            $steps = [
+              ['key'=>'pending',     'label'=>'Filed',      'sub'=>'Report submitted by citizen', 'color'=>'text-amber-600 dark:text-amber-400',  'bg'=>'bg-amber-100 dark:bg-amber-900/40'],
+              ['key'=>'in_progress', 'label'=>'In Progress','sub'=>'Assigned & being addressed',  'color'=>'text-indigo-600 dark:text-indigo-400', 'bg'=>'bg-indigo-100 dark:bg-indigo-900/40'],
+              ['key'=>'resolved',    'label'=>'Resolved',   'sub'=>'Issue fixed & verified',      'color'=>'text-emerald-600 dark:text-emerald-400','bg'=>'bg-emerald-100 dark:bg-emerald-900/40'],
+            ];
+            $statusOrder = ['pending'=>0,'in_progress'=>1,'resolved'=>2,'rejected'=>-1];
+            $currentOrder = $statusOrder[$status] ?? 0;
+          @endphp
+          @if($status === 'rejected')
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800">
+              <div class="w-7 h-7 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center flex-shrink-0">
+                <svg class="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-rose-700 dark:text-rose-300">Rejected</div>
+                <div class="text-xs text-rose-500">Report was not approved</div>
+              </div>
+            </div>
+          @else
+            @foreach($steps as $i => $step)
+              @php
+                $stepOrder = $statusOrder[$step['key']] ?? 0;
+                $done = $currentOrder >= $stepOrder;
+                $current = $status === $step['key'];
+              @endphp
+              <div class="relative {{ !$loop->last ? 'pb-4' : '' }}">
+                @if(!$loop->last)
+                  <div class="absolute left-3.5 top-7 bottom-0 w-0.5 {{ $done ? 'bg-emerald-200 dark:bg-emerald-800' : 'bg-slate-200 dark:bg-slate-700' }}"></div>
+                @endif
+                <div class="flex items-start gap-3">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 {{ $done ? $step['bg'] : 'bg-slate-100 dark:bg-slate-700' }}">
+                    @if($done && !$current)
+                      <svg class="w-3.5 h-3.5 {{ $step['color'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                      </svg>
+                    @elseif($current)
+                      <div class="w-2.5 h-2.5 rounded-full {{ str_replace(['text-','dark:text-'], ['bg-','dark:bg-'], explode(' ', $step['color'])[0]) }}"></div>
+                    @else
+                      <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+                    @endif
+                  </div>
+                  <div class="pt-0.5">
+                    <div class="text-sm font-semibold {{ $done ? $step['color'] : 'text-slate-400 dark:text-slate-500' }}">{{ $step['label'] }}</div>
+                    <div class="text-xs text-slate-400 dark:text-slate-500">{{ $step['sub'] }}</div>
+                  </div>
+                </div>
+              </div>
+            @endforeach
+          @endif
+        </div>
+      </div>
+
+      {{-- SLA Panel --}}
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+        <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">SLA / Timeline</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 dark:text-slate-400">Submitted</span>
+            <span class="font-medium text-slate-800 dark:text-slate-100">{{ $report->created_at->format('M d, Y') }}</span>
+          </div>
+          @if($report->status_updated_at)
+            <div class="flex items-center justify-between">
+              <span class="text-slate-500 dark:text-slate-400">Status Changed</span>
+              <span class="font-medium text-slate-800 dark:text-slate-100">{{ $report->status_updated_at->format('M d, Y') }}</span>
+            </div>
+          @endif
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 dark:text-slate-400">SLA Target</span>
+            <span class="font-medium {{ $slaBreached ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-100' }}">
+              {{ $slaDue->format('M d, Y') }}
+            </span>
+          </div>
+          @if(!in_array($status, ['resolved','rejected']))
+            <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+              @if($slaBreached)
+                <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-semibold">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  Overdue by {{ abs($daysUntilSla) }} {{ abs($daysUntilSla) === 1 ? 'day' : 'days' }}
+                </div>
+              @else
+                <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  {{ $daysUntilSla }} {{ $daysUntilSla === 1 ? 'day' : 'days' }} remaining
+                </div>
+              @endif
+            </div>
+          @endif
+        </div>
+      </div>
+
+      {{-- Update Status --}}
+      @if(auth()->user()->is_admin && Route::has('admin.reports.status'))
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+          <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Update Status</h3>
+          <form method="POST" action="{{ route('admin.reports.status', $report) }}" class="space-y-3">
+            @csrf @method('PUT')
+            <select name="status"
+                    class="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+              <option value="pending"     @selected($status === 'pending')>Pending</option>
+              <option value="in_progress" @selected($status === 'in_progress')>In Progress</option>
+              <option value="resolved"    @selected($status === 'resolved')>Resolved</option>
+              <option value="rejected"    @selected($status === 'rejected')>Rejected</option>
+            </select>
+            <button class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+              Update Status
+            </button>
+          </form>
+          <p class="mt-2 text-xs text-slate-400 dark:text-slate-500">Selecting "Rejected" will delete this report.</p>
+        </div>
+      @endif
+
+      {{-- Assignment --}}
+      @if(auth()->user()->is_admin)
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+          <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">Assignment</h3>
+          @if($report->assigned_to)
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
+                {{ strtoupper(substr($report->assignedTo?->name ?? 'A', 0, 1)) }}
+              </div>
+              <div>
+                <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $report->assignedTo?->name ?? 'Assigned' }}</div>
+                @if($report->assigned_at)
+                  <div class="text-xs text-slate-400">Assigned {{ $report->assigned_at->diffForHumans() }}</div>
+                @endif
+              </div>
+            </div>
+          @else
+            <p class="text-sm text-slate-400 dark:text-slate-500 mb-3">Unassigned</p>
+          @endif
+          @if(Route::has('admin.reports.assign'))
+            <form method="POST" action="{{ route('admin.reports.assign', $report) }}">
+              @csrf
+              <button class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                Assign to Me
+              </button>
+            </form>
+          @endif
+        </div>
+      @endif
+
+    </aside>
   </div>
 </div>
 
 @push('scripts')
 <script>
-  // Copy current page URL
-  (function(){
-    const btn = document.getElementById('copyLinkBtn');
-    if(!btn) return;
-    btn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        btn.textContent = 'Copied!';
-        setTimeout(()=>{ btn.textContent = 'Copy link'; }, 1200);
-      } catch {}
-    });
-  })();
+(function(){
+  const btn = document.getElementById('copyLinkBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      const orig = btn.innerHTML;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.innerHTML = orig; }, 1500);
+    } catch {}
+  });
+})();
 </script>
 @endpush
 @endsection

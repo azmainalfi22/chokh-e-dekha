@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class SecurityHeaders
+{
+    /**
+     * Handle an incoming request and add security headers.
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $response = $next($request);
+
+        // Security Headers for Government Compliance
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('X-XSS-Protection', '1; mode=block');
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        
+        // Content Security Policy (Relaxed for development, tighten in production)
+        $csp = implode('; ', [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://maps.googleapis.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "img-src 'self' data: https: blob:",
+            "font-src 'self' https://fonts.gstatic.com data:",
+            "connect-src 'self' https://maps.googleapis.com",
+            "frame-src 'self' https://www.google.com",
+        ]);
+        $response->headers->set('Content-Security-Policy', $csp);
+
+        // Permissions Policy
+        $response->headers->set('Permissions-Policy', 'geolocation=(self), microphone=(), camera=()');
+
+        // HSTS for HTTPS (only in production)
+        if (app()->environment('production')) {
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+        }
+
+        return $response;
+    }
+}
+

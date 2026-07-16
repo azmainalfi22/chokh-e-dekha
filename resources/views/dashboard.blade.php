@@ -1,319 +1,148 @@
-@extends(auth()->user()->is_admin ? 'layouts.admin' : 'layouts.app')
-
+@extends('layouts.app')
 @section('title', 'Dashboard')
 
-@push('styles')
-<style>
-  /* Page-specific styles only (theme tokens come from partials._theme via the layout) */
-
-  /* Soft background accents */
-  .blob{ position:absolute; border-radius:9999px; filter:blur(36px); opacity:.2; pointer-events:none; }
-
-  /* Glassy card */
-  .cd-card{
-    position:relative; background: var(--surface); color: var(--text);
-    border:1px solid var(--ring); border-radius: var(--radius-2xl); padding: var(--space-6);
-    backdrop-filter: blur(10px); box-shadow: var(--shadow-lg);
-    transition: transform var(--duration-fast) var(--ease-in-out),
-                box-shadow var(--duration-fast) var(--ease-in-out),
-                border-color var(--duration-fast) var(--ease-in-out);
-  }
-  .cd-card::before{
-    content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit;
-    background:
-      radial-gradient(1200px 400px at -10% -10%, rgba(251,191,36,.12), transparent 40%),
-      radial-gradient(1000px 300px at 110% 110%, rgba(244,63,94,.10), transparent 45%);
-  }
-  .cd-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-xl); border-color: var(--accent); }
-
-  /* Chips / small buttons */
-  .cd-chip{
-    display:inline-flex; align-items:center; gap:.5rem; font-weight:600;
-    border-radius: var(--radius-xl); padding:.4rem .75rem; line-height:1; border:1px solid var(--ring);
-    background: var(--surface); color: var(--text);
-    box-shadow: var(--shadow-sm);
-    transition: transform var(--duration-fast) var(--ease-in-out),
-                box-shadow var(--duration-normal) var(--ease-in-out),
-                border-color var(--duration-normal) var(--ease-in-out);
-  }
-  .cd-chip:hover{ transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--accent); }
-
-  /* Status pills (token-based) */
-  .status-pill{
-    display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .6rem;
-    border-radius: var(--radius-full); font-size: var(--text-xs); font-weight:700;
-    border:1px solid transparent; line-height:1; white-space:nowrap; box-shadow: var(--shadow-sm);
-  }
-  .status-pending     { background: var(--status-pending-bg);     color: var(--status-pending-text);     border-color: var(--status-pending-border); }
-  .status-in_progress { background: var(--status-in-progress-bg); color: var(--status-in-progress-text); border-color: var(--status-in-progress-border); }
-  .status-resolved    { background: var(--status-resolved-bg);    color: var(--status-resolved-text);    border-color: var(--status-resolved-border); }
-  .status-rejected    { background: var(--status-rejected-bg);    color: var(--status-rejected-text);    border-color: var(--status-rejected-border); }
-
-  /* Counters (stat tiles) */
-  .stat-tile{
-    color:#fff; padding: var(--space-6); border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-xl); text-align:center;
-  }
-  .stat-value{ font-size: var(--text-4xl); font-weight: 800; }
-  .stat-label{ font-size: var(--text-xs); margin-top:.35rem; letter-spacing:.06em; text-transform:uppercase; opacity:.9; }
-
-  /* Table */
-  table th, table td { color: var(--text); }
-  thead th{
-    font-size: var(--text-xs); text-transform: uppercase; letter-spacing:.06em;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--ring);
-    padding: .5rem 1rem;
-  }
-  tbody td{ padding:.5rem 1rem; border-bottom:1px solid var(--ring); }
-
-  /* Footer text tone */
-  .muted{ color: var(--text-secondary); }
-</style>
-@endpush
-
 @section('content')
-<div class="relative">
-  {{-- Background blobs (behind everything) --}}
-  <div class="blob pointer-events-none absolute -top-20 -right-24 h-80 w-80" style="background:linear-gradient(135deg,#fbbf24,#fb7185)"></div>
-  <div class="blob pointer-events-none absolute -bottom-24 -left-24 h-96 w-96" style="background:linear-gradient(135deg,#fb923c,#f472b6)"></div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-  {{-- Flash error --}}
-  @if (session('error'))
-    <div class="mb-4 rounded-xl px-4 py-3"
-         style="background:var(--error-50); color:var(--error-700); border:1px solid var(--error-100); box-shadow:var(--shadow-sm);">
-      {{ session('error') }}
-    </div>
-  @endif
-
-  {{-- Welcome / quick actions --}}
-  <section class="mb-6">
-    <div class="cd-card rounded-2xl ring-1 ring-amber-900/10 shadow p-6">
-      <h1 class="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text"
-          style="background-image:linear-gradient(90deg,#fbbf24,#ea580c,#f43f5e)">
-        👋 Welcome, {{ auth()->user()->name }}!
+  {{-- ── Welcome header ──────────────────────────────────────────────── --}}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">
+        Good {{ now()->hour < 12 ? 'morning' : (now()->hour < 18 ? 'afternoon' : 'evening') }},
+        <span class="text-emerald-600 dark:text-emerald-400">{{ auth()->user()->name }}</span>
       </h1>
-      <p class="text-sm text-secondary mt-1">This is your command center for civic impact.</p>
-
-      <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        @php
-          $actions = [
-            [
-              'route' => 'report.create',
-              'icon'  => '<path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z"/>',
-              'bg'    => 'background-image:linear-gradient(135deg,#10b981,#059669);',
-              'title' => 'Submit Report',
-              'desc'  => 'Let the city know'
-            ],
-            [
-              'route' => 'reports.my',
-              'icon'  => '<path d="M4 6h16v2H4zm0 4h10v2H4zm0 4h16v2H4z"/>',
-              'bg'    => 'background-image:linear-gradient(135deg,#6366f1,#7c3aed);',
-              'title' => 'My Reports',
-              'desc'  => 'Track your submissions'
-            ],
-            [
-              'route' => 'profile.edit',
-              'icon'  => '<path d="M12 12a5 5 0 100-10 5 5 0 000 10zm7 2H5a2 2 0 00-2 2v5h18v-5a2 2 0 00-2-2z"/>',
-              'bg'    => 'background-image:linear-gradient(135deg,#f59e0b,#f43f5e);',
-              'title' => 'Edit Profile',
-              'desc'  => 'Manage your identity'
-            ],
-          ];
-        @endphp
-
-        @foreach($actions as $a)
-          <a href="{{ route($a['route']) }}"
-             class="cd-card group rounded-2xl ring-1 ring-amber-900/10 shadow hover:shadow-lg transition p-5 flex flex-col items-center text-center">
-            <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl text-white shadow mb-3"
-                 style="{{ $a['bg'] }}">
-              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">{!! $a['icon'] !!}</svg>
-            </div>
-            <div class="font-semibold">{{ $a['title'] }}</div>
-            <div class="text-xs text-secondary">{{ $a['desc'] }}</div>
-          </a>
-        @endforeach
-      </div>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Here's a summary of your reports and activity.</p>
     </div>
-  </section>
+    <a href="{{ route('reports.create') }}"
+       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+              bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition self-start sm:self-auto">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      New Report
+    </a>
+  </div>
 
-  {{-- Stats --}}
-  <section class="mb-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  {{-- ── Stat cards ───────────────────────────────────────────────────── --}}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    @php
+      $cards = [
+        ['label'=>'Total','value'=>$stats['total'],'sub'=>'All submissions','icon'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z','ibg'=>'bg-blue-50 dark:bg-blue-900/30','ic'=>'text-blue-600 dark:text-blue-400','val'=>'text-blue-700 dark:text-blue-300'],
+        ['label'=>'Pending','value'=>$stats['pending'],'sub'=>'Awaiting review','icon'=>'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z','ibg'=>'bg-amber-50 dark:bg-amber-900/30','ic'=>'text-amber-600 dark:text-amber-400','val'=>'text-amber-700 dark:text-amber-300'],
+        ['label'=>'In Progress','value'=>$stats['in_progress'],'sub'=>'Being addressed','icon'=>'M13 10V3L4 14h7v7l9-11h-7z','ibg'=>'bg-indigo-50 dark:bg-indigo-900/30','ic'=>'text-indigo-600 dark:text-indigo-400','val'=>'text-indigo-700 dark:text-indigo-300'],
+        ['label'=>'Resolved','value'=>$stats['resolved'],'sub'=>'Successfully closed','icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z','ibg'=>'bg-emerald-50 dark:bg-emerald-900/30','ic'=>'text-emerald-600 dark:text-emerald-400','val'=>'text-emerald-700 dark:text-emerald-300'],
+      ];
+    @endphp
+    @foreach($cards as $c)
+      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="w-9 h-9 rounded-lg {{ $c['ibg'] }} flex items-center justify-center">
+            <svg class="w-5 h-5 {{ $c['ic'] }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="{{ $c['icon'] }}"/>
+            </svg>
+          </div>
+        </div>
+        <div class="text-2xl font-black {{ $c['val'] }}">{{ $c['value'] }}</div>
+        <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-0.5">{{ $c['label'] }}</div>
+        <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ $c['sub'] }}</div>
+      </div>
+    @endforeach
+  </div>
+
+  {{-- ── Quick actions ────────────────────────────────────────────────── --}}
+  <div class="mb-8">
+    <h2 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-4">Quick Actions</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       @php
-        $statBoxes = [
-          ['val' => $stats['total']    ?? 0, 'bg' => 'linear-gradient(135deg,#f59e0b,#f43f5e)', 'label' => 'Total Reports'],
-          ['val' => $stats['pending']  ?? 0, 'bg' => 'linear-gradient(135deg,#fbbf24,#ea580c)', 'label' => 'Pending'],
-          ['val' => $stats['resolved'] ?? 0, 'bg' => 'linear-gradient(135deg,#10b981,#047857)', 'label' => 'Resolved'],
+        $actions = [
+          ['href'=>route('reports.create'),'label'=>'New Report','sub'=>'File an issue','icon'=>'M12 4v16m8-8H4','c'=>'text-emerald-600','bg'=>'bg-emerald-50 dark:bg-emerald-900/20'],
+          ['href'=>route('reports.index'),'label'=>'All Reports','sub'=>'Browse public feed','icon'=>'M4 6h16M4 10h16M4 14h16M4 18h16','c'=>'text-blue-600','bg'=>'bg-blue-50 dark:bg-blue-900/20'],
+          ['href'=>Route::has('reports.my') ? route('reports.my') : route('reports.index'),'label'=>'My Reports','sub'=>'Track your reports','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2','c'=>'text-violet-600','bg'=>'bg-violet-50 dark:bg-violet-900/20'],
+          ['href'=>route('legal.rti.form'),'label'=>'RTI Request','sub'=>'Right to Information','icon'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z','c'=>'text-rose-600','bg'=>'bg-rose-50 dark:bg-rose-900/20'],
+          ['href'=>route('bookmarks.index'),'label'=>'Saved','sub'=>'Bookmarked reports','icon'=>'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z','c'=>'text-amber-600','bg'=>'bg-amber-50 dark:bg-amber-900/20'],
+          ['href'=>route('profile.edit'),'label'=>'Profile','sub'=>'Account settings','icon'=>'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z','c'=>'text-slate-600','bg'=>'bg-slate-100 dark:bg-slate-700'],
         ];
       @endphp
-
-      @foreach($statBoxes as $sb)
-        <div class="stat-tile" style="background:{{ $sb['bg'] }}">
-          <div class="stat-value counter" data-target="{{ $sb['val'] }}">0</div>
-          <div class="stat-label">{{ $sb['label'] }}</div>
-        </div>
+      @foreach($actions as $a)
+        <a href="{{ $a['href'] }}"
+           class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex items-center gap-3 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition group">
+          <div class="w-10 h-10 rounded-lg {{ $a['bg'] }} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <svg class="w-5 h-5 {{ $a['c'] }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="{{ $a['icon'] }}"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ $a['label'] }}</div>
+            <div class="text-xs text-slate-400 dark:text-slate-500">{{ $a['sub'] }}</div>
+          </div>
+        </a>
       @endforeach
     </div>
-  </section>
+  </div>
 
-  {{-- Recent reports --}}
-  <section class="cd-card rounded-2xl ring-1 ring-amber-900/10 shadow p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold" style="color:var(--text);">Recent Reports</h2>
-      <a href="{{ route('reports.my') }}" class="text-sm text-accent hover:underline">View all</a>
+  {{-- ── Recent reports ───────────────────────────────────────────────── --}}
+  <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+      <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">My Recent Reports</h2>
+      <a href="{{ route('reports.index') }}" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">
+        View all →
+      </a>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr>
-            <th class="text-left">Title</th>
-            <th class="text-left">City</th>
-            <th class="text-left">Status</th>
-            <th class="text-left">Date</th>
-            <th class="text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse($recentReports as $report)
-            @php
-              $status = $report->status ?? 'pending';
-              $statusClass = match($status){
-                'resolved'     => 'status-resolved',
-                'in_progress'  => 'status-in_progress',
-                'rejected'     => 'status-rejected',
-                default        => 'status-pending'
-              };
-            @endphp
-            <tr class="hover:bg-[rgba(245,158,11,0.05)] transition-colors">
-              <td class="font-medium">{{ $report->title }}</td>
-              <td>{{ $report->city_corporation }}</td>
-              <td>
-                <span class="status-pill {{ $statusClass }}">
-                  {{ \Illuminate\Support\Str::headline($status) }}
-                </span>
-              </td>
-              <td>{{ optional($report->created_at)->format('M d, Y h:i a') }}</td>
-              <td class="text-right">
-                <a href="{{ route('reports.show', $report) }}"
-                   class="cd-chip">
-                  View
-                </a>
-              </td>
-            </tr>
-          @empty
-            <tr>
-              <td colspan="5" class="px-4 py-6 text-center text-secondary">No reports yet. Create your first one!</td>
-            </tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-  </section>
+    @php
+      $badge = fn($s) => match($s) {
+        'resolved'    => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+        'in_progress' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+        'pending'     => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+        'rejected'    => 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+        default       => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+      };
+    @endphp
 
-  <footer class="text-center text-sm muted mt-8">
-    © {{ now()->year }} {{ config('app.name', 'Chokh-e-Dekha') }}. Made with ❤️ for civic good.
-  </footer>
+    <div class="divide-y divide-slate-100 dark:divide-slate-700">
+      @forelse($recentReports as $report)
+        <a href="{{ route('reports.show', $report) }}"
+           class="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+          <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ $report->title }}</div>
+            <div class="flex items-center gap-2 mt-0.5">
+              @if($report->city_corporation)
+                <span class="text-xs text-slate-400">{{ $report->city_corporation }}</span>
+                <span class="text-slate-300 dark:text-slate-600">·</span>
+              @endif
+              <span class="text-xs text-slate-400">{{ $report->created_at->diffForHumans() }}</span>
+            </div>
+          </div>
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium {{ $badge($report->status) }} flex-shrink-0">
+            {{ \Illuminate\Support\Str::headline($report->status) }}
+          </span>
+        </a>
+      @empty
+        <div class="px-6 py-16 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
+            <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">No reports yet</h3>
+          <p class="text-xs text-slate-400 mb-5">Start making a difference in your community.</p>
+          <a href="{{ route('reports.create') }}"
+             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+                    bg-emerald-600 text-white hover:bg-emerald-700 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Submit Your First Report
+          </a>
+        </div>
+      @endforelse
+    </div>
+  </div>
+
 </div>
 @endsection
-
-@push('scripts')
-<script>
-// Counters animation
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.counter').forEach(counter => {
-    const target = Number(counter.getAttribute('data-target') || 0);
-    let current = 0;
-    const step = Math.max(1, Math.ceil(target / 80));
-    const tick = () => {
-      current = Math.min(target, current + step);
-      counter.textContent = current.toLocaleString();
-      if (current < target) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  });
-});
-
-// Notification system handlers
-document.addEventListener('DOMContentLoaded', () => {
-  // Mark single notification as read
-  document.addEventListener('click', async (e) => {
-    const btn = e.target.closest('.notif-read');
-    if (!btn) return;
-
-    const id = btn.dataset.id;
-    const card = btn.closest('[data-notif-id]');
-
-    try {
-      const res = await window.ajax(`{{ route('notifications.read', ':id') }}`.replace(':id', id), {
-        method: 'POST',
-      });
-      if (res.ok) {
-        card?.remove();
-
-        // Decrease badge count
-        const badge = document.getElementById('notifCount');
-        if (badge) {
-          const currentCount = parseInt(badge.textContent || '1', 10);
-          const newCount = Math.max(0, currentCount - 1);
-          if (newCount > 0) {
-            badge.textContent = newCount;
-          } else {
-            badge.remove();
-          }
-        }
-
-        // Show empty state if no notifications left
-        const notifList = document.getElementById('notifList');
-        if (notifList && !notifList.querySelector('[data-notif-id]')) {
-          document.getElementById('notifEmpty')?.classList.remove('hidden');
-        }
-      }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
-  });
-
-  // Mark all notifications as read
-  document.getElementById('notifMarkAll')?.addEventListener('click', async () => {
-    try {
-      const res = await window.ajax(`{{ route('notifications.readAll') }}`, { method: 'POST' });
-      if (res.ok) {
-        // Clear all notifications from the list
-        const notifList = document.getElementById('notifList');
-        if (notifList) {
-          notifList.innerHTML = '';
-        }
-
-        // Remove the badge
-        document.getElementById('notifCount')?.remove();
-
-        // Show empty state
-        document.getElementById('notifEmpty')?.classList.remove('hidden');
-      }
-    } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
-    }
-  });
-
-  // Close notification bar
-  document.getElementById('notifClose')?.addEventListener('click', () => {
-    const bar = document.getElementById('notifBar');
-    if (bar) {
-      bar.classList.add('hidden');
-    }
-  });
-
-  // Collapse/expand notification list
-  document.getElementById('notifCollapse')?.addEventListener('click', () => {
-    const list = document.getElementById('notifList');
-    const empty = document.getElementById('notifEmpty');
-    if (list) {
-      list.classList.toggle('hidden');
-      empty?.classList.toggle('hidden');
-    }
-  });
-});
-</script>
-@endpush

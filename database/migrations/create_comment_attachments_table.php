@@ -16,7 +16,7 @@ return new class extends Migration
     {
         Schema::create('comment_attachments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('comment_id')->constrained('comments')->onDelete('cascade');
+            $table->foreignId('comment_id')->constrained('report_comments')->onDelete('cascade');
             $table->string('filename');
             $table->string('original_name');
             $table->string('mime_type', 100);

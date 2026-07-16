@@ -1,291 +1,260 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-@push('styles')
-  @include('partials._theme')
-@endpush
-
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
-  @push('styles')
-  @include('partials._theme')
-  @endpush
-  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <meta name="turbo-visit-control" content="reload"> <!-- Turbo: always reload on back/forward -->
+  <title>@yield('title', 'Admin') • {{ config('app.name', 'Chokh-e-Dekha') }}</title>
 
-  <!-- Theme boot (prevents flash) -->
   <script>
-    (function () {
-      const saved = localStorage.getItem('theme'); // 'light' | 'dark' | null
-      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-      const shouldDark = saved ? (saved === 'dark') : !!prefersDark;
-      if (shouldDark) document.documentElement.classList.add('dark');
-      window.__theme = saved ?? (prefersDark ? 'dark' : 'light');
+    (function(){
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) document.documentElement.classList.add('dark');
     })();
   </script>
 
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>@yield('title', 'Admin') • {{ config('app.name', 'Chokh-e-Dekha') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   @vite(['resources/css/app.css', 'resources/js/app.js'])
   @stack('styles')
 
   <style>
-    :root{
-      /* page bg */
-      --page-light: #fffaf5;
-      --page-dark:  #0b0e12;
-      --page-dark-grad-1: rgba(255,179,0,.06);
-      --page-dark-grad-2: rgba(244,63,94,.07);
+    body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; }
 
-      /* elevation */
-      --shadow-strong: 0 12px 30px rgba(15, 23, 42, .18), 0 4px 12px rgba(15,23,42,.12);
-      --shadow-strong-hover: 0 18px 40px rgba(15, 23, 42, .22), 0 6px 16px rgba(15,23,42,.16);
+    /* Sidebar links */
+    .nav-item {
+      display: flex; align-items: center; gap: .625rem;
+      padding: .5rem .75rem; border-radius: .625rem;
+      font-size: .875rem; font-weight: 500; color: #94a3b8;
+      transition: background .15s, color .15s;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: #e2e8f0; }
+    .nav-item.active { background: rgba(16,185,129,.15); color: #6ee7b7; }
+    .nav-item.active:hover { background: rgba(16,185,129,.2); }
 
-      /* header glass */
-      --header-bg-light: linear-gradient(90deg, rgba(254,243,199,.85), rgba(254,215,170,.85) 40%, rgba(254,205,211,.85));
-      --header-bg-dark:  linear-gradient(90deg, rgba(24,24,27,.55), rgba(17,24,39,.55) 40%, rgba(30,27,22,.55));
-      --header-ring: rgba(120, 53, 15, .15);
-
-      /* nav text colors (consistent across app/admin) */
-      --nav-text: #7c2d12;         /* amber-900-ish */
-      --nav-text-hover: #5a1e0a;
-      --nav-text-active: #1f2937;  /* slate-800 */
-      --nav-text-dark: #fde68a;        /* amber-200 */
-      --nav-text-dark-hover: #fffbeb;  /* amber-50 */
-      --nav-text-dark-active: #ffffff;
-
-      /* sidebar */
-      --sidebar-glass-light: rgba(255,255,255,.85);
-      --sidebar-glass-dark:  rgba(255,255,255,.06);
+    .nav-section {
+      font-size: .65rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #475569; padding: .75rem .75rem .25rem;
     }
 
-    /* page bg */
-    body{
-      min-height: 100vh;
-      background:
-        radial-gradient(1200px 400px at -10% -10%, rgba(251,191,36,.12), transparent 40%),
-        radial-gradient(1000px 300px at 110% 110%, rgba(244,63,94,.10), transparent 45%),
-        var(--page-light);
-      color: #0f172a;
+    /* Top bar action buttons */
+    .topbar-btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .45rem .75rem; border-radius: .625rem; font-size: .8125rem; font-weight: 500;
+      transition: background .15s, color .15s;
     }
-    .dark body{
-      background:
-        radial-gradient(1200px 400px at -10% -10%, var(--page-dark-grad-1), transparent 40%),
-        radial-gradient(1000px 300px at 110% 110%, var(--page-dark-grad-2), transparent 45%),
-        var(--page-dark);
-      color: #e5e7eb;
+    .topbar-btn-outline {
+      color: #64748b; border: 1px solid #e2e8f0;
     }
+    .topbar-btn-outline:hover { background: #f8fafc; color: #0f172a; }
+    .dark .topbar-btn-outline { color: #94a3b8; border-color: #334155; }
+    .dark .topbar-btn-outline:hover { background: #1e293b; color: #e2e8f0; }
 
-    /* reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; }
+    .topbar-btn-primary {
+      background: #059669; color: #fff;
     }
+    .topbar-btn-primary:hover { background: #047857; }
 
-    /* header (fixed glass) */
-    .header {
-      position: fixed; inset-inline: 0; top: 0; z-index: 50;
-      backdrop-filter: saturate(160%) blur(10px);
-      -webkit-backdrop-filter: saturate(160%) blur(10px);
-      border-bottom: 1px solid var(--header-ring);
-      background: var(--header-bg-light);
-      box-shadow: 0 10px 28px rgba(15,23,42,.20);
+    /* Stat cards */
+    .stat-card {
+      background: #fff; border-radius: 1rem;
+      border: 1px solid #f1f5f9;
+      box-shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+      padding: 1.25rem 1.5rem;
+      transition: box-shadow .15s;
     }
-    .dark .header { background: var(--header-bg-dark); border-bottom-color: rgba(255,255,255,.06); }
+    .stat-card:hover { box-shadow: 0 4px 12px rgba(15,23,42,.1); }
+    .dark .stat-card { background: #1e293b; border-color: #334155; }
 
-    .content-offset { padding-top: 5.0rem; } /* keep content below fixed header */
-
-    /* buttons */
-    .btn {
-      display:inline-flex; align-items:center; gap:.5rem;
-      padding:.55rem .9rem; border-radius:.9rem; line-height:1;
-      transition: box-shadow .15s ease, transform .08s ease, background-color .15s ease, color .15s ease;
-      box-shadow: var(--shadow-strong);
-      border: 1px solid rgba(120,53,15,.15);
-      backdrop-filter: blur(2px);
-    }
-    .btn:hover { box-shadow: var(--shadow-strong-hover); transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); box-shadow: var(--shadow-strong); }
-    .btn-primary { background-image: linear-gradient(90deg, #d97706, #e11d48); color:#fff; border:none; text-shadow:0 1px 0 rgba(0,0,0,.12); }
-    .btn-quiet   { background: rgba(255,255,255,.85); color: var(--nav-text); }
-    .dark .btn-quiet { background: rgba(255,255,255,.08); color: var(--nav-text-dark); border-color: rgba(255,255,255,.06); }
-
-    /* nav links (top menu) */
-    .nav-link {
-      position: relative; padding:.5rem .75rem; border-radius:.9rem; font-weight:600;
-      color: var(--nav-text); background: rgba(255,255,255,.85);
-      border: 1px solid rgba(120,53,15,.12); box-shadow: 0 2px 10px rgba(0,0,0,.04);
-      transition: color .15s, background-color .15s, box-shadow .15s, transform .08s;
-    }
-    .nav-link:hover { color: var(--nav-text-hover); transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0,0,0,.08); }
-    .nav-link--active { background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.85)); color: var(--nav-text-active); }
-    .dark .nav-link { color: var(--nav-text-dark); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.06); }
-    .dark .nav-link:hover { color: var(--nav-text-dark-hover); }
-    .dark .nav-link--active { background: rgba(255,255,255,.14); color: var(--nav-text-dark-active); }
-    .nav-link::after{
-      content:""; position:absolute; left:.75rem; right:.75rem; bottom:.45rem; height:2px;
-      border-radius:2px; background: currentColor; opacity:0; transform: scaleX(.6);
-      transition: transform .18s, opacity .18s;
-    }
-    .nav-link:hover::after{ opacity:.45; transform: scaleX(1); }
-    .nav-link--active::after{ opacity:.7; }
-
-    /* sidebar (glassy) */
-    .sidebar {
-      background: var(--sidebar-glass-light);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,.6);
-      box-shadow: var(--shadow-strong);
-    }
-    .dark .sidebar {
-      background: var(--sidebar-glass-dark);
-      border-color: rgba(255,255,255,.08);
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
-    }
-
-    /* sidebar links */
-    .side-link {
-      display:flex; align-items:center; gap:.5rem; padding:.55rem .75rem; border-radius:.9rem;
-      font-weight:600; color:#7c2d12; transition: background-color .15s, color .15s, transform .08s;
-    }
-    .side-link:hover { background: rgba(251,191,36,.12); transform: translateY(-1px); }
-    .side-link--active { background: rgba(251,191,36,.25); color:#1f2937; }
-    .dark .side-link { color:#fde68a; }
-    .dark .side-link:hover { background: rgba(255,255,255,.08); }
-    .dark .side-link--active { background: rgba(255,255,255,.14); color:#fff; }
+    /* Status badges */
+    .badge { display:inline-flex; align-items:center; gap:.25rem; padding:.2rem .6rem; border-radius:9999px; font-size:.75rem; font-weight:600; }
+    .badge-pending     { background:#fef3c7; color:#92400e; }
+    .badge-in_progress { background:#dbeafe; color:#1e40af; }
+    .badge-resolved    { background:#d1fae5; color:#065f46; }
+    .badge-rejected    { background:#fee2e2; color:#991b1b; }
+    .dark .badge-pending     { background:rgba(245,158,11,.15); color:#fcd34d; }
+    .dark .badge-in_progress { background:rgba(59,130,246,.15); color:#93c5fd; }
+    .dark .badge-resolved    { background:rgba(16,185,129,.15); color:#6ee7b7; }
+    .dark .badge-rejected    { background:rgba(239,68,68,.15);  color:#fca5a5; }
   </style>
 </head>
 
-<body class="min-h-screen antialiased relative overflow-x-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 grain-overlay">
-  {{-- Background blobs --}}
-  <div class="pointer-events-none absolute -top-28 -left-24 h-[28rem] w-[28rem] rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300 -z-10"></div>
-  <div class="pointer-events-none absolute -bottom-32 -right-24 h-[32rem] w-[32rem] rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300 -z-10"></div>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white antialiased">
+<div class="flex h-screen overflow-hidden">
 
-  {{-- Top bar (fixed) --}}
-  <header class="header">
-    <div class="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-      <div class="flex items-center gap-3">
-        <button id="sidebarToggle" class="md:hidden inline-flex items-center justify-center h-9 w-9 rounded-lg nav-link" aria-label="Toggle sidebar">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 7h16v2H4zM4 15h16v2H4z"/></svg>
-        </button>
+  {{-- ─── SIDEBAR ─────────────────────────────────── --}}
+  <aside id="sidebar"
+    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 dark:bg-slate-950
+           border-r border-slate-800 transition-transform duration-300
+           -translate-x-full lg:static lg:translate-x-0">
 
-        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 text-white shadow">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5C6.5 5 2 9.5 2 12s4.5 7 10 7 10-4.5 10-7-4.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></svg>
-          </span>
-          <span class="font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-amber-900 to-rose-700 dark:from-amber-200 dark:via-amber-100 dark:to-rose-200">
-            {{ config('app.name', 'Chokh-e-Dekha') }} <span class="opacity-80">Admin</span>
-          </span>
-        </a>
+    {{-- Brand --}}
+    <div class="flex items-center gap-3 px-5 py-4 border-b border-slate-800">
+      <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500 shadow-lg shadow-emerald-500/30">
+        <svg class="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 5C6.5 5 2 9 2 12s4.5 7 10 7 10-4 10-7-4.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/>
+        </svg>
       </div>
-
-      <div class="flex items-center gap-2 flex-wrap">
-        <button id="themeToggle" type="button" class="btn btn-quiet" aria-label="Toggle dark mode">
-          <svg class="h-4 w-4 hidden dark:block" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V2m0 20v-2m8-8h2M2 12h2m13.657-6.343l1.414-1.414M4.929 19.071l1.414-1.414m0-11.314L4.93 4.929M19.071 19.071l-1.414-1.414M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
-          <svg class="h-4 w-4 dark:hidden" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
-          <span class="text-sm font-medium dark:hidden">Dark</span>
-          <span class="text-sm font-medium hidden dark:inline">Light</span>
-        </button>
-
-        <a href="{{ route('admin.reports.index') }}" class="nav-link {{ request()->routeIs('admin.reports.*') ? 'nav-link--active' : '' }}">Reports</a>
-
-        {{-- User dropdown --}}
-        <div class="relative">
-          <button id="userMenuBtn" class="nav-link">
-            <span class="hidden sm:inline">{{ auth()->user()->name ?? 'Admin' }}</span>
-            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 7l4.5 5 4.5-5"/></svg>
-          </button>
-          <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-white ring-1 ring-amber-900/10 shadow-2xl p-1 dark:bg-slate-900 dark:ring-white/10">
-            <a href="{{ route('admin.profile.edit') }}" class="block px-3 py-2 text-sm rounded-lg hover:bg-amber-50 dark:hover:bg-white/10">Profile</a>
-            <a href="{{ route('admin.users.index') }}" class="block px-3 py-2 text-sm rounded-lg hover:bg-amber-50 dark:hover:bg-white/10">Manage Users</a>
-            <form method="POST" action="{{ route('logout') }}">
-              @csrf
-              <button class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-rose-50 text-rose-700 dark:hover:bg-rose-500/10 dark:text-rose-300">Logout</button>
-            </form>
-          </div>
-        </div>
+      <div class="min-w-0">
+        <div class="text-sm font-bold text-white leading-tight">Chokh-e-Dekha</div>
+        <div class="text-xs text-emerald-400 font-medium">Admin Panel</div>
       </div>
     </div>
-  </header>
 
-  {{-- Shell --}}
-  <div class="content-offset mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
-    {{-- Sidebar --}}
-    <aside id="sidebar" class="sidebar md:sticky md:top-24 h-max md:h-[calc(100vh-8rem)] md:overflow-y-auto rounded-2xl p-4 md:block hidden">
-      <nav class="space-y-1 text-sm">
-        <a href="{{ route('admin.dashboard') }}" class="side-link {{ request()->routeIs('admin.dashboard') ? 'side-link--active' : '' }}">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 8h-3v9H6v-9H3z"/></svg>
-          Dashboard
-        </a>
-        <a href="{{ route('admin.reports.index') }}" class="side-link {{ request()->routeIs('admin.reports.*') ? 'side-link--active' : '' }}">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v2H5zM5 8h14v12H5z"/></svg>
-          Reports
-        </a>
-        <a href="{{ route('admin.users.index') }}" class="side-link {{ request()->routeIs('admin.users.*') ? 'side-link--active' : '' }}">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11a3 3 0 100-6 3 3 0 000 6zM8 11a3 3 0 100-6 3 3 0 000 6zm8 2c-2.2 0-6 1.1-6 3.3V19h12v-2.7c0-2.2-3.8-3.3-6-3.3zM8 13c-2.3 0-6 1.1-6 3.3V19h6v-2.7c0-1.1.7-2 2-2H8z"/></svg>
-          Users
-        </a>
-        <a href="{{ route('admin.profile.edit') }}" class="side-link {{ request()->routeIs('admin.profile.*') ? 'side-link--active' : '' }}">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm7 2H5a2 2 0 00-2 2v5h18v-5a2 2 0 00-2-2z"/></svg>
-          Profile
-        </a>
-      </nav>
+    {{-- Nav --}}
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <span class="nav-section">Main</span>
 
-      <div class="mt-6 p-[2px] rounded-2xl bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400">
-        <div class="rounded-2xl bg-white/85 dark:bg-white/5 backdrop-blur p-4 text-xs text-amber-900/80 dark:text-amber-100/90">
-          <div class="font-semibold mb-1">Quick tip</div>
-          Use the “Reports” page to filter by city and status.
+      <a href="{{ route('admin.dashboard') }}"
+         class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM14 5a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 12a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z"/>
+        </svg>
+        Dashboard
+      </a>
+
+      <a href="{{ route('admin.reports.index') }}"
+         class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Reports
+        @php $pending = \App\Models\Report::where('status','pending')->count(); @endphp
+        @if($pending > 0)
+          <span class="ml-auto text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">{{ $pending }}</span>
+        @endif
+      </a>
+
+      <a href="{{ route('admin.users.index') }}"
+         class="nav-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Users
+      </a>
+
+      <span class="nav-section mt-3">Quick Links</span>
+
+      <a href="{{ route('reports.index') }}" target="_blank"
+         class="nav-item">
+        <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        View Public Site
+      </a>
+    </nav>
+
+    {{-- User footer --}}
+    <div class="border-t border-slate-800 px-4 py-3">
+      <div class="flex items-center gap-3">
+        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white text-sm font-bold">
+          {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
         </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-white truncate">{{ auth()->user()->name ?? 'Admin' }}</div>
+          <div class="text-xs text-slate-400 truncate">{{ auth()->user()->email ?? '' }}</div>
+        </div>
+        <form method="POST" action="{{ route('logout') }}">
+          @csrf
+          <button type="submit" title="Logout"
+                  class="text-slate-500 hover:text-rose-400 transition-colors p-1 rounded">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </button>
+        </form>
       </div>
-    </aside>
+    </div>
+  </aside>
 
-    {{-- Main --}}
-    <main class="min-w-0 relative z-10">
-      {{-- Flashes --}}
-      @php
-        $flashSuccess = session('success');
-        $flashError   = session('error') ?? ($errors->any() ? 'There were some problems with your request.' : null);
-        $flashStatus  = session('status');
-      @endphp
-      @if($flashSuccess || $flashError || $flashStatus)
-        <div class="mb-4 space-y-2">
-          @if($flashSuccess)
-            <div class="rounded-xl px-4 py-3 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-100 dark:ring-emerald-800/40">{{ $flashSuccess }}</div>
+  {{-- Sidebar overlay (mobile) --}}
+  <div id="sidebarOverlay" class="fixed inset-0 z-40 bg-black/60 hidden lg:hidden backdrop-blur-sm"></div>
+
+  {{-- ─── MAIN ─────────────────────────────────────── --}}
+  <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
+
+    {{-- Top bar --}}
+    <header class="flex-shrink-0 flex items-center justify-between gap-4
+                   bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800
+                   px-6 h-16 z-30">
+
+      {{-- Mobile menu --}}
+      <button id="sidebarToggle" class="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900
+                                         hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+
+      {{-- Page title --}}
+      <div class="flex-1 min-w-0 hidden sm:block">
+        @hasSection('page_title')
+          <h1 class="text-base font-semibold text-slate-900 dark:text-white truncate">
+            @yield('page_title')
+          </h1>
+          @hasSection('page_subtitle')
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@yield('page_subtitle')</p>
           @endif
-          @if($flashError)
-            <div class="rounded-xl px-4 py-3 bg-rose-50 text-rose-800 ring-1 ring-rose-200 dark:bg-rose-900/20 dark:text-rose-100 dark:ring-rose-800/40">
-              {{ $flashError }}
-              @if($errors->any())
-                <ul class="mt-2 list-disc pl-5 text-sm">
-                  @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
-                </ul>
-              @endif
-            </div>
-          @endif
-          @if($flashStatus)
-            <div class="rounded-xl px-4 py-3 bg-amber-50 text-amber-900 ring-1 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-100 dark:ring-amber-800/40">{{ $flashStatus }}</div>
-          @endif
+        @endif
+      </div>
+
+      {{-- Actions --}}
+      <div class="flex items-center gap-2">
+        @yield('page_actions')
+
+        <button id="themeToggle"
+                class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100
+                       dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+                aria-label="Toggle theme">
+          <svg class="h-5 w-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+          <svg class="h-5 w-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    {{-- Page content --}}
+    <main class="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-950">
+
+      {{-- Flash messages --}}
+      @if(session('success'))
+        <div class="mb-5 flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20
+                    border border-emerald-200 dark:border-emerald-800
+                    px-4 py-3 text-sm text-emerald-800 dark:text-emerald-200">
+          <svg class="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          {{ session('success') }}
         </div>
       @endif
-
-      {{-- Page header slots --}}
-      @if(View::hasSection('page_title') || View::hasSection('page_actions'))
-        <div class="mb-4 flex items-center justify-between gap-3">
+      @if(session('error') || $errors->any())
+        <div class="mb-5 flex items-start gap-3 rounded-xl bg-rose-50 dark:bg-rose-900/20
+                    border border-rose-200 dark:border-rose-800
+                    px-4 py-3 text-sm text-rose-800 dark:text-rose-200">
+          <svg class="h-5 w-5 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+          </svg>
           <div>
-            @hasSection('page_title')
-              <h1 class="text-xl sm:text-2xl font-extrabold bg-clip-text text-transparent
-                         bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700 dark:from-amber-200 dark:via-orange-200 dark:to-rose-100">
-                @yield('page_title')
-              </h1>
+            {{ session('error') ?? 'There were some problems with your request.' }}
+            @if($errors->any())
+              <ul class="mt-1 list-disc pl-4 space-y-0.5">
+                @foreach($errors->all() as $e) <li>{{ $e }}</li> @endforeach
+              </ul>
             @endif
-            @hasSection('page_subtitle')
-              <p class="text-sm text-amber-900/70 dark:text-amber-100/70 mt-0.5">@yield('page_subtitle')</p>
-            @endif
-          </div>
-          <div class="flex items-center gap-2">
-            @yield('page_actions')
           </div>
         </div>
       @endif
@@ -293,60 +262,37 @@
       @yield('content')
     </main>
   </div>
+</div>
 
-  @stack('scripts')
+@stack('scripts')
 
-  <script>
-    // Sidebar & user menu
-    (function () {
-      const sidebar = document.getElementById('sidebar');
-      const toggle  = document.getElementById('sidebarToggle');
-      const userBtn = document.getElementById('userMenuBtn');
-      const userMenu= document.getElementById('userMenu');
+<script>
+  // Sidebar mobile toggle
+  (function() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const toggle  = document.getElementById('sidebarToggle');
+    const open  = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); };
+    const close = () => { sidebar.classList.add('-translate-x-full');    overlay.classList.add('hidden'); };
+    toggle?.addEventListener('click', () => sidebar.classList.contains('-translate-x-full') ? open() : close());
+    overlay?.addEventListener('click', close);
+  })();
 
-      toggle?.addEventListener('click', () => sidebar?.classList.toggle('hidden'));
+  // Theme toggle
+  (function() {
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+  })();
 
-      if (userBtn && userMenu) {
-        userBtn.addEventListener('click', () => userMenu.classList.toggle('hidden'));
-        document.addEventListener('click', (e) => {
-          if (!userBtn.contains(e.target) && !userMenu.contains(e.target)) userMenu.classList.add('hidden');
-        }, { capture: true });
-      }
-
-      // confirm helper
-      document.addEventListener('click', (e) => {
-        const el = e.target.closest('[data-confirm]');
-        if (el) {
-          const msg = el.getAttribute('data-confirm') || 'Are you sure?';
-          if (!window.confirm(msg)) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-        }
-      });
-    })();
-
-    // Theme toggle
-    (function () {
-      const withTrans = (fn) => { const el=document.documentElement; el.style.transition='background-color .25s,color .25s'; fn(); setTimeout(()=>el.style.transition='',300); };
-      const btn = document.getElementById('themeToggle');
-      btn?.addEventListener('click', () => {
-        const html = document.documentElement;
-        const isDark = html.classList.contains('dark');
-        withTrans(() => {
-          if (isDark) { html.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
-          else        { html.classList.add('dark');    localStorage.setItem('theme', 'dark'); }
-        });
-      });
-      try {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        mq.addEventListener('change', (e) => {
-          if (!localStorage.getItem('theme')) {
-            withTrans(() => document.documentElement.classList.toggle('dark', e.matches));
-          }
-        });
-      } catch {}
-    })();
-  </script>
+  // Confirm dialogs
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-confirm]');
+    if (el && !confirm(el.getAttribute('data-confirm') || 'Are you sure?')) {
+      e.preventDefault(); e.stopPropagation();
+    }
+  });
+</script>
 </body>
 </html>

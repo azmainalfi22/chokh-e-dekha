@@ -1,404 +1,240 @@
 @extends(auth()->user()->is_admin ? 'layouts.admin' : 'layouts.app')
-
 @section('title', 'My Reports')
 
-@push('styles')
-<style>
-  /* ---------- THEME TOKENS (aligned with All Reports) ---------- */
-  :root{
-    --surface: #ffffff;
-    --surface-muted: #f8fafc;        /* slate-50 */
-    --surface-elevated: #ffffff;
-    --text: #0f172a;                  /* slate-900 */
-    --text-secondary: #475569;        /* slate-600 */
-    --muted: #64748b;                 /* slate-500 */
-    --ring: #e2e8f0;                  /* slate-200 */
-    --ring-focus: #f59e0b;            /* amber-500 */
-    --link: #0ea5e9;                  /* sky-500 */
-    --accent: #f59e0b;                /* amber-500 */
-    --accent-600: #d97706;            /* amber-600 */
-    --accent-700: #b45309;            /* amber-700 */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  }
-  .dark{
-    --surface: rgba(31,41,55,0.95);
-    --surface-muted:#111827;
-    --surface-elevated: rgba(55,65,81,0.95);
-    --text:#f9fafb;
-    --text-secondary:#d1d5db;
-    --muted:#9ca3af;
-    --ring:#374151;
-    --ring-focus:#fbbf24;
-    --link:#38bdf8;
-    --accent:#fbbf24;
-    --accent-600:#f59e0b;
-    --accent-700:#f59e0b;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-  }
-
-  body{ background: var(--surface-muted); color: var(--text); }
-
-  /* ---------- Cards (glassy) ---------- */
-  .cd-card{
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--ring);
-    border-radius: 1rem;
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow-lg);
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  }
-  .cd-card:hover{ transform: translateY(-2px); box-shadow: var(--shadow-xl); border-color: var(--accent); }
-
-  /* ---------- Tiny chips / pills (no @apply) ---------- */
-  .chip-btn{
-    display:inline-flex; align-items:center; gap:.375rem;
-    padding:.25rem .5rem; border-radius:.5rem; font-size:.75rem; font-weight:500;
-    border:1px solid rgba(0,0,0,.06); background:#fff; color:#374151;
-    transition: background .15s ease, color .15s ease, border-color .15s ease;
-  }
-  .chip-btn:hover{ background: rgba(245,158,11,.08); }
-  .dark .chip-btn{ background:#1b1f24 !important; color:#f5f5f5 !important; border-color:#2a2f36; }
-
-  .pill{
-    display:inline-flex; align-items:center; gap:.5rem;
-    padding:.375rem .75rem; border-radius:9999px; font-size:.875rem; font-weight:600;
-    border:1px solid rgba(245,158,11,.2); background:#fff; color:#7c2d12;
-  }
-  .pill svg{ flex:0 0 auto; }
-  .dark .pill{ background:#1b1f24; color:#f5f5f5; border-color:#2a2f36; }
-
-  /* Map */
-  #myReportsMap{ height: 420px; border-radius: 1rem; overflow: hidden; }
-
-  /* Soft blobs */
-  .blob{ position:absolute; border-radius:9999px; filter: blur(36px); opacity:.2; pointer-events:none; }
-</style>
-@endpush
-
 @section('content')
-<div class="relative">
-  {{-- ambient blobs --}}
-  <div class="blob -top-20 -right-24 h-80 w-80 bg-gradient-to-br from-amber-300 to-rose-300"></div>
-  <div class="blob -bottom-24 -left-24 h-96 w-96 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
+@php
+  $q        = request('q','');
+  $city     = request('city_corporation');
+  $category = request('category');
+  $status   = request('status');
+  $statuses = ['pending'=>'Pending','in_progress'=>'In Progress','resolved'=>'Resolved','rejected'=>'Rejected'];
+  $cities     = $cities     ?? [];
+  $categories = $categories ?? [];
 
-  <div class="max-w-7xl mx-auto p-4 md:p-8 relative z-[1]">
+  $badge = fn($s) => match($s) {
+    'resolved'    => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+    'in_progress' => 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+    'pending'     => 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+    'rejected'    => 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    default       => 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+  };
 
-    {{-- header --}}
-    <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div class="min-w-0">
-        <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
-          My Reports
-        </h1>
-        <p class="text-sm" style="color:var(--muted)">Your submitted issues, all in one place.</p>
-      </div>
+  $mapReports = collect($reports->items() ?? $reports)->map(fn($r) => [
+    'id'     => $r->id,
+    'title'  => $r->title,
+    'status' => $r->status,
+    'lat'    => $r->latitude  ? (float)$r->latitude  : null,
+    'lng'    => $r->longitude ? (float)$r->longitude : null,
+    'url'    => route('reports.show', $r),
+  ])->filter(fn($x) => $x['lat'] && $x['lng'])->values();
+@endphp
 
-      <div class="flex items-center gap-2">
-        <button id="toggleMap" class="pill">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
-          <span>Map view</span>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+  {{-- ── Header ──────────────────────────────────────────────────────── --}}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="text-xl font-bold text-slate-900 dark:text-white">My Reports</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Your submitted issues, all in one place.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      @if($mapReports->count() > 0)
+        <button id="toggleMap"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          Map View
         </button>
-        @if(Route::has('report.create'))
-          <a href="{{ route('report.create') }}"
-             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl shadow hover:shadow-md font-semibold text-white transition"
-             style="background:linear-gradient(135deg,var(--accent),#f97316);">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11 5h2v14h-2zM5 11h14v2H5z"/></svg>
-            New Report
+      @endif
+      <a href="{{ route('reports.create') }}"
+         class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        New Report
+      </a>
+    </div>
+  </div>
+
+  {{-- ── Map Panel (collapsed by default) ───────────────────────────── --}}
+  <div id="mapPanel" class="hidden mb-5">
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Report Locations</h2>
+        <span class="text-xs text-slate-400">{{ $mapReports->count() }} pinned</span>
+      </div>
+      <div id="myReportsMap" class="w-full" style="height:360px;"></div>
+    </div>
+  </div>
+
+  {{-- ── Filters ────────────────────────────────────────────────────── --}}
+  <form action="{{ route('reports.my') }}" method="GET"
+        class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 mb-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <input type="text" name="q" value="{{ $q }}" placeholder="Search reports…"
+             class="lg:col-span-2 px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+      <select name="city_corporation"
+              class="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+        <option value="">All Cities</option>
+        @foreach($cities as $c)
+          <option value="{{ $c }}" @selected($city===$c)>{{ $c }}</option>
+        @endforeach
+      </select>
+      <select name="status"
+              class="px-3 py-2 text-sm bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+        <option value="">Any Status</option>
+        @foreach($statuses as $k => $label)
+          <option value="{{ $k }}" @selected($status===$k)>{{ $label }}</option>
+        @endforeach
+      </select>
+      <div class="flex gap-2">
+        <button type="submit"
+                class="flex-1 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+          Apply
+        </button>
+        @if($q || $city || $category || $status)
+          <a href="{{ route('reports.my') }}"
+             class="flex-1 px-4 py-2 text-sm font-semibold text-center rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            Clear
           </a>
         @endif
       </div>
     </div>
+  </form>
 
-    {{-- FILTER BAR (GET) --}}
-    @php
-      $q        = request('q','');
-      $city     = request('city_corporation');
-      $category = request('category');
-      $status   = request('status');
-      $statuses = ['pending'=>'Pending','in_progress'=>'In Progress','resolved'=>'Resolved','rejected'=>'Rejected'];
+  {{-- ── Report Cards ────────────────────────────────────────────────── --}}
+  @if($reports->isEmpty())
+    <div class="bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-16 text-center">
+      <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">No reports yet</h3>
+      <p class="text-xs text-slate-400 mb-5">Create your first one to help improve your city.</p>
+      <a href="{{ route('reports.create') }}"
+         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Submit First Report
+      </a>
+    </div>
+  @else
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      @foreach($reports as $report)
+        <article class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all overflow-hidden">
 
-      $cities     = $cities     ?? ['Dhaka North','Dhaka South','Chattogram','Gazipur','Khulna','Rajshahi','Sylhet','Barishal','Cumilla','Narayanganj','Mymensingh'];
-      $categories = $categories ?? ['Road Damage','Broken Road','Street Light','Electricity','Water Supply','Drainage','Waste Management','Garbage','Sewage','Public Safety','Traffic','Parks','Health','Education','Other'];
-    @endphp
-
-    <form action="{{ route('reports.my') }}" method="GET" class="cd-card p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div class="md:col-span-2">
-          <label class="sr-only" for="q">Search</label>
-          <input id="q" name="q" value="{{ $q }}" type="search" placeholder="Search title, description, address…"
-                 class="w-full rounded-xl border px-3 py-2 text-sm"
-                 style="background:var(--surface-muted); color:var(--text); border-color:var(--ring); outline:none;"
-                 onfocus="this.style.boxShadow='0 0 0 3px rgba(245,158,11,.12)'; this.style.borderColor='var(--ring-focus)';"
-                 onblur="this.style.boxShadow='none'; this.style.borderColor='var(--ring)';">
-        </div>
-        <div>
-          <select name="city_corporation" class="w-full rounded-xl border px-3 py-2 text-sm"
-                  style="background:var(--surface-muted); color:var(--text); border-color:var(--ring);">
-            <option value="">All cities</option>
-            @foreach($cities as $c)
-              <option value="{{ $c }}" @selected($city===$c)>{{ $c }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div>
-          <select name="category" class="w-full rounded-xl border px-3 py-2 text-sm"
-                  style="background:var(--surface-muted); color:var(--text); border-color:var(--ring);">
-            <option value="">All categories</option>
-            @foreach($categories as $c)
-              <option value="{{ $c }}" @selected($category===$c)>{{ $c }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div>
-          <select name="status" class="w-full rounded-xl border px-3 py-2 text-sm"
-                  style="background:var(--surface-muted); color:var(--text); border-color:var(--ring);">
-            <option value="">Any status</option>
-            @foreach($statuses as $k=>$label)
-              <option value="{{ $k }}" @selected($status===$k)>{{ $label }}</option>
-            @endforeach
-          </select>
-        </div>
-        <div class="md:col-span-2 flex items-center gap-2">
-          <button class="px-4 py-2 rounded-xl font-semibold text-white"
-                  style="background:linear-gradient(135deg,var(--accent),#f97316); box-shadow:var(--shadow-sm);">
-            Apply
-          </button>
-          @if($q || $city || $category || $status)
-            <a href="{{ route('reports.my') }}"
-               class="px-4 py-2 rounded-xl"
-               style="background:var(--surface); color:var(--text); border:1px solid var(--ring);">
-              Reset
-            </a>
+          @if($report->photo)
+            <img src="{{ Storage::url($report->photo) }}" alt="{{ $report->title }}"
+                 class="w-full h-36 object-cover">
           @endif
-        </div>
-      </div>
-    </form>
 
-    {{-- MAP PANEL (toggle) --}}
-    <div id="mapPanel" class="mb-6 hidden">
-      <div class="cd-card p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold" style="color:var(--text)">Map</h2>
-          <div class="text-xs" style="color:var(--muted)">Pins show the reports from this page.</div>
-        </div>
-        <div id="myReportsMap" style="border:1px solid var(--ring)"></div>
-      </div>
+          <div class="p-5">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug line-clamp-2">{{ $report->title }}</h3>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 {{ $badge($report->status) }}">
+                {{ \Illuminate\Support\Str::headline($report->status) }}
+              </span>
+            </div>
+
+            <dl class="space-y-1.5 text-xs text-slate-500 dark:text-slate-400 mb-4">
+              @if($report->location)
+                <dd class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  {{ $report->location }}
+                </dd>
+              @endif
+              @if($report->category)
+                <dd class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-violet-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                  </svg>
+                  {{ ucfirst($report->category) }}
+                </dd>
+              @endif
+              @if($report->city_corporation)
+                <dd class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                  </svg>
+                  {{ $report->city_corporation }}
+                </dd>
+              @endif
+              <dd class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {{ $report->created_at->format('M d, Y') }}
+              </dd>
+            </dl>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
+              <div class="flex items-center gap-3 text-xs text-slate-400">
+                <span>{{ $report->likes_count ?? 0 }} likes</span>
+                <span>{{ $report->comments_count ?? 0 }} comments</span>
+              </div>
+              <a href="{{ route('reports.show', $report) }}"
+                 class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 transition-colors">
+                View →
+              </a>
+            </div>
+          </div>
+        </article>
+      @endforeach
     </div>
 
-    {{-- STATUS BADGE helper --}}
-    @php
-      $badge = function($report) {
-        $status = $report->status ?? 'pending';
-        $map = [
-          'pending'     => 'bg-amber-100 text-amber-800 ring-amber-200',
-          'in_progress' => 'bg-blue-100 text-blue-800 ring-blue-200',
-          'resolved'    => 'bg-emerald-100 text-emerald-800 ring-emerald-200',
-          'rejected'    => 'bg-rose-100 text-rose-800 ring-rose-200',
-        ];
-        $cls = $map[$status] ?? 'bg-gray-100 text-gray-800 ring-gray-200';
-        return '<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset '.$cls.'">'.\Illuminate\Support\Str::headline($status).'</span>';
-      };
-
-      $mapReports = collect($reports->items() ?? $reports)->map(function($r){
-        return [
-          'id'     => $r->id,
-          'title'  => $r->title,
-          'status' => $r->status,
-          'lat'    => $r->latitude ? (float)$r->latitude : null,
-          'lng'    => $r->longitude? (float)$r->longitude: null,
-          'url'    => route('reports.show', $r),
-        ];
-      })->filter(fn($x)=>$x['lat'] && $x['lng'])->values();
-    @endphp
-
-    {{-- CARDS --}}
-    @if($reports->isEmpty())
-      <div class="cd-card px-6 py-12 text-center border-dashed" style="border:1px dashed var(--ring);">
-        <div class="mx-auto mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full"
-             style="border:1px solid var(--ring); background:var(--surface-muted);">
-          <svg class="h-5 w-5" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zM3 10h18v2H3zM3 15h12v2H3z"/></svg>
-        </div>
-        <h3 class="text-lg font-semibold" style="color:var(--text)">You haven’t submitted any reports</h3>
-        <p class="text-sm mt-1" style="color:var(--muted)">Create your first one to help improve the city.</p>
+    @if(method_exists($reports, 'links'))
+      <div class="mt-6">
+        {{ $reports->appends(request()->query())->links() }}
       </div>
-    @else
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        @foreach($reports as $report)
-          <article class="cd-card overflow-hidden">
-            <div class="p-5 flex flex-col gap-3">
-              <div class="flex items-start justify-between gap-3">
-                <h3 class="text-lg font-bold leading-snug line-clamp-2">{{ $report->title }}</h3>
-                {!! $badge($report) !!}
-              </div>
-
-              <ul class="text-sm space-y-1" style="color:var(--text-secondary)">
-                <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8 2 5 5 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-4-3-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
-                  <span class="font-medium" style="color:var(--text)">{{ $report->location ?? 'N/A' }}</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 10h16v8H4z"/></svg>
-                  <span>{{ $report->category ?? 'General' }}</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h14v2H5zM5 8h14v12H5z"/></svg>
-                  <span>{{ $report->city_corporation ?? '—' }}</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <svg class="h-4 w-4" style="color:var(--accent-700)" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10v2H7zM5 6h14v14H5zM9 8h6v6H9z"/></svg>
-                  <span>{{ optional($report->created_at)->format('M d, Y h:i a') }}</span>
-                </li>
-
-                @if(!empty($report->formatted_address))
-                  <li class="pt-1">
-                    <div class="text-xs" style="color:var(--muted)">Address</div>
-                    <div class="mt-0.5 flex flex-wrap items-center gap-2">
-                      <span class="text-sm font-medium truncate max-w-[16rem]" title="{{ $report->formatted_address }}" style="color:var(--text)">
-                        {{ $report->formatted_address }}
-                      </span>
-                      <button type="button" class="chip-btn"
-                              onclick="navigator.clipboard?.writeText(`{{ $report->formatted_address }}`)">Copy</button>
-                      @php
-                        $link = !empty($report->latitude) && !empty($report->longitude)
-                            ? 'https://www.google.com/maps/search/?api=1&query='.urlencode($report->latitude.','.$report->longitude)
-                            : (!empty($report->formatted_address)
-                                ? 'https://www.google.com/maps/search/?api=1&query='.urlencode($report->formatted_address)
-                                : null);
-                      @endphp
-                      @if($link)
-                        <a href="{{ $link }}" target="_blank" rel="noopener" class="chip-btn">Open in Maps</a>
-                      @endif
-                    </div>
-                  </li>
-                @endif
-              </ul>
-
-              <div class="mt-3 flex items-center justify-between">
-                <a href="{{ route('reports.show', $report) }}"
-                   class="inline-flex items-center gap-1 font-semibold"
-                   style="color:var(--link)">
-                  View details
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6l6 6-6 6-1.4-1.4L12.2 12 8.6 7.4z"/></svg>
-                </a>
-              </div>
-            </div>
-          </article>
-        @endforeach
-      </div>
-
-      {{-- pagination --}}
-      @if(method_exists($reports,'links'))
-        <div class="mt-6 flex justify-center">
-          {{ $reports->appends(request()->query())->links() }}
-        </div>
-      @endif
     @endif
-  </div>
+  @endif
 </div>
-
-{{-- Google Maps (needs your key in services.google_maps.key) --}}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&loading=async" defer></script>
 
 @push('scripts')
 <script>
 (function(){
   const mapPanel = document.getElementById('mapPanel');
   const toggle   = document.getElementById('toggleMap');
-  let map, info, markers = [];
-
-  const reports = @json($mapReports);
-
-  const stylesLight = [
-    { elementType: "geometry", stylers: [{ saturation: -5 }, { lightness: 5 }] },
-    { featureType: "poi", stylers: [{ visibility: "off" }] },
-    { featureType: "road", elementType: "geometry", stylers: [{ lightness: 20 }] },
-    { featureType: "water", stylers: [{ saturation: -10 }] },
-  ];
-  const stylesDark = [
-    { elementType: "geometry", stylers: [{ color: "#1f1f1f" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#1f1f1f" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
-    { featureType: "road", elementType: "geometry", stylers: [{ color: "#2f2f2f" }] },
-    { featureType: "poi", stylers: [{ visibility: "off" }] },
-    { featureType: "water", stylers: [{ color: "#0f1115" }] },
-  ];
-  const isDark = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-  function pin(fill){
-    return 'data:image/svg+xml;utf8,'+encodeURIComponent(`
-      <svg width="40" height="40" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-        <path d="M32 4c-10.5 0-19 8.5-19 19 0 13.2 19 37 19 37s19-23.8 19-37c0-10.5-8.5-19-19-19z" fill="${fill}"/>
-        <circle cx="32" cy="23" r="6.5" fill="#fff"/>
-      </svg>`);
-  }
-  function colorFor(status){
-    switch(status){
-      case 'resolved': return '#10b981';
-      case 'in_progress': return '#3b82f6';
-      case 'rejected': return '#ef4444';
-      default: return '#f59e0b';
-    }
-  }
-
-  function initMap(){
-    const el = document.getElementById('myReportsMap');
-    map = new google.maps.Map(el, {
-      center: {lat: 23.777176, lng: 90.399452},
-      zoom: 12,
-      clickableIcons: false,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      styles: isDark()? stylesDark : stylesLight,
-    });
-    info = new google.maps.InfoWindow();
-
-    const bounds = new google.maps.LatLngBounds();
-    markers = reports.map(r => {
-      const m = new google.maps.Marker({
-        position: {lat: r.lat, lng: r.lng},
-        map,
-        icon: { url: pin(colorFor(r.status)), scaledSize: new google.maps.Size(40,40), anchor: new google.maps.Point(20,40) },
-        title: r.title
-      });
-      m.addListener('click', () => {
-        info.setContent(`<div style="min-width:200px">
-          <div style="font-weight:700;margin-bottom:4px">${escapeHtml(r.title)}</div>
-          <a href="${r.url}">Open details →</a>
-        </div>`);
-        info.open(map, m);
-      });
-      bounds.extend(m.getPosition());
-      return m;
-    });
-    if (reports.length){ map.fitBounds(bounds); }
-
-    try {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        map.setOptions({ styles: e.matches ? stylesDark : stylesLight });
-      });
-    } catch {}
-  }
-
-  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])) }
-
-  // Toggle panel + lazy init map
+  const reports  = @json($mapReports);
   let initialized = false;
+
+  function colorFor(status) {
+    return { resolved:'#10b981', in_progress:'#6366f1', rejected:'#ef4444' }[status] ?? '#f59e0b';
+  }
+
+  function initMap() {
+    const map = L.map('myReportsMap').setView([23.777176, 90.399452], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
+    }).addTo(map);
+
+    const bounds = [];
+    reports.forEach(r => {
+      const circle = L.circleMarker([r.lat, r.lng], {
+        radius: 10,
+        fillColor: colorFor(r.status),
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85
+      }).addTo(map);
+      circle.bindPopup(`<div style="min-width:180px"><p style="font-weight:700;margin-bottom:4px;font-size:13px">${r.title}</p><a href="${r.url}" style="color:#059669;font-size:12px">View details →</a></div>`);
+      bounds.push([r.lat, r.lng]);
+    });
+    if (bounds.length) map.fitBounds(bounds, { padding: [20, 20] });
+  }
+
   toggle?.addEventListener('click', () => {
     mapPanel.classList.toggle('hidden');
     if (!initialized && !mapPanel.classList.contains('hidden')) {
       initialized = true;
-      const t = setInterval(() => {
-        if (window.google && google.maps) { clearInterval(t); initMap(); }
-      }, 50);
+      setTimeout(initMap, 50);
     }
   });
 })();

@@ -5,7 +5,7 @@
 @push('styles')
 <style>
   :root {
-    --cd-primary: #f59e0b;
+    --cd-primary: #059669;
     --cd-secondary: #ef4444;
     --cd-success: #10b981;
     --cd-card: rgba(255,255,255,0.95);
@@ -18,15 +18,6 @@
     --cd-card: rgba(30, 41, 59, 0.95);
     --cd-glass: rgba(30, 41, 59, 0.85);
     --cd-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-  }
-
-  body {
-    background: linear-gradient(135deg, #fef3c7 0%, #f3e193 50%, #fcd34d 100%);
-    min-height: 100vh;
-  }
-
-  .dark body {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
   }
 
   .glass-card {
@@ -51,7 +42,7 @@
   }
 
   .drag-over {
-    background: rgba(245, 158, 11, 0.1);
+    background: rgba(5, 150, 105, 0.08);
     border-color: var(--cd-primary);
     border-width: 2px;
   }
@@ -99,7 +90,7 @@
 
   .progress-bar {
     transition: width 0.3s ease;
-    background: linear-gradient(90deg, var(--cd-primary), #f97316);
+    background: linear-gradient(90deg, #059669, #10b981);
   }
 
   .form-input {
@@ -141,16 +132,17 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, var(--cd-primary), #f97316);
+    background: #059669;
     color: white;
     font-weight: 600;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
   }
 
   .btn-primary:hover {
+    background: #047857;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 8px 25px rgba(5, 150, 105, 0.35);
   }
 
   .btn-primary:disabled {
@@ -341,25 +333,18 @@
 @endpush
 
 @section('content')
-<div class="relative min-h-screen">
-  <!-- Background Decorations -->
-  <div class="fixed inset-0 overflow-hidden pointer-events-none">
-    <div class="absolute -top-20 -right-24 h-80 w-80 rounded-full blur-3xl opacity-20 bg-gradient-to-br from-amber-300 to-rose-300"></div>
-    <div class="absolute -bottom-24 -left-24 h-96 w-96 rounded-full blur-3xl opacity-20 bg-gradient-to-tr from-orange-300 to-pink-300"></div>
-  </div>
-
-  <div class="relative min-h-screen py-8">
+<div class="py-8">
     <div class="max-w-4xl mx-auto px-4">
       <!-- Header -->
       <header class="text-center mb-8 fade-in">
         <div class="inline-flex items-center gap-3 mb-4">
-          <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+          <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
             <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
           </div>
           <div>
-            <h1 class="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-700 via-orange-700 to-rose-700">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white">
               চোখে দেখা - Submit Report
             </h1>
             <p class="text-sm text-secondary mt-1">Your Eyes, Your Voice, Your City</p>
@@ -408,7 +393,7 @@
         <div class="step active fade-in" data-step="1">
           <div class="p-8">
             <div class="flex items-center gap-3 mb-8">
-              <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">1</div>
+              <div class="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-sm">1</div>
               <div>
                 <h2 class="text-2xl font-bold text-primary">Basic Information</h2>
                 <p class="text-secondary text-sm">Tell us about the issue you've observed</p>
@@ -507,7 +492,7 @@
         <div class="step fade-in" data-step="2">
           <div class="p-8">
             <div class="flex items-center gap-3 mb-8">
-              <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">2</div>
+              <div class="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-sm">2</div>
               <div>
                 <h2 class="text-2xl font-bold text-primary">Location & Evidence</h2>
                 <p class="text-secondary text-sm">Pinpoint the exact location and add visual evidence</p>
@@ -579,10 +564,10 @@
                   <label class="block text-sm font-semibold text-primary mb-3">Upload Photos or Videos</label>
                   
                   <!-- File Drop Zone -->
-                  <div id="fileDropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-amber-400 hover:bg-amber-50/30 dark:hover:bg-amber-900/20 transition-all cursor-pointer">
+                  <div id="fileDropZone" class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-emerald-400 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/20 transition-all cursor-pointer">
                     <div class="space-y-4">
-                      <div class="mx-auto w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl flex items-center justify-center">
-                        <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div class="mx-auto w-16 h-16 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center">
+                        <svg class="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
                       </div>
@@ -620,7 +605,7 @@
         <div class="step fade-in" data-step="3">
           <div class="p-8">
             <div class="flex items-center gap-3 mb-8">
-              <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">3</div>
+              <div class="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-sm">3</div>
               <div>
                 <h2 class="text-2xl font-bold text-primary">Final Details</h2>
                 <p class="text-secondary text-sm">Contact information and submission preferences</p>
@@ -670,7 +655,7 @@
                 <div class="space-y-4">
                   <label class="flex items-start gap-3">
                     <input type="checkbox" name="notify_status" value="1" {{ old('notify_status', true) ? 'checked' : '' }} 
-                           class="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
+                           class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                     <div>
                       <span class="text-primary font-medium">Status Update Notifications</span>
                       <p class="text-sm text-secondary">Get notified when authorities update your report status</p>
@@ -679,7 +664,7 @@
 
                   <label class="flex items-start gap-3">
                     <input type="checkbox" name="notify_comments" value="1" {{ old('notify_comments') ? 'checked' : '' }}
-                           class="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
+                           class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                     <div>
                       <span class="text-primary font-medium">Community Comments</span>
                       <p class="text-sm text-secondary">Receive notifications when others comment on your report</p>
@@ -688,7 +673,7 @@
 
                   <label class="flex items-start gap-3">
                     <input type="checkbox" name="anonymous" value="1" {{ old('anonymous') ? 'checked' : '' }}
-                           class="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-500">
+                           class="mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                     <div>
                       <span class="text-primary font-medium">Submit Anonymously</span>
                       <p class="text-sm text-secondary">Hide your name from public view (authorities can still contact you)</p>
@@ -698,7 +683,7 @@
               </div>
 
               <!-- Report Summary -->
-              <div class="section-bg-amber rounded-2xl p-6">
+              <div class="section-bg-green rounded-2xl p-6">
                 <h3 class="text-lg font-semibold text-primary mb-4">📋 Report Summary</h3>
                 <div id="reportSummary" class="space-y-3 text-sm">
                   <!-- Summary will be populated by JavaScript -->
@@ -779,8 +764,7 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
+</div><!-- /content -->
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
@@ -1418,7 +1402,7 @@ async initializeMap() {
               Your report has been sent to the relevant authorities. You'll receive email updates on the progress.
             </p>
             <div class="space-y-3">
-              <button onclick="window.location.href='/reports'" class="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+              <button onclick="window.location.href='/reports'" class="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
                 View All Reports
               </button>
               <button onclick="window.location.reload()" class="w-full px-6 py-3 border border-gray-300 dark:border-gray-600 text-primary rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">

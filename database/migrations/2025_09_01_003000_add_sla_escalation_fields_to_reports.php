@@ -5,15 +5,20 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    public function up(): void {
+    public function up(): void
+    {
         Schema::table('reports', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('location')->constrained()->nullOnDelete();
+            $table->unsignedTinyInteger('escalation_level')->default(0)->after('priority');
+            $table->timestamp('escalated_at')->nullable()->after('escalation_level');
         });
     }
-    public function down(): void {
+
+    public function down(): void
+    {
         Schema::table('reports', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
+            $table->dropColumn(['escalation_level','escalated_at']);
         });
     }
 };
+
+

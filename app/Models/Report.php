@@ -54,6 +54,8 @@ class Report extends Model
         // Engagement counters:
         'likes_count',
         'comments_count',
+        'views_count',
+        'shares_count',
     ];
 
     protected $casts = [
@@ -102,6 +104,12 @@ public function notes(): HasMany
         return $this->hasMany(ReportLike::class);
     }
 
+    /** Bookmarks on this report */
+    public function bookmarks(): HasMany
+    {
+        return $this->hasMany(ReportBookmark::class);
+    }
+
     /** Public comments (newest first) */
     public function comments(): HasMany
     {
@@ -118,6 +126,11 @@ public function notes(): HasMany
     public function media(): HasMany
     {
         return $this->hasMany(\App\Models\ReportMedia::class);
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(\App\Models\ReportLog::class)->orderBy('created_at', 'desc');
     }
 
     /** Admin assignment */

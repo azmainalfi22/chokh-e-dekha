@@ -13,8 +13,19 @@ return [
     |
     */
 
-// config/app.php
 'name' => env('APP_NAME', 'Chokh-e-Dekha'),
+
+    'tagline' => env('APP_TAGLINE', 'জনগণের চোখ, সরকারের কান'),
+
+    'official_name' => env('APP_OFFICIAL_NAME', 'Chokh-e-Dekha - National Civic Portal'),
+
+    'govt_entities' => [
+        'City Corporations',
+        'Bangladesh Police',
+        'Anti-Corruption Commission',
+        'Legal Aid Services',
+        'Local Government Division',
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -66,7 +77,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Dhaka'),
 
     /*
     |--------------------------------------------------------------------------
@@ -79,9 +90,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'en'),  // ✅ Changed to English by default
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+
+    'supported_locales' => ['en', 'bn'],  // ✅ English first
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 

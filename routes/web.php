@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\LegalController;
 
 // ADMIN controllers
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ReportMapController;
+use App\Http\Controllers\PublicController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +40,15 @@ Route::get('/', function () {
 /* ---------------------------
  | Public browsing (no auth)
  * --------------------------- */
+
+// Welcome & Public Pages
+Route::get('/welcome', function() { return view('welcome'); })->name('welcome');
+Route::get('/transparency', [PublicController::class, 'transparency'])->name('public.transparency');
+Route::get('/api/open-data', [PublicController::class, 'openData'])->name('public.open-data');
+
+// Language Switching
+Route::post('/language/switch', [App\Http\Controllers\LanguageController::class, 'switch'])->name('language.switch');
+
 // Reports list (public)
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
@@ -74,6 +85,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereNumber('report')
         ->middleware('throttle:60,1')
         ->name('reports.like');
+    
+    // Shares (tracking)
+    Route::post('/reports/{report}/share', [ReportController::class, 'trackShare'])
+        ->whereNumber('report')
+        ->middleware('throttle:100,1')
+        ->name('reports.share');
 
     // Comments
     Route::get('/reports/{report}/comments', [CommentController::class, 'index'])
@@ -95,6 +112,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+// Public profile view
+Route::get('/user/{user}', [ProfileController::class, 'show'])->name('user.profile');
+
+// Bookmarks
+Route::middleware('auth')->group(function () {
+    Route::post('/reports/{report}/bookmark', [App\Http\Controllers\BookmarkController::class, 'toggle'])->name('reports.bookmark');
+    Route::get('/bookmarks', [App\Http\Controllers\BookmarkController::class, 'index'])->name('bookmarks.index');
+});
+
+    // RTI Wizard
+    Route::get('/legal/rti', [LegalController::class, 'rtiForm'])->name('legal.rti.form');
+    Route::post('/legal/rti/generate', [LegalController::class, 'rtiGenerate'])->name('legal.rti.generate');
 });
 
 /* ---------------------------
@@ -197,6 +227,12 @@ Route::prefix('admin')
 
         // LIVE map data (JSON for dashboard map)
         Route::get('/reports/map', [ReportMapController::class, 'index'])->name('reports.map');
+        
+        // Map data JSON endpoint for Google Maps integration
+        Route::get('/reports/map-data', [AdminReportController::class, 'mapData'])->name('reports.map-data');
+        
+        // Government Command Center Dashboard
+        Route::get('/command-center', [AdminReportController::class, 'commandCenter'])->name('command-center');
     });
 
 // Temporary debug route

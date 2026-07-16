@@ -9,18 +9,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id')->after('location');
-
-            // Optional: add foreign key constraint
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            if (!Schema::hasColumn('reports', 'user_id')) {
+                $table->unsignedBigInteger('user_id')->after('location');
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('reports', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropColumn('user_id');
+            if (Schema::hasColumn('reports', 'user_id')) {
+                $table->dropForeign(['user_id']);
+                $table->dropColumn('user_id');
+            }
         });
     }
 };
