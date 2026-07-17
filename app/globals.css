@@ -216,6 +216,59 @@
       var(--brand-red) 100%
     );
   }
+
+  /* Frosted glass — for the sticky header and floating overlays. Reads as
+     depth over content without the neon-glass gimmick. */
+  .glass {
+    background-color: color-mix(in oklch, var(--background) 72%, transparent);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+  }
+  .glass-panel {
+    background-color: color-mix(in oklch, var(--card) 70%, transparent);
+    backdrop-filter: saturate(150%) blur(16px);
+    -webkit-backdrop-filter: saturate(150%) blur(16px);
+    border: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
+  }
+
+  /* Subtle elevation that lifts on hover — used on cards. */
+  .card-lift {
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      border-color 0.18s ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -14px color-mix(in oklch, var(--foreground) 30%, transparent);
+    border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+  }
+
+  /* Layered green "civic mesh" backdrop for hero sections. */
+  .civic-mesh {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(
+        42rem 30rem at 88% -10%,
+        color-mix(in oklch, var(--brand-green) 20%, transparent),
+        transparent 60%
+      ),
+      radial-gradient(
+        36rem 26rem at -8% 8%,
+        color-mix(in oklch, var(--brand-green) 12%, transparent),
+        transparent 55%
+      );
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .card-lift {
+    transition: none;
+  }
+  .card-lift:hover {
+    transform: none;
+  }
 }
 
 /* Leaflet: keep below dialogs, match theme */

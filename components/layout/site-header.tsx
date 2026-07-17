@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Megaphone } from "lucide-react";
+import { Megaphone, PhoneCall } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
@@ -10,6 +10,8 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 const NAV_LINKS = [
   { href: "/reports", label: "Reports" },
+  { href: "/services", label: "Emergency" },
+  { href: "/rights", label: "Your Rights" },
   { href: "/surveys", label: "Surveys" },
   { href: "/rti", label: "RTI Wizard" },
 ];
@@ -67,22 +69,32 @@ export async function SiteHeader() {
       {/* utility bar */}
       <div className="bg-brand-green-strong text-white/90">
         <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-xs sm:px-6">
-          <p className="font-bengali truncate">
+          <p className="font-bengali hidden truncate sm:block">
             গণমুখী নাগরিক প্ল্যাটফর্ম — a citizens&apos; civic accountability
             platform
           </p>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            <a
+              href="tel:999"
+              className="inline-flex items-center gap-1 font-semibold text-white hover:underline"
+            >
+              <PhoneCall className="size-3" aria-hidden />
+              Emergency 999
+            </a>
+            <span className="text-white/30" aria-hidden>
+              |
+            </span>
             <ThemeToggle />
           </div>
         </div>
       </div>
 
       {/* masthead */}
-      <div className="bg-background/95 border-b backdrop-blur">
+      <div className="glass border-b">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-7">
             <Logo />
-            <nav aria-label="Main" className="hidden items-center gap-6 md:flex">
+            <nav aria-label="Main" className="hidden items-center gap-5 lg:flex">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.href}

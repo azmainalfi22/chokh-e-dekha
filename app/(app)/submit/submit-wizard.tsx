@@ -50,6 +50,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { LocationPicker } from "@/components/map/location-picker";
 import { StatusBadge } from "@/components/reports/status-badge";
+import { NearbyDuplicates } from "./nearby-duplicates";
 
 const MAX_PHOTOS = 6;
 
@@ -377,6 +378,13 @@ export function SubmitWizard() {
                       )}
                     />
                     <LocationPicker value={pin} onChange={setPin} />
+                    <div className="mt-3">
+                      <NearbyDuplicates
+                        lat={pin?.lat ?? null}
+                        lng={pin?.lng ?? null}
+                        category={form.getValues("category")}
+                      />
+                    </div>
                   </div>
 
                   <div>

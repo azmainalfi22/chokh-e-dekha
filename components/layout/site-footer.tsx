@@ -7,17 +7,19 @@ const COLUMNS = [
     title: "Platform",
     links: [
       { href: "/reports", label: "All Reports" },
+      { href: "/map", label: "Reports Map" },
+      { href: "/submit", label: "Report an Issue" },
       { href: "/surveys", label: "Community Surveys" },
       { href: "/rti", label: "RTI Wizard" },
-      { href: "/submit", label: "Report an Issue" },
     ],
   },
   {
-    title: "About",
+    title: "Citizens",
     links: [
+      { href: "/services", label: "Emergency & Services" },
+      { href: "/rights", label: "Know Your Rights" },
       { href: "/", label: "How it works" },
       { href: "/reports", label: "Public accountability" },
-      { href: "/rti", label: "Right to Information" },
     ],
   },
 ];

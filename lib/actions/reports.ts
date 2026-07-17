@@ -76,3 +76,41 @@ export async function createReport(
   revalidatePath("/dashboard");
   return { ok: true, reportId: report.id };
 }
+
+export type NearbyReport = {
+  id: number;
+  title: string;
+  category: string;
+  status: string;
+  endorse_count: number;
+  distance_m: number;
+};
+
+/**
+ * Duplicate detection: nearby approved reports of the same category. Runs
+ * server-side (reliable network) via the reports_near proximity RPC.
+ */
+export async function findNearbyReports(
+  lat: number,
+  lng: number,
+  category: string | null,
+  radiusM = 500
+): Promise<NearbyReport[]> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reports_near", {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_m: radiusM,
+    p_category: category,
+  });
+  if (error) return [];
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    category: r.category,
+    status: r.status,
+    endorse_count: r.endorse_count,
+    distance_m: r.distance_m,
+  }));
+}

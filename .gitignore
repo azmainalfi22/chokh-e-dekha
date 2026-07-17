@@ -49,3 +49,7 @@ supabase/.env
 
 # data exports
 reports_export_*.csv
+
+# local test/scratch artifacts
+/.*.png
+/.*.mjs
