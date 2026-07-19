@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   FileText,
   Gauge,
+  Landmark,
   MapPin,
   Megaphone,
   MessagesSquare,
@@ -89,26 +90,38 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="border-b bg-card">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
+      <section className="civic-mesh relative overflow-hidden border-b">
+        <div
+          className="dot-grid pointer-events-none absolute inset-0 opacity-60 [mask-image:radial-gradient(60rem_40rem_at_70%_-10%,black,transparent)]"
+          aria-hidden
+        />
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
           <div>
             <span className="border-primary/30 bg-primary/5 text-primary inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
-              <span className="bg-primary size-1.5 rounded-full" aria-hidden />
+              <span className="relative flex size-1.5" aria-hidden>
+                <span className="bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-60" />
+                <span className="bg-primary relative inline-flex size-1.5 rounded-full" />
+              </span>
               Public civic accountability · Bangladesh
             </span>
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-              Report civic problems. <br className="hidden sm:block" />
-              <span className="text-primary">Track the response.</span>
+            <h1 className="mt-6 text-[2.6rem]/[1.08] font-semibold text-balance sm:text-6xl/[1.05]">
+              See it. Report it.
+              <br />
+              <span className="text-primary italic">
+                Hold the city to account
+              </span>
+              <span className="text-brand-red">.</span>
             </h1>
-            <p className="text-muted-foreground mt-5 max-w-xl text-lg leading-relaxed text-pretty">
-              From broken roads to overflowing bins, report the issues around you
-              with a photo and a map pin. Every report is public, tracked against
-              a response deadline, and routed to the right city corporation.
+            <p className="text-muted-foreground mt-6 max-w-xl text-lg leading-relaxed text-pretty">
+              From broken roads to overflowing bins — file it with a photo and a
+              map pin. Every report is public, routed to the responsible
+              authority, tracked against a deadline, and only closed when the
+              reporter confirms the fix.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Button
                 size="lg"
-                className="bg-brand-gradient border-0 text-white hover:opacity-95"
+                className="bg-brand-gradient glow-brand border-0 text-white hover:opacity-95"
                 asChild
               >
                 <Link href="/submit">
@@ -121,36 +134,74 @@ export default async function HomePage() {
                 </Link>
               </Button>
             </div>
+            <ul className="text-muted-foreground mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium">
+              <li className="flex items-center gap-1.5">
+                <ShieldCheck className="text-primary size-4" aria-hidden />
+                Publicly logged
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Landmark className="text-primary size-4" aria-hidden />
+                Routed to the right authority
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Gauge className="text-primary size-4" aria-hidden />
+                Deadline-tracked
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CheckCircle2 className="text-primary size-4" aria-hidden />
+                Citizen-verified fixes
+              </li>
+            </ul>
             <p className="text-muted-foreground font-bengali mt-6 text-sm">
               {APP_NAME_BN} — আপনার চোখ, আপনার কণ্ঠস্বর, আপনার শহর
             </p>
           </div>
 
-          {/* Stats panel */}
-          <div className="bg-background rounded-xl border p-6 shadow-sm">
-            <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
-              Live platform activity
-            </p>
-            <dl className="mt-4 grid grid-cols-2 gap-4">
-              {stats.map((s) => (
-                <div key={s.label} className="rounded-lg border p-4">
-                  <dt className="text-primary text-3xl font-bold tabular-nums">
-                    <CountUp value={s.value} />
-                  </dt>
-                  <dd className="text-muted-foreground mt-1 text-xs font-medium">
-                    {s.label}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <div className="mt-4 flex items-center gap-2 rounded-lg border border-dashed p-3">
-              <Gauge className="text-primary size-4 shrink-0" aria-hidden />
-              <p className="text-muted-foreground text-xs">
-                Every approved report is tracked against a{" "}
-                <span className="text-foreground font-medium">
-                  7-day response SLA
-                </span>{" "}
-                — overdue cases are flagged publicly.
+          {/* Stats panel — national dashboard */}
+          <div className="relative">
+            <div className="hero-panel shadow-elevated relative overflow-hidden rounded-2xl p-6 text-white sm:p-7">
+              <div className="ribbon-bd absolute inset-x-0 top-0 h-1" aria-hidden />
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold tracking-widest text-white/70 uppercase">
+                  Live platform activity
+                </p>
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-white/80 uppercase">
+                  Public record
+                </span>
+              </div>
+              <dl className="mt-5 grid grid-cols-2 gap-3">
+                {stats.map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-xl border border-white/12 bg-white/[0.07] p-4 backdrop-blur-sm"
+                  >
+                    <dt className="font-display text-4xl font-semibold tabular-nums">
+                      <CountUp value={s.value} />
+                    </dt>
+                    <dd className="mt-1 text-xs font-medium text-white/75">
+                      {s.label}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-white/12 bg-white/[0.05] p-3">
+                <Gauge className="size-4 shrink-0 text-white/85" aria-hidden />
+                <p className="text-xs leading-relaxed text-white/80">
+                  Every approved report runs on a{" "}
+                  <span className="font-semibold text-white">
+                    7-day response deadline
+                  </span>{" "}
+                  — overdue cases are flagged publicly.
+                </p>
+              </div>
+            </div>
+            {/* floating trust-loop chip */}
+            <div className="bg-card shadow-elevated absolute -bottom-5 left-6 hidden items-center gap-2 rounded-full border py-2 pr-4 pl-2 sm:flex">
+              <span className="bg-status-resolved/15 text-status-resolved flex size-7 items-center justify-center rounded-full">
+                <CheckCircle2 className="size-4" aria-hidden />
+              </span>
+              <p className="text-xs font-medium">
+                Confirmed fixed by the reporter
               </p>
             </div>
           </div>
@@ -158,46 +209,61 @@ export default async function HomePage() {
       </section>
 
       {/* How it works */}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
         <div className="max-w-2xl">
-          <h2 className="text-2xl font-bold sm:text-3xl">How it works</h2>
-          <p className="text-muted-foreground mt-2">
-            Three steps from spotting a problem to public accountability —
-            modelled on proven civic platforms used worldwide.
+          <p className="text-primary text-sm font-semibold tracking-wider uppercase">
+            The process
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">
+            How a report becomes a fix
+          </h2>
+          <p className="text-muted-foreground mt-3">
+            Four steps from spotting a problem to a verified resolution — each
+            one public, timestamped, and on the record.
           </p>
         </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              n: "01",
+              n: "১",
               icon: Camera,
               title: "Capture & pin",
               body: "Add a photo, drop a map pin or use GPS, and describe the issue. Photos are compressed on your device before upload.",
             },
             {
-              n: "02",
-              icon: ShieldCheck,
-              title: "Reviewed & routed",
-              body: "Moderators approve genuine reports so they appear on the public feed, mapped and tagged to the right city corporation.",
+              n: "২",
+              icon: Landmark,
+              title: "Routed to the right desk",
+              body: "Each report is automatically routed to the responsible body — city corporation, WASA, power distributor or police.",
             },
             {
-              n: "03",
+              n: "৩",
               icon: Gauge,
-              title: "Tracked to resolution",
-              body: "Each report follows a Pending → In Progress → Resolved lifecycle against a response deadline, with notifications at every change.",
+              title: "Tracked on a deadline",
+              body: "Approved reports run Pending → In Progress → Resolved against a response deadline. Overdue cases are flagged publicly.",
+            },
+            {
+              n: "৪",
+              icon: CheckCircle2,
+              title: "Verified by you",
+              body: "“Resolved” only counts when the reporter confirms it. Dispute a fake fix and the report reopens with the clock running.",
             },
           ].map(({ n, icon: Icon, title, body }) => (
-            <Tilt key={title} className="bg-card card-lift rounded-xl border p-6">
-              <div className="flex items-center justify-between">
-                <span className="bg-primary/10 text-primary inline-flex size-10 items-center justify-center rounded-md">
-                  <Icon className="size-5" aria-hidden />
-                </span>
-                <span className="text-muted-foreground/40 text-2xl font-bold">
-                  {n}
-                </span>
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">{title}</h3>
-              <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+            <Tilt
+              key={title}
+              className="bg-card card-lift group relative overflow-hidden rounded-xl border p-6"
+            >
+              <span
+                className="font-bengali text-primary/[0.07] group-hover:text-primary/[0.13] pointer-events-none absolute -top-3 right-2 text-[5.5rem] font-bold transition-colors"
+                aria-hidden
+              >
+                {n}
+              </span>
+              <span className="bg-primary/10 text-primary relative inline-flex size-10 items-center justify-center rounded-md">
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <h3 className="relative mt-4 text-lg font-semibold">{title}</h3>
+              <p className="text-muted-foreground relative mt-1.5 text-sm leading-relaxed">
                 {body}
               </p>
             </Tilt>
@@ -208,36 +274,44 @@ export default async function HomePage() {
       {/* Features */}
       <section className="border-y bg-card">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-          <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 icon: MapPin,
                 title: "Interactive map",
                 body: "Every geo-tagged report on an OpenStreetMap view, with density heatmaps for administrators.",
+                href: "/map",
               },
               {
                 icon: MessagesSquare,
                 title: "Community weight",
                 body: "Endorse, comment and share — turning one report into collective, visible documentation.",
+                href: "/reports",
               },
               {
                 icon: Scale,
                 title: "RTI wizard",
                 body: "Generate a Right to Information Act 2009 application in English or Bangla, ready to print.",
+                href: "/rti",
               },
               {
-                icon: CheckCircle2,
-                title: "SLA transparency",
-                body: "Response deadlines are tracked and breaches flagged — so neglect can't stay invisible.",
+                icon: Landmark,
+                title: "Authority directory",
+                body: "Who owns which problem — city corporations, WASA, power and police, with hotlines that actually connect.",
+                href: "/authorities",
               },
-            ].map(({ icon: Icon, title, body }) => (
-              <div key={title}>
-                <Icon className="text-primary size-6" aria-hidden />
-                <h3 className="mt-3 font-semibold">{title}</h3>
+            ].map(({ icon: Icon, title, body, href }) => (
+              <Link key={title} href={href} className="group">
+                <span className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground inline-flex size-11 items-center justify-center rounded-lg transition-colors">
+                  <Icon className="size-5.5" aria-hidden />
+                </span>
+                <h3 className="group-hover:text-primary mt-3 font-semibold transition-colors">
+                  {title}
+                </h3>
                 <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                   {body}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -248,8 +322,13 @@ export default async function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-bold sm:text-3xl">Latest reports</h2>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-primary text-sm font-semibold tracking-wider uppercase">
+                Live from the streets
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">
+                Latest reports
+              </h2>
+              <p className="text-muted-foreground mt-2">
                 Real issues raised by citizens across Bangladesh.
               </p>
             </div>
@@ -268,12 +347,20 @@ export default async function HomePage() {
       ) : null}
 
       {/* CTA */}
-      <section className="border-t bg-brand-gradient">
-        <div className="mx-auto max-w-4xl px-4 py-16 text-center text-white sm:px-6">
-          <h2 className="text-3xl font-bold text-balance">
-            Your report is a public record. Make it count.
+      <section className="hero-panel relative overflow-hidden border-t">
+        <div className="ribbon-bd absolute inset-x-0 top-0 h-1" aria-hidden />
+        <div
+          className="dot-grid absolute inset-0 opacity-20 invert"
+          aria-hidden
+        />
+        <div className="relative mx-auto max-w-4xl px-4 py-20 text-center text-white sm:px-6">
+          <h2 className="text-3xl font-semibold text-balance sm:text-4xl">
+            Your report is a public record.
+            <br />
+            <span className="italic">Make it count</span>
+            <span className="text-brand-red">.</span>
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-white/85">
+          <p className="mx-auto mt-4 max-w-xl text-white/85">
             Join citizens across Bangladesh documenting the issues that matter —
             and pressing for the fixes that follow.
           </p>

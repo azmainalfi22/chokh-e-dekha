@@ -28,6 +28,7 @@ const COLUMNS = [
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t bg-card">
+      <div className="ribbon-bd h-0.5" aria-hidden />
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2.5">
@@ -35,7 +36,7 @@ export function SiteFooter() {
               <Eye className="size-5" aria-hidden />
             </span>
             <div className="leading-none">
-              <p className="font-bold">{APP_NAME}</p>
+              <p className="font-display text-lg font-semibold">{APP_NAME}</p>
               <p className="text-muted-foreground font-bengali mt-0.5 text-xs">
                 {APP_NAME_BN}
               </p>

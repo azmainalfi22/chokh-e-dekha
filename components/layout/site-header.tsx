@@ -99,7 +99,7 @@ export async function SiteHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
+                  className="nav-underline text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
                 >
                   {link.label}
                 </Link>
@@ -107,7 +107,7 @@ export async function SiteHeader() {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
+                  className="nav-underline text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
                 >
                   Dashboard
                 </Link>

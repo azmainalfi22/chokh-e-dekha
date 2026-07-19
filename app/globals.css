@@ -171,6 +171,7 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji";
   --font-bengali: var(--font-bengali), var(--font-inter), sans-serif;
+  --font-display: var(--font-fraunces), var(--font-bengali), Georgia, serif;
 }
 
 @layer base {
@@ -183,8 +184,19 @@
   .font-bengali {
     font-family: var(--font-bengali);
   }
-  h1, h2, h3 {
+  /* Headlines carry the display serif — editorial, gazette-like authority.
+     h3 and below stay in the sans for UI density. */
+  h1, h2 {
+    font-family: var(--font-display);
     @apply tracking-tight;
+    font-optical-sizing: auto;
+  }
+  h3 {
+    @apply tracking-tight;
+  }
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
   }
 }
 
@@ -244,7 +256,8 @@
     border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
   }
 
-  /* Layered green "civic mesh" backdrop for hero sections. */
+  /* Layered green "civic mesh" backdrop for hero sections — green washes
+     with a whisper of flag red high in the corner. */
   .civic-mesh {
     background-color: var(--background);
     background-image:
@@ -254,9 +267,69 @@
         transparent 60%
       ),
       radial-gradient(
+        18rem 14rem at 72% -6%,
+        color-mix(in oklch, var(--brand-red) 7%, transparent),
+        transparent 65%
+      ),
+      radial-gradient(
         36rem 26rem at -8% 8%,
         color-mix(in oklch, var(--brand-green) 12%, transparent),
         transparent 55%
+      );
+  }
+
+  /* Fine dot lattice — architectural texture layered under heroes. */
+  .dot-grid {
+    background-image: radial-gradient(
+      color-mix(in oklch, var(--foreground) 9%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  /* Layered editorial shadow for floating panels. */
+  .shadow-elevated {
+    box-shadow:
+      0 1px 2px color-mix(in oklch, var(--foreground) 6%, transparent),
+      0 8px 24px -8px color-mix(in oklch, var(--foreground) 14%, transparent),
+      0 24px 56px -24px color-mix(in oklch, var(--brand-green) 26%, transparent);
+  }
+
+  /* Nav links: green underline that slides in on hover / current page. */
+  .nav-underline {
+    position: relative;
+  }
+  .nav-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--brand-green);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.22s ease;
+  }
+  .nav-underline:hover::after,
+  .nav-underline[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* Deep-green hero stat panel — the national dashboard look. */
+  .hero-panel {
+    background-color: var(--brand-green-strong);
+    background-image:
+      radial-gradient(
+        26rem 18rem at 110% -20%,
+        color-mix(in oklch, white 14%, transparent),
+        transparent 60%
+      ),
+      linear-gradient(
+        165deg,
+        var(--brand-green),
+        var(--brand-green-strong) 70%
       );
   }
 }
@@ -268,6 +341,9 @@
   }
   .card-lift:hover {
     transform: none;
+  }
+  .nav-underline::after {
+    transition: none;
   }
 }
 

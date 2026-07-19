@@ -21,7 +21,7 @@ export function Logo({
         <Eye className="size-5" aria-hidden />
       </span>
       <span className="flex flex-col leading-none">
-        <span className="text-[15px] font-bold tracking-tight">
+        <span className="font-display text-[17px] font-semibold tracking-tight">
           {APP_NAME}
         </span>
         {subtitle ? (

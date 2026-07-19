@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Bengali } from "next/font/google";
+import { Fraunces, Inter, Noto_Sans_Bengali } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
@@ -9,6 +9,14 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
+});
+
+// Display serif for headlines — editorial gravitas, like a state gazette.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  display: "swap",
+  axes: ["opsz"],
 });
 
 const notoBengali = Noto_Sans_Bengali({
@@ -34,7 +42,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${notoBengali.variable} h-full`}
+      className={`${inter.variable} ${fraunces.variable} ${notoBengali.variable} h-full`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
