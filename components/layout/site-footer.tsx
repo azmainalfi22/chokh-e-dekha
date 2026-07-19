@@ -17,6 +17,7 @@ const COLUMNS = [
     title: "Citizens",
     links: [
       { href: "/services", label: "Emergency & Services" },
+      { href: "/authorities", label: "Authority Directory" },
       { href: "/rights", label: "Know Your Rights" },
       { href: "/", label: "How it works" },
       { href: "/reports", label: "Public accountability" },

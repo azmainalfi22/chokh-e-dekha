@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/reports/status-badge";
 import { SlaBadge } from "@/components/reports/sla-badge";
+import { getAuthority, resolveAuthority } from "@/lib/routing";
 
 export const metadata: Metadata = { title: "My Reports" };
 
@@ -28,7 +29,7 @@ export default async function MyReportsPage() {
   const { data: reports } = await supabase
     .from("reports")
     .select(
-      "id, title, category, city_corporation, status, is_approved, resolution_state, sla_due_at, created_at, endorse_count, comment_count"
+      "id, title, category, city_corporation, status, is_approved, resolution_state, routed_authority_key, sla_due_at, created_at, endorse_count, comment_count"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
@@ -93,6 +94,11 @@ export default async function MyReportsPage() {
                     </Link>
                     <span className="text-muted-foreground text-xs">
                       {r.category}
+                      {" · "}
+                      {(
+                        getAuthority(r.routed_authority_key) ??
+                        resolveAuthority(r.category, r.city_corporation)
+                      ).name}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm">

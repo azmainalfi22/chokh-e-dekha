@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { reportSchema } from "@/lib/validations";
+import { resolveAuthorityKey } from "@/lib/routing";
 
 export type CreateReportResult =
   | { ok: true; reportId: number }
@@ -50,6 +51,9 @@ export async function createReport(
       location_text: d.locationText || null,
       latitude: d.latitude,
       longitude: d.longitude,
+      // Route to the responsible body from validated category + city. Computed
+      // here (not from client input) so it can't be spoofed.
+      routed_authority_key: resolveAuthorityKey(d.category, d.cityCorporation),
     })
     .select("id")
     .single();

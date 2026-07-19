@@ -308,6 +308,7 @@ export type Database = {
           priority: string | null
           resolution_state: string | null
           resolved_at: string | null
+          routed_authority_key: string | null
           share_count: number
           sla_due_at: string | null
           status: string
@@ -337,6 +338,7 @@ export type Database = {
           priority?: string | null
           resolution_state?: string | null
           resolved_at?: string | null
+          routed_authority_key?: string | null
           share_count?: number
           sla_due_at?: string | null
           status?: string
@@ -366,6 +368,7 @@ export type Database = {
           priority?: string | null
           resolution_state?: string | null
           resolved_at?: string | null
+          routed_authority_key?: string | null
           share_count?: number
           sla_due_at?: string | null
           status?: string

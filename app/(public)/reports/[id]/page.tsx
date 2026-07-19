@@ -5,8 +5,11 @@ import {
   ArrowLeft,
   Building2,
   CalendarDays,
+  Globe,
   History,
+  Landmark,
   MapPin,
+  Phone,
   ShieldCheck,
   Tag,
   User,
@@ -14,6 +17,12 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { reportMediaUrl } from "@/lib/storage";
 import { STATUS_LABELS, type Status } from "@/lib/constants";
+import {
+  DEPT_LABELS,
+  NATIONAL_HELPLINE,
+  getAuthority,
+  resolveAuthority,
+} from "@/lib/routing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,6 +142,12 @@ export default async function ReportDetailPage({
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
+  // Responsible authority: prefer the key pinned at creation; fall back to a
+  // fresh resolve so older reports (before routing) still show a destination.
+  const authority =
+    getAuthority(report.routed_authority_key) ??
+    resolveAuthority(report.category, report.city_corporation);
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">
       <Button variant="ghost" size="sm" asChild>
@@ -202,6 +217,55 @@ export default async function ReportDetailPage({
       <Card>
         <CardContent className="pt-6">
           <StatusTracker status={report.status} className="mx-auto max-w-md" />
+        </CardContent>
+      </Card>
+
+      <Card className="border-primary/25 bg-primary/[0.04]">
+        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="bg-brand-gradient flex size-10 shrink-0 items-center justify-center rounded-lg text-white">
+              <Landmark className="size-5" aria-hidden />
+            </span>
+            <div>
+              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Routed to responsible authority
+              </p>
+              <p className="font-semibold">{authority.name}</p>
+              <p className="text-muted-foreground font-bengali text-sm">
+                {authority.nameBn}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {DEPT_LABELS[authority.dept]} · {authority.jurisdiction}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
+            {authority.hotline ? (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`tel:${authority.hotline}`}>
+                  <Phone className="size-4" aria-hidden /> {authority.hotline}
+                </a>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`tel:${NATIONAL_HELPLINE}`}>
+                  <Phone className="size-4" aria-hidden /> Helpline{" "}
+                  {NATIONAL_HELPLINE}
+                </a>
+              </Button>
+            )}
+            {authority.website ? (
+              <Button variant="ghost" size="sm" asChild>
+                <a
+                  href={authority.website}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <Globe className="size-4" aria-hidden /> Website
+                </a>
+              </Button>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 

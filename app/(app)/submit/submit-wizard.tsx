@@ -12,6 +12,7 @@ import {
   Camera,
   CheckCircle2,
   ImagePlus,
+  Landmark,
   Loader2,
   MapPin,
   Send,
@@ -22,6 +23,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createReport } from "@/lib/actions/reports";
 import { reportSchema, type ReportInput } from "@/lib/validations";
 import { CATEGORIES, CITIES } from "@/lib/constants";
+import { DEPT_LABELS, resolveAuthority } from "@/lib/routing";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -83,6 +85,13 @@ export function SubmitWizard() {
       longitude: null,
     },
   });
+
+  const watchedCategory = form.watch("category");
+  const watchedCity = form.watch("cityCorporation");
+  const routePreview =
+    watchedCategory && watchedCity
+      ? resolveAuthority(watchedCategory, watchedCity)
+      : null;
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -334,6 +343,24 @@ export function SubmitWizard() {
                       )}
                     />
                   </div>
+                  {routePreview ? (
+                    <div className="border-primary/25 bg-primary/[0.04] flex items-center gap-3 rounded-lg border p-3">
+                      <Landmark
+                        className="text-primary size-4.5 shrink-0"
+                        aria-hidden
+                      />
+                      <p className="text-sm">
+                        This report will be routed to{" "}
+                        <span className="font-semibold">
+                          {routePreview.name}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                          ({DEPT_LABELS[routePreview.dept]})
+                        </span>
+                        .
+                      </p>
+                    </div>
+                  ) : null}
                   <FormField
                     control={form.control}
                     name="description"
@@ -508,10 +535,16 @@ function ReviewStep({
   pin: { lat: number; lng: number } | null;
   photos: Photo[];
 }) {
+  const routed =
+    values.category && values.cityCorporation
+      ? resolveAuthority(values.category, values.cityCorporation)
+      : null;
+
   const rows: Array<[string, React.ReactNode]> = [
     ["Title", values.title],
     ["Category", values.category],
     ["City Corporation", values.cityCorporation],
+    ["Routed to", routed ? routed.name : "—"],
     ["Location", values.locationText || "—"],
     [
       "Coordinates",
