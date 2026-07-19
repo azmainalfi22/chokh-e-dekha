@@ -9,6 +9,7 @@ const COLUMNS = [
       { href: "/reports", label: "All Reports" },
       { href: "/map", label: "Reports Map" },
       { href: "/submit", label: "Report an Issue" },
+      { href: "/guides", label: "Service Guides" },
       { href: "/surveys", label: "Community Surveys" },
       { href: "/rti", label: "RTI Wizard" },
     ],
