@@ -16,6 +16,7 @@ import {
 import { StatusBadge } from "@/components/reports/status-badge";
 import { SlaBadge } from "@/components/reports/sla-badge";
 import { getAuthority, resolveAuthority } from "@/lib/routing";
+import { isEscalationEligible } from "@/lib/sla";
 
 export const metadata: Metadata = { title: "My Reports" };
 
@@ -114,6 +115,19 @@ export default async function MyReportsPage() {
                           className="text-status-pending text-xs font-medium hover:underline"
                         >
                           Action needed: confirm fix →
+                        </Link>
+                      ) : null}
+                      {r.is_approved &&
+                      isEscalationEligible(
+                        r.status,
+                        r.sla_due_at,
+                        r.resolution_state
+                      ) ? (
+                        <Link
+                          href={`/reports/${r.id}/escalate`}
+                          className="text-status-breach text-xs font-medium hover:underline"
+                        >
+                          Stuck — escalate via GRS/333 →
                         </Link>
                       ) : null}
                     </div>

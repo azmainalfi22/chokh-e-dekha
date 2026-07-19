@@ -128,6 +128,63 @@ export type Database = {
           },
         ]
       }
+      report_escalations: {
+        Row: {
+          channel: string
+          complaint_body: string
+          created_at: string
+          filed_at: string | null
+          id: number
+          language: string
+          outcome: string
+          reference_no: string | null
+          report_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          complaint_body: string
+          created_at?: string
+          filed_at?: string | null
+          id?: never
+          language?: string
+          outcome?: string
+          reference_no?: string | null
+          report_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          complaint_body?: string
+          created_at?: string
+          filed_at?: string | null
+          id?: never
+          language?: string
+          outcome?: string
+          reference_no?: string | null
+          report_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_escalations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_escalations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_corroborations: {
         Row: {
           created_at: string

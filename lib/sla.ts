@@ -17,6 +17,21 @@ export type SlaState =
   | { kind: "breached"; daysOverdue: number };
 
 /**
+ * A report can be escalated to the official rails (GRS / 333) when the
+ * authority is demonstrably failing: the response deadline has passed, or
+ * a claimed fix was disputed by the reporter.
+ */
+export function isEscalationEligible(
+  status: string,
+  slaDueAt: string | null,
+  resolutionState: string | null,
+  now: Date = new Date()
+): boolean {
+  if (resolutionState === "disputed") return true;
+  return getSlaState(slaDueAt, status, now).kind === "breached";
+}
+
+/**
  * SLA state for a report. Only open reports (pending / in_progress) can
  * breach — resolved and rejected reports are settled.
  */

@@ -12,12 +12,19 @@ import {
   MapPin,
   Phone,
   ShieldCheck,
+  Siren,
   Tag,
   User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { reportMediaUrl } from "@/lib/storage";
 import { STATUS_LABELS, type Status } from "@/lib/constants";
+import { isEscalationEligible } from "@/lib/sla";
+import {
+  CHANNEL_LABELS,
+  OUTCOME_LABELS,
+  type EscalationChannel,
+} from "@/lib/grs";
 import {
   DEPT_LABELS,
   NATIONAL_HELPLINE,
@@ -132,6 +139,14 @@ export default async function ReportDetailPage({
         : Promise.resolve({ data: false }),
     ]);
 
+  // Escalation trail (publicly readable — part of the accountability record).
+  const { data: escalations } = await supabase
+    .from("report_escalations")
+    .select("id, channel, reference_no, outcome, filed_at")
+    .eq("report_id", reportId)
+    .neq("outcome", "drafted")
+    .order("filed_at", { ascending: true });
+
   const comments: CommentData[] = (commentsRes.data ?? []).map((c) => ({
     id: c.id,
     body: c.body,
@@ -165,6 +180,16 @@ export default async function ReportDetailPage({
   const authority =
     getAuthority(report.routed_authority_key) ??
     resolveAuthority(report.category, report.city_corporation);
+
+  const filedEscalations = escalations ?? [];
+  const canEscalate =
+    user?.id === report.user_id &&
+    report.is_approved &&
+    isEscalationEligible(
+      report.status,
+      report.sla_due_at,
+      report.resolution_state
+    );
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">
@@ -201,6 +226,15 @@ export default async function ReportDetailPage({
               className="border-status-breach/40 text-status-breach"
             >
               Reopened — citizen disputed the fix
+            </Badge>
+          ) : null}
+          {filedEscalations.length > 0 ? (
+            <Badge
+              variant="outline"
+              className="border-status-breach/40 text-status-breach"
+            >
+              <Siren className="size-3.5" aria-hidden /> Escalated to official
+              channels
             </Badge>
           ) : null}
           {!report.is_approved ? (
@@ -310,6 +344,72 @@ export default async function ReportDetailPage({
             “{report.dispute_reason}”
           </p>
         </div>
+      ) : null}
+
+      {canEscalate ? (
+        <div className="border-status-breach/30 bg-status-breach/5 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+          <div className="flex items-start gap-3">
+            <Siren className="text-status-breach mt-0.5 size-5 shrink-0" aria-hidden />
+            <div>
+              <p className="font-semibold">This report is stuck — escalate it</p>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                File an official complaint through the national Grievance
+                Redress System or the 333 helpline. We&apos;ll draft it for you.
+              </p>
+            </div>
+          </div>
+          <Button
+            className="bg-brand-gradient border-0 text-white hover:opacity-95"
+            asChild
+          >
+            <Link href={`/reports/${report.id}/escalate`}>
+              Escalate this report
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {filedEscalations.length > 0 ? (
+        <Card className="border-status-breach/25">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Siren className="text-status-breach size-5" aria-hidden />
+              Official escalation trail
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {filedEscalations.map((e) => (
+              <div
+                key={e.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+              >
+                <span className="font-medium">
+                  {CHANNEL_LABELS[e.channel as EscalationChannel]?.en ?? e.channel}
+                  {e.reference_no ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · Ref {e.reference_no}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {OUTCOME_LABELS[e.outcome] ?? e.outcome}
+                  </Badge>
+                  {e.filed_at ? (
+                    <span className="text-muted-foreground text-xs">
+                      {new Date(e.filed_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       ) : null}
 
       {report.is_approved ? (
