@@ -23,6 +23,7 @@ import { SlaBadge } from "@/components/reports/sla-badge";
 import { ReportMap } from "@/components/map/report-map";
 import { EngagementBar } from "@/components/reports/engagement-bar";
 import { Comments, type CommentData } from "@/components/reports/comments";
+import { ResolutionPanel } from "@/components/reports/resolution-panel";
 
 type Params = Promise<{ id: string }>;
 
@@ -144,6 +145,31 @@ export default async function ReportDetailPage({
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={report.status} />
           <SlaBadge slaDueAt={report.sla_due_at} status={report.status} />
+          {report.status === "resolved" &&
+          report.resolution_state === "pending_confirmation" ? (
+            <Badge
+              variant="outline"
+              className="border-status-pending/40 text-status-pending"
+            >
+              Awaiting citizen confirmation
+            </Badge>
+          ) : null}
+          {report.resolution_state === "confirmed" ? (
+            <Badge
+              variant="outline"
+              className="border-status-resolved/40 text-status-resolved"
+            >
+              ✓ Confirmed fixed by reporter
+            </Badge>
+          ) : null}
+          {report.resolution_state === "disputed" ? (
+            <Badge
+              variant="outline"
+              className="border-status-breach/40 text-status-breach"
+            >
+              Reopened — citizen disputed the fix
+            </Badge>
+          ) : null}
           {!report.is_approved ? (
             <Badge variant="outline" className="text-muted-foreground">
               Awaiting moderation — only you can see this
@@ -178,6 +204,22 @@ export default async function ReportDetailPage({
           <StatusTracker status={report.status} className="mx-auto max-w-md" />
         </CardContent>
       </Card>
+
+      {user?.id === report.user_id &&
+      report.resolution_state === "pending_confirmation" ? (
+        <ResolutionPanel reportId={report.id} />
+      ) : null}
+
+      {report.resolution_state === "disputed" && report.dispute_reason ? (
+        <div className="border-status-breach/25 bg-status-breach/5 rounded-lg border p-4">
+          <p className="text-status-breach text-sm font-medium">
+            Reporter disputed the fix
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            “{report.dispute_reason}”
+          </p>
+        </div>
+      ) : null}
 
       {report.is_approved ? (
         <EngagementBar

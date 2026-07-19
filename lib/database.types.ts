@@ -298,6 +298,7 @@ export type Database = {
           comment_count: number
           created_at: string
           description: string
+          dispute_reason: string | null
           endorse_count: number
           id: number
           is_approved: boolean
@@ -305,6 +306,8 @@ export type Database = {
           location_text: string | null
           longitude: number | null
           priority: string | null
+          resolution_state: string | null
+          resolved_at: string | null
           share_count: number
           sla_due_at: string | null
           status: string
@@ -324,6 +327,7 @@ export type Database = {
           comment_count?: number
           created_at?: string
           description: string
+          dispute_reason?: string | null
           endorse_count?: number
           id?: never
           is_approved?: boolean
@@ -331,6 +335,8 @@ export type Database = {
           location_text?: string | null
           longitude?: number | null
           priority?: string | null
+          resolution_state?: string | null
+          resolved_at?: string | null
           share_count?: number
           sla_due_at?: string | null
           status?: string
@@ -350,6 +356,7 @@ export type Database = {
           comment_count?: number
           created_at?: string
           description?: string
+          dispute_reason?: string | null
           endorse_count?: number
           id?: never
           is_approved?: boolean
@@ -357,6 +364,8 @@ export type Database = {
           location_text?: string | null
           longitude?: number | null
           priority?: string | null
+          resolution_state?: string | null
+          resolved_at?: string | null
           share_count?: number
           sla_due_at?: string | null
           status?: string
@@ -513,6 +522,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_resolution: {
+        Args: { p_report_id: number }
+        Returns: undefined
+      }
+      dispute_resolution: {
+        Args: { p_report_id: number; p_reason: string }
+        Returns: undefined
+      }
       increment_share_count: {
         Args: { p_report_id: number }
         Returns: undefined

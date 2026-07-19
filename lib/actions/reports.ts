@@ -77,6 +77,50 @@ export async function createReport(
   return { ok: true, reportId: report.id };
 }
 
+type ActionResult = { ok: true } | { ok: false; error: string };
+
+/** Reporter confirms their report was actually fixed. */
+export async function confirmResolution(
+  reportId: number
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You must be signed in" };
+
+  const { error } = await supabase.rpc("confirm_resolution", {
+    p_report_id: reportId,
+  });
+  if (error) return { ok: false, error: "Could not confirm — try again" };
+
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath("/my-reports");
+  return { ok: true };
+}
+
+/** Reporter disputes the fix → the report reopens and the SLA resumes. */
+export async function disputeResolution(
+  reportId: number,
+  reason: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You must be signed in" };
+
+  const { error } = await supabase.rpc("dispute_resolution", {
+    p_report_id: reportId,
+    p_reason: (reason ?? "").slice(0, 500),
+  });
+  if (error) return { ok: false, error: "Could not reopen — try again" };
+
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath("/my-reports");
+  return { ok: true };
+}
+
 export type NearbyReport = {
   id: number;
   title: string;

@@ -28,7 +28,7 @@ export default async function MyReportsPage() {
   const { data: reports } = await supabase
     .from("reports")
     .select(
-      "id, title, category, city_corporation, status, is_approved, sla_due_at, created_at, endorse_count, comment_count"
+      "id, title, category, city_corporation, status, is_approved, resolution_state, sla_due_at, created_at, endorse_count, comment_count"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
@@ -102,6 +102,14 @@ export default async function MyReportsPage() {
                     <div className="flex flex-col items-start gap-1">
                       <StatusBadge status={r.status} />
                       <SlaBadge slaDueAt={r.sla_due_at} status={r.status} />
+                      {r.resolution_state === "pending_confirmation" ? (
+                        <Link
+                          href={`/reports/${r.id}`}
+                          className="text-status-pending text-xs font-medium hover:underline"
+                        >
+                          Action needed: confirm fix →
+                        </Link>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
