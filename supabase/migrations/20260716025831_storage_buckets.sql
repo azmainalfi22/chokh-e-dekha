@@ -1,4 +1,6 @@
--- Public-read buckets for report evidence and avatars
+-- Public-read buckets for report evidence and avatars.
+-- (The broad public-read SELECT policies here are tightened in the
+-- 20260716025924_security_hardening migration.)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
   ('report-media', 'report-media', true, 10485760,
@@ -7,8 +9,13 @@ values
      array['image/jpeg','image/png','image/webp'])
 on conflict (id) do nothing;
 
--- Public buckets serve object URLs without a broad SELECT policy, so we only
--- grant write access. Authenticated users can upload; they manage their own files.
+create policy "public read report media"
+  on storage.objects for select
+  using (bucket_id = 'report-media');
+create policy "public read avatars"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
 create policy "authed upload report media"
   on storage.objects for insert to authenticated
   with check (bucket_id = 'report-media');
