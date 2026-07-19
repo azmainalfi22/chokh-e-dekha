@@ -38,7 +38,7 @@ export function ReportCard({ report }: { report: ReportCardData }) {
   });
 
   return (
-    <Card className="group flex h-full flex-col gap-0 overflow-hidden py-0 transition-shadow hover:shadow-lg">
+    <Card className="group card-lift flex h-full flex-col gap-0 overflow-hidden py-0">
       <Link
         href={`/reports/${report.id}`}
         className="relative block aspect-[16/9] overflow-hidden"

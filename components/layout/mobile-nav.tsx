@@ -21,7 +21,7 @@ export function MobileNav({
   links: { href: string; label: string }[];
 }) {
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" aria-label="Open menu">
