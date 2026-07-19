@@ -522,6 +522,28 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      reports_near: {
+        Args: {
+          p_lat: number
+          p_lng: number
+          p_radius_m?: number
+          p_category?: string | null
+          p_exclude?: number | null
+        }
+        Returns: {
+          id: number
+          title: string
+          category: string
+          city_corporation: string
+          status: string
+          latitude: number
+          longitude: number
+          endorse_count: number
+          comment_count: number
+          created_at: string
+          distance_m: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
