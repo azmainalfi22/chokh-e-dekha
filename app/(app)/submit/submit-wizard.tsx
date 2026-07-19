@@ -9,6 +9,7 @@ import imageCompression from "browser-image-compression";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgeCheck,
   Camera,
   CheckCircle2,
   ImagePlus,
@@ -71,6 +72,7 @@ export function SubmitWizard() {
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<number | null>(null);
+  const [autoPublished, setAutoPublished] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ReportInput>({
@@ -186,6 +188,7 @@ export function SubmitWizard() {
         setSubmitting(false);
         return;
       }
+      setAutoPublished(result.autoPublished);
       setSubmittedId(result.reportId);
     } catch {
       toast.error("Something went wrong — please try again");
@@ -203,21 +206,35 @@ export function SubmitWizard() {
             <CheckCircle2 className="size-7" aria-hidden />
           </span>
           <CardTitle className="mt-2 text-2xl">
-            Report Submitted Successfully!
+            {autoPublished
+              ? "Report Published Immediately!"
+              : "Report Submitted Successfully!"}
           </CardTitle>
           <CardDescription className="max-w-md">
-            Your report is awaiting review. Once approved it appears on the
-            public feed, and you&apos;ll be notified at every status change.
+            {autoPublished
+              ? "As a trusted reporter your report skipped moderation — it is already live on the public feed with the response clock running."
+              : "Your report is awaiting review. Once approved it appears on the public feed, and you'll be notified at every status change."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3">
-          <StatusBadge status="pending" />
+          {autoPublished ? (
+            <span className="border-primary/30 bg-primary/5 text-primary inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold">
+              <BadgeCheck className="size-4" aria-hidden />
+              Trusted reporter — published without review
+            </span>
+          ) : (
+            <StatusBadge status="pending" />
+          )}
           <div className="mt-2 flex flex-wrap justify-center gap-3">
             <Button
               className="bg-brand-gradient border-0 text-white hover:opacity-90"
               asChild
             >
-              <Link href="/my-reports">Track my reports</Link>
+              {autoPublished ? (
+                <Link href={`/reports/${submittedId}`}>View live report</Link>
+              ) : (
+                <Link href="/my-reports">Track my reports</Link>
+              )}
             </Button>
             <Button
               variant="outline"
@@ -226,6 +243,7 @@ export function SubmitWizard() {
                 setPhotos([]);
                 setPin(null);
                 setSubmittedId(null);
+                setAutoPublished(false);
                 setSubmitting(false);
                 setStep(0);
               }}

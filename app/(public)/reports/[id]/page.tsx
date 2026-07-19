@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  BadgeCheck,
   Building2,
   CalendarDays,
   Globe,
@@ -80,8 +81,14 @@ export default async function ReportDetailPage({
 
   const user = userRes.data.user;
 
-  const [commentsRes, endorsedRes, bookmarkedRes, viewerProfileRes] =
-    await Promise.all([
+  const [
+    commentsRes,
+    endorsedRes,
+    corroboratedRes,
+    bookmarkedRes,
+    viewerProfileRes,
+    trustedRes,
+  ] = await Promise.all([
       supabase
         .from("report_comments")
         .select(
@@ -92,6 +99,14 @@ export default async function ReportDetailPage({
       user
         ? supabase
             .from("report_endorsements")
+            .select("report_id")
+            .eq("report_id", reportId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("report_corroborations")
             .select("report_id")
             .eq("report_id", reportId)
             .eq("user_id", user.id)
@@ -112,6 +127,9 @@ export default async function ReportDetailPage({
             .eq("id", user.id)
             .single()
         : Promise.resolve({ data: null }),
+      report.user_id
+        ? supabase.rpc("is_trusted_reporter", { p_user_id: report.user_id })
+        : Promise.resolve({ data: false }),
     ]);
 
   const comments: CommentData[] = (commentsRes.data ?? []).map((c) => ({
@@ -206,6 +224,15 @@ export default async function ReportDetailPage({
           <li className="flex items-center gap-1.5">
             <User className="size-4" aria-hidden />
             {report.profiles?.display_name ?? "Citizen"}
+            {trustedRes.data === true ? (
+              <span
+                className="text-primary inline-flex items-center gap-1 text-xs font-semibold"
+                title="At least 3 approved reports and no rejections — new reports publish without moderation"
+              >
+                <BadgeCheck className="size-4" aria-hidden />
+                Trusted reporter
+              </span>
+            ) : null}
           </li>
           <li className="flex items-center gap-1.5">
             <CalendarDays className="size-4" aria-hidden />
@@ -290,10 +317,13 @@ export default async function ReportDetailPage({
           reportId={report.id}
           title={report.title}
           endorseCount={report.endorse_count}
+          corroborationCount={report.corroboration_count}
           commentCount={comments.length}
           endorsed={!!endorsedRes.data}
+          corroborated={!!corroboratedRes.data}
           bookmarked={!!bookmarkedRes.data}
           isAuthed={!!user}
+          isOwner={user?.id === report.user_id}
         />
       ) : null}
 

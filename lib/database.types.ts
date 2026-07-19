@@ -128,6 +128,39 @@ export type Database = {
           },
         ]
       }
+      report_corroborations: {
+        Row: {
+          created_at: string
+          report_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          report_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          report_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_corroborations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_corroborations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_comments: {
         Row: {
           body: string
@@ -293,9 +326,11 @@ export type Database = {
           approved_at: string | null
           assigned_at: string | null
           assigned_to: string | null
+          auto_published: boolean
           category: string
           city_corporation: string
           comment_count: number
+          corroboration_count: number
           created_at: string
           description: string
           dispute_reason: string | null
@@ -323,9 +358,11 @@ export type Database = {
           approved_at?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
+          auto_published?: boolean
           category: string
           city_corporation: string
           comment_count?: number
+          corroboration_count?: number
           created_at?: string
           description: string
           dispute_reason?: string | null
@@ -353,9 +390,11 @@ export type Database = {
           approved_at?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
+          auto_published?: boolean
           category?: string
           city_corporation?: string
           comment_count?: number
+          corroboration_count?: number
           created_at?: string
           description?: string
           dispute_reason?: string | null
@@ -542,6 +581,10 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      is_trusted_reporter: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       reports_near: {
         Args: {
           p_lat: number

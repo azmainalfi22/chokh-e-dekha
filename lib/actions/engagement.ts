@@ -42,6 +42,47 @@ export async function toggleEndorsement(
   return { ok: true, endorsed: true };
 }
 
+/**
+ * Toggle "I see this too" — eyewitness corroboration from someone other
+ * than the reporter. RLS blocks self-corroboration and unapproved reports.
+ */
+export async function toggleCorroboration(
+  reportId: number
+): Promise<Result & { corroborated?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Log in to corroborate reports" };
+
+  const { data: existing } = await supabase
+    .from("report_corroborations")
+    .select("report_id")
+    .eq("report_id", reportId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("report_corroborations")
+      .delete()
+      .eq("report_id", reportId)
+      .eq("user_id", user.id);
+    if (error) return { ok: false, error: "Could not remove corroboration" };
+    revalidatePath(`/reports/${reportId}`);
+    return { ok: true, corroborated: false };
+  }
+
+  const { error } = await supabase
+    .from("report_corroborations")
+    .insert({ report_id: reportId, user_id: user.id });
+  if (error) {
+    return { ok: false, error: "You can't corroborate your own report" };
+  }
+  revalidatePath(`/reports/${reportId}`);
+  return { ok: true, corroborated: true };
+}
+
 /** Toggle a private bookmark. Returns the new state. */
 export async function toggleBookmark(
   reportId: number
