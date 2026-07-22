@@ -28,7 +28,7 @@ export function AdminSidebar() {
   return (
     <div className="flex h-full flex-col gap-5 p-4">
       <Link href="/admin" className="flex items-center gap-2.5 px-1">
-        <span className="flex size-9 items-center justify-center rounded-md bg-white/15 text-white">
+        <span className="logo-tile flex size-9 items-center justify-center rounded-md">
           <LogoMark className="size-5" />
         </span>
         <span className="leading-none text-white">

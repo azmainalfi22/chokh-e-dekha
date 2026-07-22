@@ -34,7 +34,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2.5">
-            <span className="bg-brand-gradient flex size-9 items-center justify-center rounded-md text-white">
+            <span className="logo-tile flex size-9 items-center justify-center rounded-md ring-1 ring-black/5">
               <LogoMark className="size-5" />
             </span>
             <div className="leading-none">

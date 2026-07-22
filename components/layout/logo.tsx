@@ -17,7 +17,7 @@ export function Logo({
       className={cn("flex items-center gap-2.5", className)}
       aria-label={`${APP_NAME} home`}
     >
-      <span className="bg-brand-gradient flex size-9 shrink-0 items-center justify-center rounded-md text-white shadow-sm">
+      <span className="logo-tile flex size-9 shrink-0 items-center justify-center rounded-md shadow-sm ring-1 ring-black/5">
         <LogoMark className="size-5" />
       </span>
       <span className="flex flex-col leading-none">
