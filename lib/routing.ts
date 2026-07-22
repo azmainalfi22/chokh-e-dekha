@@ -21,6 +21,7 @@ export type DeptType =
   | "water"
   | "planning"
   | "power"
+  | "gas"
   | "police"
   | "fire";
 
@@ -29,6 +30,7 @@ export const DEPT_LABELS: Record<DeptType, string> = {
   water: "Water & Sewerage (WASA)",
   planning: "Development Authority",
   power: "Power Distribution",
+  gas: "Gas Distribution",
   police: "Bangladesh Police",
   fire: "Fire Service & Civil Defence",
 };
@@ -287,6 +289,32 @@ export const AUTHORITIES: Record<string, Authority> = {
     website: "https://bpdb.gov.bd",
   },
 
+  // ---- Gas distribution ----
+  titas: {
+    key: "titas",
+    name: "Titas Gas Transmission & Distribution",
+    nameBn: "তিতাস গ্যাস",
+    dept: "gas",
+    jurisdiction: "Dhaka, Gazipur, Narayanganj, Mymensingh",
+    hotline: "16496",
+    website: "https://titasgas.gov.bd",
+  },
+  karnaphuli: {
+    key: "karnaphuli",
+    name: "Karnaphuli Gas Distribution",
+    nameBn: "কর্ণফুলী গ্যাস",
+    dept: "gas",
+    jurisdiction: "Chattogram",
+    website: "https://kgdcl.gov.bd",
+  },
+  gas_distributor: {
+    key: "gas_distributor",
+    name: "Local Gas Distribution Company",
+    nameBn: "স্থানীয় গ্যাস বিতরণ কোম্পানি",
+    dept: "gas",
+    jurisdiction: "Your area's distributor (Jalalabad / Bakhrabad / Pashchimanchal / Sundarban)",
+  },
+
   // ---- Police ----
   traffic_police: {
     key: "traffic_police",
@@ -353,6 +381,15 @@ const PLANNING_BY_CITY: Partial<Record<City, string>> = {
   "Sylhet City Corporation": "sda",
 };
 
+const GAS_BY_CITY: Partial<Record<City, string>> = {
+  "Dhaka North City Corporation": "titas",
+  "Dhaka South City Corporation": "titas",
+  "Gazipur City Corporation": "titas",
+  "Narayanganj City Corporation": "titas",
+  "Mymensingh City Corporation": "titas",
+  "Chattogram City Corporation": "karnaphuli",
+};
+
 const POWER_BY_CITY: Partial<Record<City, string>> = {
   "Dhaka North City Corporation": "desco",
   "Dhaka South City Corporation": "dpdc",
@@ -384,6 +421,8 @@ export function resolveAuthorityKey(
       return PLANNING_BY_CITY[c] ?? municipal;
     case "Electricity":
       return POWER_BY_CITY[c] ?? "bpdb";
+    case "Gas":
+      return GAS_BY_CITY[c] ?? "gas_distributor";
     case "Traffic":
       return "traffic_police";
     case "Public Safety":

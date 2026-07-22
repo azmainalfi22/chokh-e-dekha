@@ -145,6 +145,25 @@ export async function disputeResolution(
   return { ok: true };
 }
 
+/**
+ * How many active reports of the same utility category exist in a city —
+ * powers the "you're not alone, N active reports" alert on the submit flow.
+ * Runs server-side (reliable network) via the area_outage_count RPC.
+ */
+export async function areaOutageCount(
+  category: string,
+  city: string
+): Promise<number> {
+  if (!category || !city) return 0;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("area_outage_count", {
+    p_category: category,
+    p_city: city,
+  });
+  if (error || typeof data !== "number") return 0;
+  return data;
+}
+
 export type NearbyReport = {
   id: number;
   title: string;

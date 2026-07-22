@@ -10,10 +10,10 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 const NAV_LINKS = [
   { href: "/reports", label: "Reports" },
+  { href: "/outages", label: "Outages" },
   { href: "/guides", label: "Guides" },
   { href: "/services", label: "Emergency" },
   { href: "/rights", label: "Your Rights" },
-  { href: "/rti", label: "RTI Wizard" },
 ];
 
 export async function SiteHeader() {

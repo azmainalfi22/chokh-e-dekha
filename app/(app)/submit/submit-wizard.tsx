@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
@@ -16,14 +16,15 @@ import {
   Landmark,
   Loader2,
   MapPin,
+  RadioTower,
   Send,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { createReport } from "@/lib/actions/reports";
+import { areaOutageCount, createReport } from "@/lib/actions/reports";
 import { reportSchema, type ReportInput } from "@/lib/validations";
-import { CATEGORIES, CITIES } from "@/lib/constants";
+import { CATEGORIES, CITIES, UTILITY_CATEGORIES } from "@/lib/constants";
 import { DEPT_LABELS, resolveAuthority } from "@/lib/routing";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,6 +95,26 @@ export function SubmitWizard() {
     watchedCategory && watchedCity
       ? resolveAuthority(watchedCategory, watchedCity)
       : null;
+
+  // Live outage signal: if this is a utility category and others nearby have
+  // already reported it, reassure the citizen and surface the live board.
+  const isUtility = (UTILITY_CATEGORIES as readonly string[]).includes(
+    watchedCategory ?? ""
+  );
+  const [outageCount, setOutageCount] = useState(0);
+  useEffect(() => {
+    if (!isUtility || !watchedCategory || !watchedCity) {
+      setOutageCount(0);
+      return;
+    }
+    let active = true;
+    areaOutageCount(watchedCategory, watchedCity).then((n) => {
+      if (active) setOutageCount(n);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isUtility, watchedCategory, watchedCity]);
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -378,6 +399,27 @@ export function SubmitWizard() {
                         .
                       </p>
                     </div>
+                  ) : null}
+                  {isUtility && outageCount > 0 ? (
+                    <Link
+                      href="/outages"
+                      className="border-status-breach/30 bg-status-breach/5 hover:bg-status-breach/10 flex items-center gap-3 rounded-lg border p-3 transition-colors"
+                    >
+                      <RadioTower
+                        className="text-status-breach size-4.5 shrink-0"
+                        aria-hidden
+                      />
+                      <p className="text-sm">
+                        <span className="font-semibold">
+                          You&apos;re not alone —
+                        </span>{" "}
+                        {outageCount} active {watchedCategory?.toLowerCase()}{" "}
+                        report{outageCount === 1 ? "" : "s"} in{" "}
+                        {watchedCity?.replace(" City Corporation", "")} recently.
+                        Still worth reporting — it strengthens the record. See
+                        the live outage board →
+                      </p>
+                    </Link>
                   ) : null}
                   <FormField
                     control={form.control}

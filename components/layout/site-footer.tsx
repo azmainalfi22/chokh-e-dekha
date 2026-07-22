@@ -8,6 +8,7 @@ const COLUMNS = [
     links: [
       { href: "/reports", label: "All Reports" },
       { href: "/map", label: "Reports Map" },
+      { href: "/outages", label: "Live Outages" },
       { href: "/submit", label: "Report an Issue" },
       { href: "/guides", label: "Service Guides" },
       { href: "/surveys", label: "Community Surveys" },

@@ -637,6 +637,20 @@ export type Database = {
         Args: { p_report_id: number }
         Returns: undefined
       }
+      active_outages: {
+        Args: { p_hours?: number }
+        Returns: {
+          category: string
+          city_corporation: string
+          report_count: number
+          first_reported: string
+          last_reported: string
+        }[]
+      }
+      area_outage_count: {
+        Args: { p_category: string; p_city: string; p_hours?: number }
+        Returns: number
+      }
       is_admin: { Args: never; Returns: boolean }
       is_trusted_reporter: {
         Args: { p_user_id: string }

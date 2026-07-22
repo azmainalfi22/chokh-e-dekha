@@ -10,10 +10,23 @@ export const CATEGORIES = [
   "Traffic",
   "Public Safety",
   "Electricity",
+  "Gas",
   "Parks",
   "Other",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
+
+/** Utility categories that behave as outages — clustered on the live board. */
+export const UTILITY_CATEGORIES = [
+  "Water Supply",
+  "Electricity",
+  "Gas",
+] as const;
+
+/** A cluster of this many recent reports is treated as a confirmed outage. */
+export const OUTAGE_CONFIRM_THRESHOLD = 3;
+/** How far back the live outage board looks. */
+export const OUTAGE_WINDOW_HOURS = 48;
 
 /** City corporations / cities (normalised from the original data, SPEC.md §4). */
 export const CITIES = [

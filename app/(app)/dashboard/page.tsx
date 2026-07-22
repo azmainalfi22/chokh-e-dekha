@@ -14,6 +14,7 @@ import {
   ListChecks,
   Map as MapIcon,
   PhoneCall,
+  RadioTower,
   Scale,
   Siren,
   ThumbsUp,
@@ -102,6 +103,12 @@ export default async function DashboardPage() {
       icon: Landmark,
       title: "Authority Directory",
       body: "Who owns which problem",
+    },
+    {
+      href: "/outages",
+      icon: RadioTower,
+      title: "Live Outages",
+      body: "Water, power & gas near you",
     },
     {
       href: "/services",
@@ -285,7 +292,7 @@ export default async function DashboardPage() {
             </Link>
           </Button>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {services.map(({ href, icon: Icon, title, body }) => (
             <Link
               key={href}
