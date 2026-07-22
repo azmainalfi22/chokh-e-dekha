@@ -59,6 +59,19 @@ export default async function DashboardPage() {
       .eq("user_id", user.id),
   ]);
 
+  // RTI applications that are ripe for an appeal (deadline passed or refused).
+  const { data: rtiLetters } = await supabase
+    .from("rti_letters")
+    .select("id, subject, status, deadline_at, outcome")
+    .eq("user_id", user.id)
+    .in("status", ["submitted", "responded"]);
+  const rtiActions = (rtiLetters ?? []).filter(
+    (l) =>
+      (l.deadline_at && new Date(l.deadline_at).getTime() < Date.now()) ||
+      l.outcome === "refused" ||
+      l.outcome === "partial"
+  );
+
   const all = reports ?? [];
   const total = all.length;
   const approved = all.filter((r) => r.is_approved).length;
@@ -83,7 +96,10 @@ export default async function DashboardPage() {
     (e) => e.outcome === "drafted"
   );
   const actionCount =
-    confirmNeeded.length + escalatable.length + draftedEscalations.length;
+    confirmNeeded.length +
+    escalatable.length +
+    draftedEscalations.length +
+    rtiActions.length;
 
   const services = [
     {
@@ -265,6 +281,22 @@ export default async function DashboardPage() {
                       Escalation drafted, not filed
                     </span>{" "}
                     — finish filing it and log the reference number
+                  </span>
+                </span>
+                <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden />
+              </Link>
+            ))}
+            {rtiActions.map((l) => (
+              <Link
+                key={`r${l.id}`}
+                href={`/rti/${l.id}`}
+                className="border-status-breach/30 bg-status-breach/5 hover:bg-status-breach/10 flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors"
+              >
+                <span className="flex min-w-0 items-center gap-2.5 text-sm">
+                  <Scale className="text-status-breach size-4.5 shrink-0" aria-hidden />
+                  <span className="truncate">
+                    <span className="font-medium">RTI can be appealed:</span>{" "}
+                    {l.subject}
                   </span>
                 </span>
                 <ArrowRight className="text-muted-foreground size-4 shrink-0" aria-hidden />

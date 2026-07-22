@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, Plus, Printer, Scale } from "lucide-react";
+import { CalendarClock, FileText, Plus, Printer, Scale } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { RTI_STATUS_LABELS, workingDaysBetween } from "@/lib/rti";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +19,20 @@ export default async function RtiPage() {
 
   const { data: letters } = await supabase
     .from("rti_letters")
-    .select("id, authority, subject, language, created_at")
+    .select(
+      "id, authority, subject, language, created_at, status, deadline_at, outcome"
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   const all = letters ?? [];
+
+  function deadlineHint(status: string, deadlineAt: string | null): string | null {
+    if (status !== "submitted" || !deadlineAt) return null;
+    const due = new Date(deadlineAt);
+    if (due.getTime() < Date.now()) return "Overdue — you can appeal";
+    return `~${workingDaysBetween(new Date(), due)} working days left`;
+  }
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">
@@ -90,10 +100,36 @@ export default async function RtiPage() {
                           year: "numeric",
                         })}
                       </p>
+                      {(() => {
+                        const hint = deadlineHint(l.status, l.deadline_at);
+                        return hint ? (
+                          <p
+                            className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+                              hint.startsWith("Overdue")
+                                ? "text-status-breach"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <CalendarClock className="size-3.5" aria-hidden />
+                            {hint}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
-                        {l.language === "bn" ? "বাংলা" : "English"}
+                      <Badge
+                        variant="outline"
+                        className={
+                          l.status === "closed"
+                            ? "border-status-resolved/40 text-status-resolved"
+                            : l.status === "appealed"
+                              ? "border-status-breach/40 text-status-breach"
+                              : l.status === "drafted"
+                                ? "text-muted-foreground"
+                                : "border-primary/40 text-primary"
+                        }
+                      >
+                        {RTI_STATUS_LABELS[l.status] ?? l.status}
                       </Badge>
                       <Button size="sm" variant="outline" asChild>
                         <Link href={`/rti/${l.id}`}>

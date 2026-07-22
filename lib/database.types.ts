@@ -493,33 +493,54 @@ export type Database = {
       }
       rti_letters: {
         Row: {
+          appeal_body: string | null
           authority: string
           body: string
           created_at: string
+          deadline_at: string | null
           id: number
           language: string
+          outcome: string | null
           report_id: number | null
+          responded_at: string | null
+          status: string
           subject: string
+          submitted_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          appeal_body?: string | null
           authority: string
           body: string
           created_at?: string
+          deadline_at?: string | null
           id?: never
           language?: string
+          outcome?: string | null
           report_id?: number | null
+          responded_at?: string | null
+          status?: string
           subject: string
+          submitted_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
+          appeal_body?: string | null
           authority?: string
           body?: string
           created_at?: string
+          deadline_at?: string | null
           id?: never
           language?: string
+          outcome?: string | null
           report_id?: number | null
+          responded_at?: string | null
+          status?: string
           subject?: string
+          submitted_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
