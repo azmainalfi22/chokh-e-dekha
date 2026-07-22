@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   ClipboardList,
-  Eye,
   LayoutDashboard,
   Map,
   MessageSquarePlus,
   Users,
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import { LogoMark } from "@/components/layout/logo-mark";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -29,7 +29,7 @@ export function AdminSidebar() {
     <div className="flex h-full flex-col gap-5 p-4">
       <Link href="/admin" className="flex items-center gap-2.5 px-1">
         <span className="flex size-9 items-center justify-center rounded-md bg-white/15 text-white">
-          <Eye className="size-5" aria-hidden />
+          <LogoMark className="size-5" />
         </span>
         <span className="leading-none text-white">
           <span className="block text-sm font-bold">{APP_NAME}</span>

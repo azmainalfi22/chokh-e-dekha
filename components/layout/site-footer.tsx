@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
 import { APP_NAME, APP_NAME_BN } from "@/lib/constants";
+import { LogoMark } from "@/components/layout/logo-mark";
 
 const COLUMNS = [
   {
@@ -35,7 +35,7 @@ export function SiteFooter() {
         <div className="md:col-span-2">
           <div className="flex items-center gap-2.5">
             <span className="bg-brand-gradient flex size-9 items-center justify-center rounded-md text-white">
-              <Eye className="size-5" aria-hidden />
+              <LogoMark className="size-5" />
             </span>
             <div className="leading-none">
               <p className="font-display text-lg font-semibold">{APP_NAME}</p>
