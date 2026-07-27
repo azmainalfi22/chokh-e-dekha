@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Eye } from "lucide-react";
 import { APP_NAME, APP_NAME_BN } from "@/lib/constants";
 
 const COLUMNS = [
@@ -8,7 +8,9 @@ const COLUMNS = [
     links: [
       { href: "/reports", label: "All Reports" },
       { href: "/map", label: "Reports Map" },
+      { href: "/outages", label: "Live Outages" },
       { href: "/submit", label: "Report an Issue" },
+      { href: "/guides", label: "Service Guides" },
       { href: "/surveys", label: "Community Surveys" },
       { href: "/rti", label: "RTI Wizard" },
     ],
@@ -17,6 +19,7 @@ const COLUMNS = [
     title: "Citizens",
     links: [
       { href: "/services", label: "Emergency & Services" },
+      { href: "/authorities", label: "Authority Directory" },
       { href: "/rights", label: "Know Your Rights" },
       { href: "/", label: "How it works" },
       { href: "/reports", label: "Public accountability" },
@@ -27,14 +30,21 @@ const COLUMNS = [
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t bg-card">
+      <div className="ribbon-bd h-0.5" aria-hidden />
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2.5">
-            <span className="bg-brand-gradient flex size-9 items-center justify-center rounded-md text-white">
-              <Eye className="size-5" aria-hidden />
+            <span className="relative flex size-9 shrink-0 overflow-hidden rounded-md ring-1 ring-black/5">
+              <Image
+                src="/brand/logo-tile.png"
+                alt=""
+                fill
+                sizes="36px"
+                className="object-cover"
+              />
             </span>
             <div className="leading-none">
-              <p className="font-bold">{APP_NAME}</p>
+              <p className="font-display text-lg font-semibold">{APP_NAME}</p>
               <p className="text-muted-foreground font-bengali mt-0.5 text-xs">
                 {APP_NAME_BN}
               </p>

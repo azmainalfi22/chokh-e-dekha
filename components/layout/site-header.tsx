@@ -10,10 +10,10 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 
 const NAV_LINKS = [
   { href: "/reports", label: "Reports" },
+  { href: "/outages", label: "Outages" },
+  { href: "/guides", label: "Guides" },
   { href: "/services", label: "Emergency" },
   { href: "/rights", label: "Your Rights" },
-  { href: "/surveys", label: "Surveys" },
-  { href: "/rti", label: "RTI Wizard" },
 ];
 
 export async function SiteHeader() {
@@ -99,7 +99,7 @@ export async function SiteHeader() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
+                  className="nav-underline text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
                 >
                   {link.label}
                 </Link>
@@ -107,7 +107,7 @@ export async function SiteHeader() {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
+                  className="nav-underline text-foreground/80 hover:text-primary text-sm font-medium transition-colors"
                 >
                   Dashboard
                 </Link>

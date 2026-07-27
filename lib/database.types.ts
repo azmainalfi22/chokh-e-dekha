@@ -128,6 +128,96 @@ export type Database = {
           },
         ]
       }
+      report_escalations: {
+        Row: {
+          channel: string
+          complaint_body: string
+          created_at: string
+          filed_at: string | null
+          id: number
+          language: string
+          outcome: string
+          reference_no: string | null
+          report_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          complaint_body: string
+          created_at?: string
+          filed_at?: string | null
+          id?: never
+          language?: string
+          outcome?: string
+          reference_no?: string | null
+          report_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          complaint_body?: string
+          created_at?: string
+          filed_at?: string | null
+          id?: never
+          language?: string
+          outcome?: string
+          reference_no?: string | null
+          report_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_escalations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_escalations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_corroborations: {
+        Row: {
+          created_at: string
+          report_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          report_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          report_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_corroborations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_corroborations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       report_comments: {
         Row: {
           body: string
@@ -293,11 +383,14 @@ export type Database = {
           approved_at: string | null
           assigned_at: string | null
           assigned_to: string | null
+          auto_published: boolean
           category: string
           city_corporation: string
           comment_count: number
+          corroboration_count: number
           created_at: string
           description: string
+          dispute_reason: string | null
           endorse_count: number
           id: number
           is_approved: boolean
@@ -305,6 +398,9 @@ export type Database = {
           location_text: string | null
           longitude: number | null
           priority: string | null
+          resolution_state: string | null
+          resolved_at: string | null
+          routed_authority_key: string | null
           share_count: number
           sla_due_at: string | null
           status: string
@@ -319,11 +415,14 @@ export type Database = {
           approved_at?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
+          auto_published?: boolean
           category: string
           city_corporation: string
           comment_count?: number
+          corroboration_count?: number
           created_at?: string
           description: string
+          dispute_reason?: string | null
           endorse_count?: number
           id?: never
           is_approved?: boolean
@@ -331,6 +430,9 @@ export type Database = {
           location_text?: string | null
           longitude?: number | null
           priority?: string | null
+          resolution_state?: string | null
+          resolved_at?: string | null
+          routed_authority_key?: string | null
           share_count?: number
           sla_due_at?: string | null
           status?: string
@@ -345,11 +447,14 @@ export type Database = {
           approved_at?: string | null
           assigned_at?: string | null
           assigned_to?: string | null
+          auto_published?: boolean
           category?: string
           city_corporation?: string
           comment_count?: number
+          corroboration_count?: number
           created_at?: string
           description?: string
+          dispute_reason?: string | null
           endorse_count?: number
           id?: never
           is_approved?: boolean
@@ -357,6 +462,9 @@ export type Database = {
           location_text?: string | null
           longitude?: number | null
           priority?: string | null
+          resolution_state?: string | null
+          resolved_at?: string | null
+          routed_authority_key?: string | null
           share_count?: number
           sla_due_at?: string | null
           status?: string
@@ -385,33 +493,54 @@ export type Database = {
       }
       rti_letters: {
         Row: {
+          appeal_body: string | null
           authority: string
           body: string
           created_at: string
+          deadline_at: string | null
           id: number
           language: string
+          outcome: string | null
           report_id: number | null
+          responded_at: string | null
+          status: string
           subject: string
+          submitted_at: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
+          appeal_body?: string | null
           authority: string
           body: string
           created_at?: string
+          deadline_at?: string | null
           id?: never
           language?: string
+          outcome?: string | null
           report_id?: number | null
+          responded_at?: string | null
+          status?: string
           subject: string
+          submitted_at?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
+          appeal_body?: string | null
           authority?: string
           body?: string
           created_at?: string
+          deadline_at?: string | null
           id?: never
           language?: string
+          outcome?: string | null
           report_id?: number | null
+          responded_at?: string | null
+          status?: string
           subject?: string
+          submitted_at?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -513,6 +642,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_resolution: {
+        Args: { p_report_id: number }
+        Returns: undefined
+      }
+      dispute_resolution: {
+        Args: { p_report_id: number; p_reason: string }
+        Returns: undefined
+      }
       increment_share_count: {
         Args: { p_report_id: number }
         Returns: undefined
@@ -521,7 +658,25 @@ export type Database = {
         Args: { p_report_id: number }
         Returns: undefined
       }
+      active_outages: {
+        Args: { p_hours?: number }
+        Returns: {
+          category: string
+          city_corporation: string
+          report_count: number
+          first_reported: string
+          last_reported: string
+        }[]
+      }
+      area_outage_count: {
+        Args: { p_category: string; p_city: string; p_hours?: number }
+        Returns: number
+      }
       is_admin: { Args: never; Returns: boolean }
+      is_trusted_reporter: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       reports_near: {
         Args: {
           p_lat: number

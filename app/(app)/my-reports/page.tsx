@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/reports/status-badge";
 import { SlaBadge } from "@/components/reports/sla-badge";
+import { getAuthority, resolveAuthority } from "@/lib/routing";
+import { isEscalationEligible } from "@/lib/sla";
 
 export const metadata: Metadata = { title: "My Reports" };
 
@@ -28,7 +30,7 @@ export default async function MyReportsPage() {
   const { data: reports } = await supabase
     .from("reports")
     .select(
-      "id, title, category, city_corporation, status, is_approved, sla_due_at, created_at, endorse_count, comment_count"
+      "id, title, category, city_corporation, status, is_approved, resolution_state, routed_authority_key, sla_due_at, created_at, endorse_count, comment_count"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
@@ -93,6 +95,11 @@ export default async function MyReportsPage() {
                     </Link>
                     <span className="text-muted-foreground text-xs">
                       {r.category}
+                      {" · "}
+                      {(
+                        getAuthority(r.routed_authority_key) ??
+                        resolveAuthority(r.category, r.city_corporation)
+                      ).name}
                     </span>
                   </TableCell>
                   <TableCell className="text-sm">
@@ -102,6 +109,27 @@ export default async function MyReportsPage() {
                     <div className="flex flex-col items-start gap-1">
                       <StatusBadge status={r.status} />
                       <SlaBadge slaDueAt={r.sla_due_at} status={r.status} />
+                      {r.resolution_state === "pending_confirmation" ? (
+                        <Link
+                          href={`/reports/${r.id}`}
+                          className="text-status-pending text-xs font-medium hover:underline"
+                        >
+                          Action needed: confirm fix →
+                        </Link>
+                      ) : null}
+                      {r.is_approved &&
+                      isEscalationEligible(
+                        r.status,
+                        r.sla_due_at,
+                        r.resolution_state
+                      ) ? (
+                        <Link
+                          href={`/reports/${r.id}/escalate`}
+                          className="text-status-breach text-xs font-medium hover:underline"
+                        >
+                          Stuck — escalate via GRS/333 →
+                        </Link>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>

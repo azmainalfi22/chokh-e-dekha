@@ -3,17 +3,34 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  BadgeCheck,
   Building2,
   CalendarDays,
+  Globe,
   History,
+  Landmark,
   MapPin,
+  Phone,
   ShieldCheck,
+  Siren,
   Tag,
   User,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { reportMediaUrl } from "@/lib/storage";
 import { STATUS_LABELS, type Status } from "@/lib/constants";
+import { isEscalationEligible } from "@/lib/sla";
+import {
+  CHANNEL_LABELS,
+  OUTCOME_LABELS,
+  type EscalationChannel,
+} from "@/lib/grs";
+import {
+  DEPT_LABELS,
+  NATIONAL_HELPLINE,
+  getAuthority,
+  resolveAuthority,
+} from "@/lib/routing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +40,7 @@ import { SlaBadge } from "@/components/reports/sla-badge";
 import { ReportMap } from "@/components/map/report-map";
 import { EngagementBar } from "@/components/reports/engagement-bar";
 import { Comments, type CommentData } from "@/components/reports/comments";
+import { ResolutionPanel } from "@/components/reports/resolution-panel";
 
 type Params = Promise<{ id: string }>;
 
@@ -70,8 +88,14 @@ export default async function ReportDetailPage({
 
   const user = userRes.data.user;
 
-  const [commentsRes, endorsedRes, bookmarkedRes, viewerProfileRes] =
-    await Promise.all([
+  const [
+    commentsRes,
+    endorsedRes,
+    corroboratedRes,
+    bookmarkedRes,
+    viewerProfileRes,
+    trustedRes,
+  ] = await Promise.all([
       supabase
         .from("report_comments")
         .select(
@@ -82,6 +106,14 @@ export default async function ReportDetailPage({
       user
         ? supabase
             .from("report_endorsements")
+            .select("report_id")
+            .eq("report_id", reportId)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("report_corroborations")
             .select("report_id")
             .eq("report_id", reportId)
             .eq("user_id", user.id)
@@ -102,7 +134,18 @@ export default async function ReportDetailPage({
             .eq("id", user.id)
             .single()
         : Promise.resolve({ data: null }),
+      report.user_id
+        ? supabase.rpc("is_trusted_reporter", { p_user_id: report.user_id })
+        : Promise.resolve({ data: false }),
     ]);
+
+  // Escalation trail (publicly readable — part of the accountability record).
+  const { data: escalations } = await supabase
+    .from("report_escalations")
+    .select("id, channel, reference_no, outcome, filed_at")
+    .eq("report_id", reportId)
+    .neq("outcome", "drafted")
+    .order("filed_at", { ascending: true });
 
   const comments: CommentData[] = (commentsRes.data ?? []).map((c) => ({
     id: c.id,
@@ -132,6 +175,22 @@ export default async function ReportDetailPage({
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
+  // Responsible authority: prefer the key pinned at creation; fall back to a
+  // fresh resolve so older reports (before routing) still show a destination.
+  const authority =
+    getAuthority(report.routed_authority_key) ??
+    resolveAuthority(report.category, report.city_corporation);
+
+  const filedEscalations = escalations ?? [];
+  const canEscalate =
+    user?.id === report.user_id &&
+    report.is_approved &&
+    isEscalationEligible(
+      report.status,
+      report.sla_due_at,
+      report.resolution_state
+    );
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">
       <Button variant="ghost" size="sm" asChild>
@@ -144,6 +203,40 @@ export default async function ReportDetailPage({
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={report.status} />
           <SlaBadge slaDueAt={report.sla_due_at} status={report.status} />
+          {report.status === "resolved" &&
+          report.resolution_state === "pending_confirmation" ? (
+            <Badge
+              variant="outline"
+              className="border-status-pending/40 text-status-pending"
+            >
+              Awaiting citizen confirmation
+            </Badge>
+          ) : null}
+          {report.resolution_state === "confirmed" ? (
+            <Badge
+              variant="outline"
+              className="border-status-resolved/40 text-status-resolved"
+            >
+              ✓ Confirmed fixed by reporter
+            </Badge>
+          ) : null}
+          {report.resolution_state === "disputed" ? (
+            <Badge
+              variant="outline"
+              className="border-status-breach/40 text-status-breach"
+            >
+              Reopened — citizen disputed the fix
+            </Badge>
+          ) : null}
+          {filedEscalations.length > 0 ? (
+            <Badge
+              variant="outline"
+              className="border-status-breach/40 text-status-breach"
+            >
+              <Siren className="size-3.5" aria-hidden /> Escalated to official
+              channels
+            </Badge>
+          ) : null}
           {!report.is_approved ? (
             <Badge variant="outline" className="text-muted-foreground">
               Awaiting moderation — only you can see this
@@ -165,6 +258,15 @@ export default async function ReportDetailPage({
           <li className="flex items-center gap-1.5">
             <User className="size-4" aria-hidden />
             {report.profiles?.display_name ?? "Citizen"}
+            {trustedRes.data === true ? (
+              <span
+                className="text-primary inline-flex items-center gap-1 text-xs font-semibold"
+                title="At least 3 approved reports and no rejections — new reports publish without moderation"
+              >
+                <BadgeCheck className="size-4" aria-hidden />
+                Trusted reporter
+              </span>
+            ) : null}
           </li>
           <li className="flex items-center gap-1.5">
             <CalendarDays className="size-4" aria-hidden />
@@ -179,15 +281,149 @@ export default async function ReportDetailPage({
         </CardContent>
       </Card>
 
+      <Card className="border-primary/25 bg-primary/[0.04]">
+        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="bg-brand-gradient flex size-10 shrink-0 items-center justify-center rounded-lg text-white">
+              <Landmark className="size-5" aria-hidden />
+            </span>
+            <div>
+              <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Routed to responsible authority
+              </p>
+              <p className="font-semibold">{authority.name}</p>
+              <p className="text-muted-foreground font-bengali text-sm">
+                {authority.nameBn}
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {DEPT_LABELS[authority.dept]} · {authority.jurisdiction}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
+            {authority.hotline ? (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`tel:${authority.hotline}`}>
+                  <Phone className="size-4" aria-hidden /> {authority.hotline}
+                </a>
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild>
+                <a href={`tel:${NATIONAL_HELPLINE}`}>
+                  <Phone className="size-4" aria-hidden /> Helpline{" "}
+                  {NATIONAL_HELPLINE}
+                </a>
+              </Button>
+            )}
+            {authority.website ? (
+              <Button variant="ghost" size="sm" asChild>
+                <a
+                  href={authority.website}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  <Globe className="size-4" aria-hidden /> Website
+                </a>
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {user?.id === report.user_id &&
+      report.resolution_state === "pending_confirmation" ? (
+        <ResolutionPanel reportId={report.id} />
+      ) : null}
+
+      {report.resolution_state === "disputed" && report.dispute_reason ? (
+        <div className="border-status-breach/25 bg-status-breach/5 rounded-lg border p-4">
+          <p className="text-status-breach text-sm font-medium">
+            Reporter disputed the fix
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            “{report.dispute_reason}”
+          </p>
+        </div>
+      ) : null}
+
+      {canEscalate ? (
+        <div className="border-status-breach/30 bg-status-breach/5 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4">
+          <div className="flex items-start gap-3">
+            <Siren className="text-status-breach mt-0.5 size-5 shrink-0" aria-hidden />
+            <div>
+              <p className="font-semibold">This report is stuck — escalate it</p>
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                File an official complaint through the national Grievance
+                Redress System or the 333 helpline. We&apos;ll draft it for you.
+              </p>
+            </div>
+          </div>
+          <Button
+            className="bg-brand-gradient border-0 text-white hover:opacity-95"
+            asChild
+          >
+            <Link href={`/reports/${report.id}/escalate`}>
+              Escalate this report
+            </Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {filedEscalations.length > 0 ? (
+        <Card className="border-status-breach/25">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Siren className="text-status-breach size-5" aria-hidden />
+              Official escalation trail
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {filedEscalations.map((e) => (
+              <div
+                key={e.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm"
+              >
+                <span className="font-medium">
+                  {CHANNEL_LABELS[e.channel as EscalationChannel]?.en ?? e.channel}
+                  {e.reference_no ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · Ref {e.reference_no}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {OUTCOME_LABELS[e.outcome] ?? e.outcome}
+                  </Badge>
+                  {e.filed_at ? (
+                    <span className="text-muted-foreground text-xs">
+                      {new Date(e.filed_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  ) : null}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {report.is_approved ? (
         <EngagementBar
           reportId={report.id}
           title={report.title}
           endorseCount={report.endorse_count}
+          corroborationCount={report.corroboration_count}
           commentCount={comments.length}
           endorsed={!!endorsedRes.data}
+          corroborated={!!corroboratedRes.data}
           bookmarked={!!bookmarkedRes.data}
           isAuthed={!!user}
+          isOwner={user?.id === report.user_id}
         />
       ) : null}
 

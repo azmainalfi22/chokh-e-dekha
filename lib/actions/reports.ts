@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { reportSchema } from "@/lib/validations";
+import { resolveAuthorityKey } from "@/lib/routing";
 
 export type CreateReportResult =
-  | { ok: true; reportId: number }
+  | { ok: true; reportId: number; autoPublished: boolean }
   | { ok: false; error: string };
 
 /**
@@ -50,8 +51,11 @@ export async function createReport(
       location_text: d.locationText || null,
       latitude: d.latitude,
       longitude: d.longitude,
+      // Route to the responsible body from validated category + city. Computed
+      // here (not from client input) so it can't be spoofed.
+      routed_authority_key: resolveAuthorityKey(d.category, d.cityCorporation),
     })
-    .select("id")
+    .select("id, auto_published, sla_due_at")
     .single();
 
   if (error || !report) {
@@ -68,13 +72,96 @@ export async function createReport(
     );
     if (mediaError) {
       // Report exists; media metadata failed. Surface but don't lose the report.
-      return { ok: true, reportId: report.id };
+      return { ok: true, reportId: report.id, autoPublished: report.auto_published };
     }
+  }
+
+  // Trusted reporters skip moderation (DB trigger) — tell them it's live.
+  if (report.auto_published) {
+    const due = report.sla_due_at
+      ? new Date(report.sla_due_at).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : null;
+    const service = createServiceClient();
+    await service.from("notifications").insert({
+      user_id: user.id,
+      report_id: report.id,
+      type: "approved",
+      title: "Published immediately — trusted reporter",
+      body: `Your report "${d.title}" is already public.${due ? ` Resolution is due by ${due}.` : ""}`,
+    });
+    revalidatePath("/reports");
   }
 
   revalidatePath("/my-reports");
   revalidatePath("/dashboard");
-  return { ok: true, reportId: report.id };
+  return { ok: true, reportId: report.id, autoPublished: report.auto_published };
+}
+
+type ActionResult = { ok: true } | { ok: false; error: string };
+
+/** Reporter confirms their report was actually fixed. */
+export async function confirmResolution(
+  reportId: number
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You must be signed in" };
+
+  const { error } = await supabase.rpc("confirm_resolution", {
+    p_report_id: reportId,
+  });
+  if (error) return { ok: false, error: "Could not confirm — try again" };
+
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath("/my-reports");
+  return { ok: true };
+}
+
+/** Reporter disputes the fix → the report reopens and the SLA resumes. */
+export async function disputeResolution(
+  reportId: number,
+  reason: string
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You must be signed in" };
+
+  const { error } = await supabase.rpc("dispute_resolution", {
+    p_report_id: reportId,
+    p_reason: (reason ?? "").slice(0, 500),
+  });
+  if (error) return { ok: false, error: "Could not reopen — try again" };
+
+  revalidatePath(`/reports/${reportId}`);
+  revalidatePath("/my-reports");
+  return { ok: true };
+}
+
+/**
+ * How many active reports of the same utility category exist in a city —
+ * powers the "you're not alone, N active reports" alert on the submit flow.
+ * Runs server-side (reliable network) via the area_outage_count RPC.
+ */
+export async function areaOutageCount(
+  category: string,
+  city: string
+): Promise<number> {
+  if (!category || !city) return 0;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("area_outage_count", {
+    p_category: category,
+    p_city: city,
+  });
+  if (error || typeof data !== "number") return 0;
+  return data;
 }
 
 export type NearbyReport = {

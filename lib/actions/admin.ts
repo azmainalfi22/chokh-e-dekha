@@ -101,8 +101,22 @@ export async function updateReportsStatus(
     return { ok: false, error: "Invalid status" };
   }
 
-  const patch: { status: string; admin_note?: string } = { status };
+  const patch: {
+    status: string;
+    admin_note?: string;
+    resolution_state?: string | null;
+    resolved_at?: string | null;
+  } = { status };
   if (note !== undefined && note !== "") patch.admin_note = note;
+
+  // Marking Resolved doesn't close the loop — the reporter must confirm the
+  // fix. Enter pending_confirmation; any other status clears resolution state.
+  if (status === "resolved") {
+    patch.resolution_state = "pending_confirmation";
+    patch.resolved_at = new Date().toISOString();
+  } else {
+    patch.resolution_state = null;
+  }
 
   const { data, error } = await supabase
     .from("reports")

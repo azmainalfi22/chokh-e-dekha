@@ -1,9 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Eye } from "lucide-react";
 import { APP_NAME, APP_NAME_BN } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-/** Official wordmark: green emblem tile + bilingual name. */
+/** Official wordmark: ornate emblem tile + bilingual name. */
 export function Logo({
   className,
   subtitle = true,
@@ -17,11 +17,18 @@ export function Logo({
       className={cn("flex items-center gap-2.5", className)}
       aria-label={`${APP_NAME} home`}
     >
-      <span className="bg-brand-gradient flex size-9 shrink-0 items-center justify-center rounded-md text-white shadow-sm">
-        <Eye className="size-5" aria-hidden />
+      <span className="relative flex size-9 shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-black/5">
+        <Image
+          src="/brand/logo-tile.png"
+          alt=""
+          fill
+          sizes="36px"
+          className="object-cover"
+          priority
+        />
       </span>
       <span className="flex flex-col leading-none">
-        <span className="text-[15px] font-bold tracking-tight">
+        <span className="font-display text-[17px] font-semibold tracking-tight">
           {APP_NAME}
         </span>
         {subtitle ? (

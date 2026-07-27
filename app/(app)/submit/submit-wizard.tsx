@@ -2,26 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgeCheck,
   Camera,
   CheckCircle2,
   ImagePlus,
+  Landmark,
   Loader2,
   MapPin,
+  RadioTower,
   Send,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { createReport } from "@/lib/actions/reports";
+import { areaOutageCount, createReport } from "@/lib/actions/reports";
 import { reportSchema, type ReportInput } from "@/lib/validations";
-import { CATEGORIES, CITIES } from "@/lib/constants";
+import { CATEGORIES, CITIES, UTILITY_CATEGORIES } from "@/lib/constants";
+import { DEPT_LABELS, resolveAuthority } from "@/lib/routing";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -69,6 +73,7 @@ export function SubmitWizard() {
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<number | null>(null);
+  const [autoPublished, setAutoPublished] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ReportInput>({
@@ -83,6 +88,33 @@ export function SubmitWizard() {
       longitude: null,
     },
   });
+
+  const watchedCategory = form.watch("category");
+  const watchedCity = form.watch("cityCorporation");
+  const routePreview =
+    watchedCategory && watchedCity
+      ? resolveAuthority(watchedCategory, watchedCity)
+      : null;
+
+  // Live outage signal: if this is a utility category and others nearby have
+  // already reported it, reassure the citizen and surface the live board.
+  const isUtility = (UTILITY_CATEGORIES as readonly string[]).includes(
+    watchedCategory ?? ""
+  );
+  const [outageCount, setOutageCount] = useState(0);
+  useEffect(() => {
+    if (!isUtility || !watchedCategory || !watchedCity) {
+      setOutageCount(0);
+      return;
+    }
+    let active = true;
+    areaOutageCount(watchedCategory, watchedCity).then((n) => {
+      if (active) setOutageCount(n);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isUtility, watchedCategory, watchedCity]);
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -177,6 +209,7 @@ export function SubmitWizard() {
         setSubmitting(false);
         return;
       }
+      setAutoPublished(result.autoPublished);
       setSubmittedId(result.reportId);
     } catch {
       toast.error("Something went wrong — please try again");
@@ -194,21 +227,35 @@ export function SubmitWizard() {
             <CheckCircle2 className="size-7" aria-hidden />
           </span>
           <CardTitle className="mt-2 text-2xl">
-            Report Submitted Successfully!
+            {autoPublished
+              ? "Report Published Immediately!"
+              : "Report Submitted Successfully!"}
           </CardTitle>
           <CardDescription className="max-w-md">
-            Your report is awaiting review. Once approved it appears on the
-            public feed, and you&apos;ll be notified at every status change.
+            {autoPublished
+              ? "As a trusted reporter your report skipped moderation — it is already live on the public feed with the response clock running."
+              : "Your report is awaiting review. Once approved it appears on the public feed, and you'll be notified at every status change."}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-3">
-          <StatusBadge status="pending" />
+          {autoPublished ? (
+            <span className="border-primary/30 bg-primary/5 text-primary inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold">
+              <BadgeCheck className="size-4" aria-hidden />
+              Trusted reporter — published without review
+            </span>
+          ) : (
+            <StatusBadge status="pending" />
+          )}
           <div className="mt-2 flex flex-wrap justify-center gap-3">
             <Button
               className="bg-brand-gradient border-0 text-white hover:opacity-90"
               asChild
             >
-              <Link href="/my-reports">Track my reports</Link>
+              {autoPublished ? (
+                <Link href={`/reports/${submittedId}`}>View live report</Link>
+              ) : (
+                <Link href="/my-reports">Track my reports</Link>
+              )}
             </Button>
             <Button
               variant="outline"
@@ -217,6 +264,7 @@ export function SubmitWizard() {
                 setPhotos([]);
                 setPin(null);
                 setSubmittedId(null);
+                setAutoPublished(false);
                 setSubmitting(false);
                 setStep(0);
               }}
@@ -334,6 +382,45 @@ export function SubmitWizard() {
                       )}
                     />
                   </div>
+                  {routePreview ? (
+                    <div className="border-primary/25 bg-primary/[0.04] flex items-center gap-3 rounded-lg border p-3">
+                      <Landmark
+                        className="text-primary size-4.5 shrink-0"
+                        aria-hidden
+                      />
+                      <p className="text-sm">
+                        This report will be routed to{" "}
+                        <span className="font-semibold">
+                          {routePreview.name}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                          ({DEPT_LABELS[routePreview.dept]})
+                        </span>
+                        .
+                      </p>
+                    </div>
+                  ) : null}
+                  {isUtility && outageCount > 0 ? (
+                    <Link
+                      href="/outages"
+                      className="border-status-breach/30 bg-status-breach/5 hover:bg-status-breach/10 flex items-center gap-3 rounded-lg border p-3 transition-colors"
+                    >
+                      <RadioTower
+                        className="text-status-breach size-4.5 shrink-0"
+                        aria-hidden
+                      />
+                      <p className="text-sm">
+                        <span className="font-semibold">
+                          You&apos;re not alone —
+                        </span>{" "}
+                        {outageCount} active {watchedCategory?.toLowerCase()}{" "}
+                        report{outageCount === 1 ? "" : "s"} in{" "}
+                        {watchedCity?.replace(" City Corporation", "")} recently.
+                        Still worth reporting — it strengthens the record. See
+                        the live outage board →
+                      </p>
+                    </Link>
+                  ) : null}
                   <FormField
                     control={form.control}
                     name="description"
@@ -508,10 +595,16 @@ function ReviewStep({
   pin: { lat: number; lng: number } | null;
   photos: Photo[];
 }) {
+  const routed =
+    values.category && values.cityCorporation
+      ? resolveAuthority(values.category, values.cityCorporation)
+      : null;
+
   const rows: Array<[string, React.ReactNode]> = [
     ["Title", values.title],
     ["Category", values.category],
     ["City Corporation", values.cityCorporation],
+    ["Routed to", routed ? routed.name : "—"],
     ["Location", values.locationText || "—"],
     [
       "Coordinates",

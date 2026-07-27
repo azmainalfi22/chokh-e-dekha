@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowLeft,
   ClipboardList,
-  Eye,
   LayoutDashboard,
   Map,
   MessageSquarePlus,
@@ -28,8 +28,14 @@ export function AdminSidebar() {
   return (
     <div className="flex h-full flex-col gap-5 p-4">
       <Link href="/admin" className="flex items-center gap-2.5 px-1">
-        <span className="flex size-9 items-center justify-center rounded-md bg-white/15 text-white">
-          <Eye className="size-5" aria-hidden />
+        <span className="relative flex size-9 shrink-0 overflow-hidden rounded-md">
+          <Image
+            src="/brand/logo-tile.png"
+            alt=""
+            fill
+            sizes="36px"
+            className="object-cover"
+          />
         </span>
         <span className="leading-none text-white">
           <span className="block text-sm font-bold">{APP_NAME}</span>
