@@ -317,11 +317,6 @@
     transform: scaleX(1);
   }
 
-  /* Warm cream tile behind the brand mark — deep-green pin, red halo. */
-  .logo-tile {
-    background-image: linear-gradient(160deg, #fdf7e9, #f4e6c4);
-  }
-
   /* Deep-green hero stat panel — the national dashboard look. */
   .hero-panel {
     background-color: var(--brand-green-strong);
