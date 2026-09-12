@@ -137,6 +137,7 @@ export async function SiteHeader() {
                   displayName={profile.display_name}
                   avatarUrl={profile.avatar_url}
                   isAdmin={profile.role === "admin"}
+                  isOfficer={profile.role === "officer"}
                 />
               </>
             ) : (

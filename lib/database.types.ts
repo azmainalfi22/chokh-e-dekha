@@ -128,6 +128,81 @@ export type Database = {
           },
         ]
       }
+      territories: {
+        Row: {
+          code: string | null
+          created_at: string
+          depth: number
+          id: number
+          is_active: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          name_bn: string | null
+          parent_id: number | null
+          path: string | null
+          slug: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          depth?: number
+          id?: never
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          name_bn?: string | null
+          parent_id?: number | null
+          path?: string | null
+          slug: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          depth?: number
+          id?: never
+          is_active?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          name_bn?: string | null
+          parent_id?: number | null
+          path?: string | null
+          slug?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      officer_territories: {
+        Row: {
+          created_at: string
+          designation: string | null
+          id: number
+          territory_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          designation?: string | null
+          id?: never
+          territory_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string | null
+          id?: never
+          territory_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       report_escalations: {
         Row: {
           channel: string

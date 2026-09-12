@@ -61,6 +61,18 @@ export function FilterBar() {
     !!searchParams.get("category") ||
     !!searchParams.get("city");
 
+  const statusValue = searchParams.get("status") ?? ALL;
+  const categoryValue = searchParams.get("category") ?? ALL;
+  const cityValue = searchParams.get("city") ?? ALL;
+
+  const statusLabel =
+    statusValue === ALL
+      ? "All statuses"
+      : (STATUS_LABELS[statusValue as keyof typeof STATUS_LABELS] ??
+        statusValue);
+  const categoryLabel = categoryValue === ALL ? "All categories" : categoryValue;
+  const cityLabel = cityValue === ALL ? "All cities" : cityValue;
+
   return (
     <div className="bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-sm">
       <div className="relative">
@@ -78,11 +90,11 @@ export function FilterBar() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Select
-          value={searchParams.get("status") ?? ALL}
+          value={statusValue}
           onValueChange={(v) => setParam("status", v)}
         >
           <SelectTrigger className="w-36" aria-label="Filter by status">
-            <SelectValue />
+            <SelectValue placeholder="All statuses">{statusLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All statuses</SelectItem>
@@ -95,11 +107,11 @@ export function FilterBar() {
         </Select>
 
         <Select
-          value={searchParams.get("category") ?? ALL}
+          value={categoryValue}
           onValueChange={(v) => setParam("category", v)}
         >
           <SelectTrigger className="w-44" aria-label="Filter by category">
-            <SelectValue />
+            <SelectValue placeholder="All categories">{categoryLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All categories</SelectItem>
@@ -112,11 +124,11 @@ export function FilterBar() {
         </Select>
 
         <Select
-          value={searchParams.get("city") ?? ALL}
+          value={cityValue}
           onValueChange={(v) => setParam("city", v)}
         >
           <SelectTrigger className="w-52" aria-label="Filter by city">
-            <SelectValue />
+            <SelectValue placeholder="All cities">{cityLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All cities</SelectItem>

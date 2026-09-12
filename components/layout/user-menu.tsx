@@ -6,6 +6,7 @@ import {
   Bookmark,
   FileText,
   LayoutDashboard,
+  MapPinned,
   LogOut,
   Scale,
   ShieldCheck,
@@ -27,9 +28,10 @@ type Props = {
   displayName: string;
   avatarUrl: string | null;
   isAdmin: boolean;
+  isOfficer?: boolean;
 };
 
-export function UserMenu({ displayName, avatarUrl, isAdmin }: Props) {
+export function UserMenu({ displayName, avatarUrl, isAdmin, isOfficer }: Props) {
   const router = useRouter();
 
   async function signOut() {
@@ -89,6 +91,13 @@ export function UserMenu({ displayName, avatarUrl, isAdmin }: Props) {
             <User className="size-4" /> Profile
           </Link>
         </DropdownMenuItem>
+        {isOfficer ? (
+          <DropdownMenuItem asChild>
+            <Link href="/officer">
+              <MapPinned className="size-4" /> Ward queue
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         {isAdmin ? (
           <>
             <DropdownMenuSeparator />
