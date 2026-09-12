@@ -4,6 +4,41 @@ Working through BENCHMARK-PLAN.md.
 
 ---
 
+## Summary
+
+Every phase of the plan is implemented except Phase 6, which needs credentials
+only you can supply. Eight migrations, three SQL test scripts, 37 TypeScript
+tests, and a clean `build` / `typecheck` / `lint` / `test`.
+
+**Do this first, before anything else:** none of the SQL has been executed. Apply
+the migrations to a branch database and run the three scripts in `supabase/tests/`.
+They assert the security fixes actually hold and take about a minute. Details in
+the caveat below.
+
+| | |
+|---|---|
+| Phase 0 — security remediation | done |
+| Phase 1 — SLA tiers, breach sweep, duplicate grouping | done |
+| Phase 2 — territory hierarchy | done |
+| Phase 3 — hash-chained audit log | done |
+| Phase 4 — officer role | done |
+| Phase 5 — RTI deadline calendar | done, one part needs you |
+| Phase 6 — classifier, GRS/333 hardening | not started, needs credentials |
+
+Three things I would want to know if I were reading this cold:
+
+1. **This checkout was on the wrong codebase** for the first part of the night.
+   See the next section. Nothing was lost.
+2. **The self-publish hole was real and is closed**, along with something the
+   study did not mention: the storage bucket accepted uploads into any user's
+   folder, and photo GPS reached public URLs because stripping happened only in
+   the browser.
+3. **`ANNOUNCED_HOLIDAYS` in `lib/holidays.ts` is empty and needs you.** Until a
+   year's Eid dates are entered from the gazette, RTI deadlines in that year are
+   flagged as not holiday-adjusted rather than silently wrong.
+
+---
+
 ## Read this first
 
 **This checkout was on the wrong codebase for most of the night.** The local
@@ -20,6 +55,62 @@ Whether any of that Laravel work is worth porting is a judgement call for you.
 Most of it was closing holes that do not exist here; the parts that might carry
 over are the metadata stripper (already reimplemented here in TypeScript) and the
 hash-chained audit design.
+
+---
+
+## Phase 3 — Hash-chained audit log — **done, unexecuted SQL**
+
+`report_status_logs` records who moved a report and when, but it is an ordinary
+table: anything that can write to the database can rewrite it and nothing would
+show. It answers *what happened*. This answers *can we prove what happened*, which
+is the question that matters when the record concerns an official who would
+prefer it said something else.
+
+The trail lives in its own `audit` schema, which is **not** in PostgREST's exposed
+schemas, so there is no API surface to it and a bad application migration cannot
+take the evidence with it. Every entry hashes its own contents together with the
+hash of the entry before it, so an edit breaks that entry and a deletion breaks
+the one that follows. `audit.verify()` names the first break and why.
+
+This does not stop someone with superuser rights from rewriting history — nothing
+inside the database can — but it does mean they cannot do it quietly.
+
+Recorded: approval, status changes, assignment, deletion, and role changes. Not a
+change log of every column: a trail nobody can read is as useless as one nobody
+can trust.
+
+---
+
+## Phases 2 and 4 — Territory hierarchy and the officer role — **done, unexecuted SQL**
+
+Done together because the second needs the first: an officer has to be scoped to
+somewhere.
+
+**The tree.** One self-referencing table covers division, district, city
+corporation, upazila and ward. Bangladesh's geography is not uniform — a city
+corporation sits under a district but so does an upazila, and both hold wards —
+so one table with a type beats one per level. A materialised path makes "every
+report beneath this territory" one indexed query, which is what a scorecard at any
+depth is built on. Moving a territory rewrites the subtree; a move that would put
+a territory beneath its own descendant is refused.
+
+Seeded with the eight divisions and the places already in `CITIES`, under their
+exact names so the backfill is an exact match. **Wards are deliberately not
+seeded** — ward numbering is a real administrative fact that changes when
+redrawn, and an invented list would put fabricated civic data in front of
+citizens. The level is ready and waiting for a real source.
+
+**The officer.** There were two kinds of account, citizen and admin, which is not
+enough to run a pilot: the person who should close cases in Ward 12 is not someone
+you can hand the whole platform to. An officer works a defined patch — inside it
+they see reports before they are public, take ownership, move a report through its
+lifecycle and leave an official note. Coverage is by subtree, so assigning a city
+covers every ward beneath it.
+
+Two deliberate omissions. An officer **cannot approve** reports: moderation is the
+gate Phase 0 spent its time hardening, and handing it to a territory-scoped
+account would widen it again. And an officer **cannot edit the citizen's words**,
+which are the evidence.
 
 ---
 
@@ -204,14 +295,27 @@ going to start a desktop application or touch a hosted database while you were
 asleep. They are verified by review and by an exhaustive column audit, not by
 running.
 
-To close that gap in one command, `supabase/tests/phase0_security.sql` asserts the
-fixes actually hold: it creates a citizen, tries the exploit, and raises on the
-first failure. It rolls back, so it leaves nothing behind. Run it against a local
-stack or a branch database, never production:
+To close that gap, three scripts in `supabase/tests/` assert the behaviour
+actually holds. Each raises on the first failure and rolls back, so they leave
+nothing behind and a silent completion means everything passed. Run them against a
+local stack or a branch database, **never production**:
 
 ```bash
-supabase db reset && psql "$DATABASE_URL" -f supabase/tests/phase0_security.sql
+supabase db reset
+psql "$DATABASE_URL" -f supabase/tests/phase0_security.sql
+psql "$DATABASE_URL" -f supabase/tests/territory_and_officer.sql
+psql "$DATABASE_URL" -f supabase/tests/audit_trail.sql
 ```
+
+- `phase0_security.sql` — tries the self-publish exploit, checks the author can
+  still correct a pending report, checks they cannot touch it once published,
+  checks a stranger cannot touch it at all, and checks repeated SLA sweeps do not
+  escalate past level 2.
+- `territory_and_officer.sql` — path and depth, a subtree move, a refused cycle,
+  and every boundary of the officer role including that they cannot publish,
+  cannot rewrite the citizen's words, and cannot promote themselves.
+- `audit_trail.sql` — edits an entry, re-signs a forged entry the way a careful
+  attacker would, and deletes one from the middle, asserting each is caught.
 
 What *is* verified by execution here: `npm run build`, `npm run typecheck`,
 `npm run lint` and `npm test` (37 tests) all pass.
@@ -279,7 +383,16 @@ What *is* verified by execution here: `npm run build`, `npm run typecheck`,
 
 ## Next
 
-The territory hierarchy (Phase 2), the hash-chained audit log (Phase 3) and the
-officer role (Phase 4). The officer role is the largest of the three and the one
-the study says unblocks the most, including any real pilot.
+**Phase 6, which needs you.** Both items are blocked on things I cannot supply:
+
+- **The classifier with human confirmation.** The one AI pattern the study says is
+  worth copying: model output sits in a JSON column until an admin confirms it.
+  The column and the confirmation flow can be built without the model; the
+  inference call needs an endpoint and credentials.
+- **GRS / 333 bridge hardening.** `lib/grs.ts` generates the complaint today.
+  Going further — filing, and reading back a reference number — needs real
+  endpoint details and credentials.
+
+Then the follow-ups in the section above, of which the ward data and the holiday
+calendar are the two that need a real source rather than a decision.
 
