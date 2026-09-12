@@ -23,6 +23,79 @@ hash-chained audit design.
 
 ---
 
+## RTI deadlines — **done** (taken out of order)
+
+The item the study flagged as blocking, and the only part of the plan that could
+be fully verified tonight rather than only reviewed, so it was done before the
+remaining schema phases.
+
+`addWorkingDays` skipped Friday and Saturday and nothing else — its own comment
+said *"Public holidays aren't modelled"*. Offices close for national holidays, and
+around Eid for several consecutive days, so a 20-working-day deadline computed
+without them lands **early**. An appeal under s.24 only opens once the authority's
+time has run out, so an appeal filed on an early deadline is premature, can be
+rejected, and the citizen starts again.
+
+`lib/holidays.ts` splits the two kinds, because they cannot be handled the same
+way:
+
+- **Fixed-date** holidays are applied automatically. Kept to dates that do not
+  move and are not in political dispute — several days have been added to and
+  removed from Bangladesh's national list over the years, and entering a revoked
+  one would push deadlines *later* than they really are.
+- **Announced** holidays (both Eids, Ashura, Durga Puja, Shab-e-Barat) move with
+  the lunar calendar and are fixed by government notification after a moon
+  sighting. They cannot be computed, only looked up.
+
+`ANNOUNCED_HOLIDAYS` is **deliberately empty**. Guessing Eid dates would trade one
+wrong deadline for another, and a wrong deadline is the entire problem. Instead the
+calculation reports when it has run past the end of the known calendar, and the RTI
+screen says the date accounts for weekends but not holidays and that the real
+deadline is likely later. A visible caveat beats a confident wrong answer.
+
+Fourteen tests, including the Eid case: with the closure entered, the deadline
+moves later, never earlier.
+
+---
+
+## Phase 1 — SLA tiers, breach sweep, duplicate grouping — **done, unexecuted SQL**
+
+**Tiers.** Every report got the same seven days. A gas leak and a park complaint
+shared a deadline, which makes the deadline useless as a signal. Priority is now
+derived from the category *in the database*, so a reporter cannot mark their own
+pothole urgent. High is three days, medium seven, low fourteen; medium is the bulk
+of the queue and keeps what everything used to get, so the common case does not
+move. Wall-clock days, not working days — a blocked drain does not stop flooding a
+street because it is Friday.
+
+The database owns the calculation because it is the only place the two publication
+paths meet: trusted-reporter auto-publish and admin approval have to agree.
+`approveReports` no longer computes a deadline and reads the computed one back.
+
+**The sweep.** `sla_due_at` was computed and displayed, and nothing ever acted on
+it. Beyond the queue looking wrong, that kept a door shut: a breach is what makes a
+report eligible for the GRS and 333 rails, so until the breach was recognised the
+citizen's route to escalate stayed closed. `sweep_sla_breaches()` marks overdue
+reports and notifies their reporters at level 1, and level 2 past a 48-hour grace.
+Written as *"what level should this be?"* rather than *"increment"*, so running it
+twice in a minute cannot push a report to level 2 and a missed run is caught up by
+the next. Two levels and no more. Triggered by `GET /api/cron/sla-sweep`, guarded
+by `CRON_SECRET`, scheduled hourly in `vercel.json`.
+
+**Duplicates.** Two people reporting one streetlight became two reports, two SLA
+clocks and two sets of statistics. `reports_near()` claims in its own comment to
+power duplicate detection on submit, and `findNearbyReports()` exists to call it —
+but nothing calls *that*, so it was dead code. Matching now needs all four of same
+category, within 150m, within 30 days, and trigram similarity above a threshold,
+because none alone is a good signal: a busy intersection collects unrelated
+complaints, and "broken road" describes half of Dhaka. Thresholds lean towards
+**missing** a match, since a false positive files a citizen's report under a
+stranger's. A duplicate keeps its own row and points at the canonical; groups are
+always one level deep. Wired into `createReport`, and surfaced in the admin CSV
+export so it is usable today without a UI change.
+
+---
+
 ## Phase 0 — Security remediation — **done, but unexecuted**
 
 All four items the report named were real and are addressed. One caveat governs
@@ -125,14 +198,23 @@ rather than guessed at.
 
 ### The caveat that applies to all of Phase 0
 
-**The two migrations have not been executed anywhere.** There is no local
+**None of the migrations have been executed anywhere.** There is no local
 Postgres, no Supabase CLI, and Docker Desktop was not running — and I was not
 going to start a desktop application or touch a hosted database while you were
 asleep. They are verified by review and by an exhaustive column audit, not by
-running. **Run them against a branch database before trusting them.**
+running.
 
-What *is* verified by execution: `npm run build`, `npm run typecheck`,
-`npm run lint` and `npm test` all pass.
+To close that gap in one command, `supabase/tests/phase0_security.sql` asserts the
+fixes actually hold: it creates a citizen, tries the exploit, and raises on the
+first failure. It rolls back, so it leaves nothing behind. Run it against a local
+stack or a branch database, never production:
+
+```bash
+supabase db reset && psql "$DATABASE_URL" -f supabase/tests/phase0_security.sql
+```
+
+What *is* verified by execution here: `npm run build`, `npm run typecheck`,
+`npm run lint` and `npm test` (37 tests) all pass.
 
 ---
 
@@ -180,18 +262,24 @@ What *is* verified by execution: `npm run build`, `npm run typecheck`,
   can submit, which is a product call, so it is flagged rather than decided.
 - **`avatars` has no upload path in the app yet**, so its prefix policy is
   pre-emptive and untested by any real traffic.
-- **No end-to-end test of the RLS fix.** Proving the exploit is closed needs a
-  live Postgres. Worth doing against a Supabase branch database.
+- **No end-to-end test of the RLS fix has been *run*.** The script is written
+  (`supabase/tests/phase0_security.sql`); it needs a live Postgres to execute.
+- **Each year's announced holidays must be entered** in `lib/holidays.ts` from the
+  Cabinet Division's notification. Until a year is entered, RTI deadlines in it
+  are flagged as not holiday-adjusted rather than silently wrong. This needs the
+  gazette, not a guess, which is why it is left for you.
+- **Duplicate groups are not surfaced in the UI.** The linking is real and shows
+  in the CSV export, but the admin queue still lists a group as separate rows and
+  the report page does not say "also reported by N others". Deliberately left
+  rather than half-done.
+- **`findNearbyReports()` is still dead code.** It predates this work and would
+  make a good "similar reports nearby" step in the submit wizard.
 
 ---
 
 ## Next
 
-Phase 1 (SLA tiers, breach sweep, duplicate grouping), then the territory
-hierarchy, the hash-chained audit log, the officer role, and the RTI deadline
-calendar.
+The territory hierarchy (Phase 2), the hash-chained audit log (Phase 3) and the
+officer role (Phase 4). The officer role is the largest of the three and the one
+the study says unblocks the most, including any real pilot.
 
-On the RTI item the report flagged as blocking: it is correct, and the code says
-so itself. `lib/rti.ts` skips Friday and Saturday and carries the comment *"Public
-holidays aren't modelled"*. Around Eid the computed date is early, and an appeal
-filed on it is premature.
