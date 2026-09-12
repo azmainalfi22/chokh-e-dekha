@@ -408,6 +408,7 @@ export type Database = {
           duplicate_of_id: number | null
           duplicate_confidence: number | null
           duplicate_checked_at: string | null
+          territory_id: number | null
           status: string
           status_updated_at: string | null
           title: string
@@ -445,6 +446,7 @@ export type Database = {
           duplicate_of_id?: number | null
           duplicate_confidence?: number | null
           duplicate_checked_at?: string | null
+          territory_id?: number | null
           status?: string
           status_updated_at?: string | null
           title: string
@@ -482,6 +484,7 @@ export type Database = {
           duplicate_of_id?: number | null
           duplicate_confidence?: number | null
           duplicate_checked_at?: string | null
+          territory_id?: number | null
           status?: string
           status_updated_at?: string | null
           title?: string
@@ -659,6 +662,15 @@ export type Database = {
     Functions: {
       // Added by hand alongside the migrations that introduce them. Regenerate
       // with the Supabase CLI when you next have the project linked.
+      is_officer: { Args: never; Returns: boolean }
+      officer_covers_territory: {
+        Args: { p_territory_id: number }
+        Returns: boolean
+      }
+      officer_territory_patterns: {
+        Args: never
+        Returns: string[]
+      }
       find_duplicate_match: {
         Args: { p_report_id: number }
         Returns: {
