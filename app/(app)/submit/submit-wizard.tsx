@@ -182,21 +182,34 @@ export function SubmitWizard() {
         return;
       }
 
-      // 1. Upload compressed photos under the caller's uid prefix.
-      const batch = crypto.randomUUID();
-      const paths: string[] = [];
-      for (let i = 0; i < photos.length; i++) {
-        const ext = photos[i].file.type === "image/png" ? "png" : "jpg";
-        const path = `${user.id}/${batch}/${i + 1}.${ext}`;
-        const { error } = await supabase.storage
-          .from("report-media")
-          .upload(path, photos[i].file, { contentType: photos[i].file.type });
-        if (error) {
-          toast.error(`Photo ${i + 1} failed to upload — try again`);
+      // 1. Upload photos through the server, which strips their metadata and
+      //    chooses the storage path.
+      //
+      //    These used to go straight from here to the storage API. The
+      //    compression above happens to drop Exif as a side effect of
+      //    re-encoding through a canvas, but that is a convenience, not a
+      //    control — it is enforced by the browser, and report photos are served
+      //    from public URLs. A photograph taken before leaving the house carries
+      //    the reporter's home coordinates.
+      let paths: string[] = [];
+      if (photos.length > 0) {
+        const body = new FormData();
+        for (const photo of photos) body.append("photos", photo.file);
+
+        const response = await fetch("/api/report-media", {
+          method: "POST",
+          body,
+        });
+        const payload = (await response.json().catch(() => null)) as
+          | { paths?: string[]; error?: string }
+          | null;
+
+        if (!response.ok || !payload?.paths) {
+          toast.error(payload?.error ?? "Photos failed to upload — try again");
           setSubmitting(false);
           return;
         }
-        paths.push(path);
+        paths = payload.paths;
       }
 
       // 2. Create the report + media rows server-side.

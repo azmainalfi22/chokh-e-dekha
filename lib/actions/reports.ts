@@ -10,9 +10,13 @@ export type CreateReportResult =
   | { ok: false; error: string };
 
 /**
- * Creates a report plus its media rows. Media files are already uploaded
- * to the report-media bucket by the client (authenticated upload); paths
- * must live under the caller's own uid prefix.
+ * Creates a report plus its media rows.
+ *
+ * Media files are already in the report-media bucket, put there by
+ * POST /api/report-media, which strips their metadata and chooses the path.
+ * The prefix check below is kept as a second lock: it is cheap, and it means a
+ * caller reaching this action directly still cannot attach someone else's
+ * objects to their own report.
  */
 export async function createReport(
   input: unknown,

@@ -42,6 +42,11 @@ export async function approveReports(ids: number[]): Promise<Result> {
       is_approved: true,
       approved_at: now.toISOString(),
       sla_due_at: computeSlaDueAt(now).toISOString(),
+      // Approval has to move the report off 'pending' as well. The owner-edit
+      // RLS policy keys on status, so an approved report left pending stayed
+      // editable by its author after it had gone public -- they could rewrite
+      // the text of a live report an officer was already working from.
+      status: "in_progress",
     })
     .in("id", ids)
     .eq("is_approved", false)
@@ -49,7 +54,10 @@ export async function approveReports(ids: number[]): Promise<Result> {
 
   if (error) return { ok: false, error: "Approval failed" };
 
-  // Approval isn't a status change, so the trigger stays silent — notify here.
+  // Approval now does change status, but log_status_change suppresses its own
+  // notification for the approving statement so the reporter is not told twice
+  // about one event. The status log is still written.
+
   const service = createServiceClient();
   const rows = (data ?? []).filter((r) => r.user_id);
   if (rows.length) {
