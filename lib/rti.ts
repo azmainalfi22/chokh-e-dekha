@@ -1,3 +1,11 @@
+import {
+  announcedHolidaysKnownFor,
+  holidayOn,
+  isNonWorkingDay,
+  isWeekend,
+  type Holiday,
+} from "@/lib/holidays";
+
 /**
  * RTI Act 2009 (Bangladesh) letter generation (FR-13).
  * Bilingual (English / Bangla) output that follows the statutory form:
@@ -26,23 +34,81 @@ export const RTI_OUTCOME_LABELS: Record<string, string> = {
 /** Window to appeal to the Appellate Authority after a miss/refusal (s.24). */
 export const RTI_APPEAL_DAYS = 30;
 
+export type WorkingDayDeadline = {
+  /** The computed deadline. */
+  date: Date;
+  /** Public holidays that fell inside the window and were skipped. */
+  holidaysSkipped: Holiday[];
+  /**
+   * True when the window crosses a year whose government-announced holidays
+   * (Eid and the rest) have not been entered in lib/holidays.ts.
+   *
+   * When this is true the date is very likely EARLY, because the closures that
+   * were not counted would have pushed it later. Show the caveat; do not present
+   * the date as settled, and above all do not let someone file an appeal on it
+   * without warning, because an appeal filed before the authority's time has run
+   * out is premature and can be thrown out.
+   */
+  holidaysIncomplete: boolean;
+};
+
 /**
- * Add N working days to a date. Bangladesh's weekend is Friday & Saturday,
- * so those are skipped. Public holidays aren't modelled — the resulting
- * deadline is indicative, and the UI says so.
+ * Add N working days to a date, skipping weekends and public holidays.
+ *
+ * Bangladesh's government weekend is Friday and Saturday. Holidays come from
+ * lib/holidays.ts, which knows the fixed-date ones outright and the announced
+ * ones — Eid above all — only for years somebody has entered.
+ *
+ * This used to skip weekends alone. Around Eid, when offices close for several
+ * consecutive days, that made the 20-working-day RTI deadline land early, and an
+ * appeal filed on an early deadline is premature.
  */
-export function addWorkingDays(start: Date, days: number): Date {
+export function addWorkingDaysDetailed(
+  start: Date,
+  days: number
+): WorkingDayDeadline {
   const d = new Date(start);
+  const holidaysSkipped: Holiday[] = [];
   let added = 0;
+
   while (added < days) {
     d.setDate(d.getDate() + 1);
-    const day = d.getDay(); // 0=Sun … 5=Fri, 6=Sat
-    if (day !== 5 && day !== 6) added++;
+
+    if (isWeekend(d)) continue;
+
+    const holiday = holidayOn(d);
+    if (holiday) {
+      holidaysSkipped.push(holiday);
+      continue;
+    }
+
+    added++;
   }
-  return d;
+
+  return {
+    date: d,
+    holidaysSkipped,
+    holidaysIncomplete: !announcedHolidaysKnownFor(start, d),
+  };
 }
 
-/** Working days between two dates (negative if `to` is before `from`). */
+/**
+ * Add N working days to a date.
+ *
+ * Kept for callers that only want the date. Anything presenting a statutory
+ * deadline to a citizen should use addWorkingDaysDetailed and show the caveat
+ * when holidaysIncomplete is set.
+ */
+export function addWorkingDays(start: Date, days: number): Date {
+  return addWorkingDaysDetailed(start, days).date;
+}
+
+/**
+ * Working days between two dates, negative if `to` is before `from`.
+ *
+ * Counts the same way addWorkingDays does, so "days remaining" and the deadline
+ * it is counting towards cannot disagree.
+ */
 export function workingDaysBetween(from: Date, to: Date): number {
   const sign = to >= from ? 1 : -1;
   const [a, b] = sign > 0 ? [from, to] : [to, from];
@@ -50,10 +116,31 @@ export function workingDaysBetween(from: Date, to: Date): number {
   let count = 0;
   while (cur < b) {
     cur.setDate(cur.getDate() + 1);
-    const day = cur.getDay();
-    if (day !== 5 && day !== 6) count++;
+    if (!isNonWorkingDay(cur)) count++;
   }
   return sign * count;
+}
+
+/**
+ * Whether an appeal would be premature.
+ *
+ * An appeal under s.24 is only open once the authority's statutory time has
+ * actually run out. Filing before that can get the appeal rejected outright, and
+ * the citizen has to begin again — which is the concrete harm an early deadline
+ * causes.
+ *
+ * `uncertain` means the deadline was computed without a complete holiday list,
+ * so it may be earlier than the real one and the answer cannot be trusted either
+ * way.
+ */
+export function appealReadiness(
+  deadline: Date,
+  now: Date = new Date()
+): { ready: boolean; premature: boolean; uncertain: boolean } {
+  const uncertain = !announcedHolidaysKnownFor(deadline, deadline);
+  const passed = now.getTime() >= deadline.getTime();
+
+  return { ready: passed, premature: !passed, uncertain };
 }
 
 export type AuthorityPreset = {

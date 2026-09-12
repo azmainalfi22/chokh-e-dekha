@@ -22,6 +22,7 @@ import {
   RTI_STATUS_LABELS,
   workingDaysBetween,
 } from "@/lib/rti";
+import { announcedHolidaysKnownFor } from "@/lib/holidays";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +63,13 @@ export function RtiLifecycle(props: Props) {
   const [outcome, setOutcome] = useState<string>("");
 
   const deadline = props.deadlineAt ? new Date(props.deadlineAt) : null;
+  // True when the deadline was computed for a year whose government-announced
+  // holidays (Eid above all) have not been entered in lib/holidays.ts. The date
+  // is then likely EARLIER than the real one, and an appeal filed on an early
+  // deadline is premature — so say so rather than let it look settled.
+  const deadlineHolidaysUnknown = deadline
+    ? !announcedHolidaysKnownFor(deadline, deadline)
+    : false;
   const now = new Date();
   const daysLeft = deadline ? workingDaysBetween(now, deadline) : 0;
   const overdue = deadline ? deadline.getTime() < now.getTime() : false;
@@ -201,6 +209,15 @@ export function RtiLifecycle(props: Props) {
                 .
               </p>
             )}
+
+            {deadlineHolidaysUnknown ? (
+              <p className="mt-2 text-xs opacity-80">
+                This date accounts for weekends but not for public holidays —
+                the Eid holidays for this year have not been recorded. The real
+                deadline is likely to be later, so wait for a response before
+                appealing on grounds of no reply.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
