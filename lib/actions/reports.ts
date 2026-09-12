@@ -80,6 +80,13 @@ export async function createReport(
     }
   }
 
+  // Group this with an existing report of the same problem, if there is one.
+  // Runs after the insert because detection compares against rows in the table
+  // and needs this one to have an id. Failing must never cost a citizen their
+  // report — they have already been told it was filed — so the outcome is
+  // ignored rather than surfaced.
+  await supabase.rpc("link_report_duplicate", { p_report_id: report.id });
+
   // Trusted reporters skip moderation (DB trigger) — tell them it's live.
   if (report.auto_published) {
     const due = report.sla_due_at

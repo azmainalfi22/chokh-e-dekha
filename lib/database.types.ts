@@ -405,6 +405,9 @@ export type Database = {
           sla_due_at: string | null
           escalation_level: number
           escalated_at: string | null
+          duplicate_of_id: number | null
+          duplicate_confidence: number | null
+          duplicate_checked_at: string | null
           status: string
           status_updated_at: string | null
           title: string
@@ -439,6 +442,9 @@ export type Database = {
           sla_due_at?: string | null
           escalation_level?: number
           escalated_at?: string | null
+          duplicate_of_id?: number | null
+          duplicate_confidence?: number | null
+          duplicate_checked_at?: string | null
           status?: string
           status_updated_at?: string | null
           title: string
@@ -473,6 +479,9 @@ export type Database = {
           sla_due_at?: string | null
           escalation_level?: number
           escalated_at?: string | null
+          duplicate_of_id?: number | null
+          duplicate_confidence?: number | null
+          duplicate_checked_at?: string | null
           status?: string
           status_updated_at?: string | null
           title?: string
@@ -650,6 +659,21 @@ export type Database = {
     Functions: {
       // Added by hand alongside the migrations that introduce them. Regenerate
       // with the Supabase CLI when you next have the project linked.
+      find_duplicate_match: {
+        Args: { p_report_id: number }
+        Returns: {
+          canonical_id: number
+          confidence: number
+        }[]
+      }
+      link_report_duplicate: {
+        Args: { p_report_id: number }
+        Returns: number
+      }
+      reporter_count: {
+        Args: { p_report_id: number }
+        Returns: number
+      }
       sweep_sla_breaches: {
         Args: never
         Returns: {

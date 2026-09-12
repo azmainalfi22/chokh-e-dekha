@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
     .from("reports")
     .select(
       `id, title, category, city_corporation, location_text, latitude,
-       longitude, status, is_approved, admin_note, sla_due_at, approved_at,
-       created_at, endorse_count, comment_count, view_count, share_count,
+       longitude, status, is_approved, priority, admin_note, sla_due_at,
+       approved_at, escalation_level, duplicate_of_id, created_at,
+       endorse_count, comment_count, view_count, share_count,
        profiles!reports_user_id_fkey ( display_name )`
     )
     .order("created_at", { ascending: false })
@@ -55,17 +56,18 @@ export async function GET(request: NextRequest) {
 
   const header = [
     "id", "title", "category", "city_corporation", "location", "latitude",
-    "longitude", "status", "approved", "admin_note", "sla_due_at",
-    "approved_at", "created_at", "reporter", "endorsements", "comments",
-    "views", "shares",
+    "longitude", "status", "approved", "priority", "admin_note", "sla_due_at",
+    "approved_at", "escalation_level", "duplicate_of", "created_at", "reporter",
+    "endorsements", "comments", "views", "shares",
   ];
   const lines = [header.join(",")];
   for (const r of data ?? []) {
     lines.push(
       [
         r.id, r.title, r.category, r.city_corporation, r.location_text,
-        r.latitude, r.longitude, r.status, r.is_approved, r.admin_note,
-        r.sla_due_at, r.approved_at, r.created_at,
+        r.latitude, r.longitude, r.status, r.is_approved, r.priority,
+        r.admin_note, r.sla_due_at, r.approved_at, r.escalation_level,
+        r.duplicate_of_id ?? "", r.created_at,
         r.profiles?.display_name ?? "", r.endorse_count, r.comment_count,
         r.view_count, r.share_count,
       ]
