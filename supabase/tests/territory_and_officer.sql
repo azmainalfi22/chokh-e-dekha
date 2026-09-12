@@ -151,7 +151,7 @@ begin
 
   perform set_config('role', 'postgres', true);
 
-  select is_approved, title into v_visible, v_title from public.reports where id = v_report;
+  select title into v_title from public.reports where id = v_report;
 
   if (select is_approved from public.reports where id = v_report) then
     raise exception 'FAIL: an officer published a report — approval is not theirs to give';
