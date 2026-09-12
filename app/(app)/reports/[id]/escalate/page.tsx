@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Siren } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSlaState, isEscalationEligible } from "@/lib/sla";
-import { resolveAuthority } from "@/lib/routing";
+import { authorityFromKey } from "@/lib/routing";
 import { Button } from "@/components/ui/button";
 import { EscalationWizard } from "./escalation-wizard";
 
@@ -26,7 +26,7 @@ export default async function EscalatePage({ params }: { params: Params }) {
   const { data: report } = await supabase
     .from("reports")
     .select(
-      "id, user_id, title, category, city_corporation, status, is_approved, sla_due_at, resolution_state"
+      "id, user_id, title, category, city_corporation, status, is_approved, sla_due_at, resolution_state, routed_authority_key"
     )
     .eq("id", reportId)
     .maybeSingle();
@@ -48,7 +48,14 @@ export default async function EscalatePage({ params }: { params: Params }) {
     .order("created_at", { ascending: true });
 
   const sla = getSlaState(report.sla_due_at, report.status);
-  const authority = resolveAuthority(report.category, report.city_corporation);
+  // The key pinned when the report was filed, so the complaint is addressed to
+  // the body the report was actually routed to rather than to whatever the
+  // category maps to today.
+  const authority = authorityFromKey(
+    report.routed_authority_key,
+    report.category,
+    report.city_corporation
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 sm:px-6">

@@ -15,8 +15,10 @@ import {
 import { toast } from "sonner";
 import {
   createEscalation,
+  refreshEscalationStatus,
   setEscalationOutcome,
   setEscalationReference,
+  submitEscalation,
 } from "@/lib/actions/escalations";
 import {
   CHANNEL_LABELS,
@@ -118,6 +120,31 @@ export function EscalationWizard({
         return;
       }
       toast.success("Logged — the escalation now shows on the public record");
+      router.refresh();
+    });
+  }
+
+  function submitThroughChannel() {
+    if (!escalationId) return;
+    startTransition(async () => {
+      const result = await submitEscalation(escalationId);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Submitted — the reference number is on the public record");
+      router.refresh();
+    });
+  }
+
+  function checkStatus(id: number) {
+    startTransition(async () => {
+      const result = await refreshEscalationStatus(id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Status updated");
       router.refresh();
     });
   }
@@ -253,8 +280,27 @@ export function EscalationWizard({
                 </div>
 
                 <div className="border-t pt-4">
+                  <p className="text-sm font-medium">Submit it now</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    Sends the complaint through the channel and records the
+                    reference number it returns, so you do not have to copy it
+                    across by hand.
+                  </p>
+                  <Button
+                    disabled={pending}
+                    onClick={submitThroughChannel}
+                    className="bg-brand-gradient mt-2 border-0 text-white hover:opacity-95"
+                  >
+                    {pending ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                    ) : null}
+                    Submit and get a reference
+                  </Button>
+                </div>
+
+                <div className="border-t pt-4">
                   <p className="text-sm font-medium">
-                    Filed it? Log the reference number
+                    Filed it yourself? Log the reference number
                   </p>
                   <p className="text-muted-foreground mt-0.5 text-xs">
                     The GRS portal / 333 operator gives you a tracking number.
@@ -321,6 +367,17 @@ export function EscalationWizard({
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{OUTCOME_LABELS[e.outcome] ?? e.outcome}</Badge>
+                  {e.reference_no ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      disabled={pending}
+                      onClick={() => checkStatus(e.id)}
+                    >
+                      Check status
+                    </Button>
+                  ) : null}
                   {e.outcome !== "drafted" ? (
                     <Select
                       value={e.outcome}

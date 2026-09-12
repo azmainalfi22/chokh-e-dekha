@@ -409,6 +409,10 @@ export type Database = {
           duplicate_confidence: number | null
           duplicate_checked_at: string | null
           territory_id: number | null
+          ai_suggestion: Json | null
+          ai_suggested_at: string | null
+          ai_confirmed_at: string | null
+          ai_confirmed_by: string | null
           status: string
           status_updated_at: string | null
           title: string
@@ -447,6 +451,10 @@ export type Database = {
           duplicate_confidence?: number | null
           duplicate_checked_at?: string | null
           territory_id?: number | null
+          ai_suggestion?: Json | null
+          ai_suggested_at?: string | null
+          ai_confirmed_at?: string | null
+          ai_confirmed_by?: string | null
           status?: string
           status_updated_at?: string | null
           title: string
@@ -485,6 +493,10 @@ export type Database = {
           duplicate_confidence?: number | null
           duplicate_checked_at?: string | null
           territory_id?: number | null
+          ai_suggestion?: Json | null
+          ai_suggested_at?: string | null
+          ai_confirmed_at?: string | null
+          ai_confirmed_by?: string | null
           status?: string
           status_updated_at?: string | null
           title?: string
@@ -662,6 +674,14 @@ export type Database = {
     Functions: {
       // Added by hand alongside the migrations that introduce them. Regenerate
       // with the Supabase CLI when you next have the project linked.
+      set_report_suggestion: {
+        Args: { p_report_id: number; p_suggestion: Json }
+        Returns: undefined
+      }
+      resolve_report_suggestion: {
+        Args: { p_report_id: number; p_accept: boolean }
+        Returns: undefined
+      }
       is_officer: { Args: never; Returns: boolean }
       officer_covers_territory: {
         Args: { p_territory_id: number }

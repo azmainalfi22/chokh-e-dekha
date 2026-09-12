@@ -9,6 +9,7 @@ import {
   User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CategoryTile } from "./category-tile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { StatusBadge } from "@/components/reports/status-badge";
@@ -65,9 +66,7 @@ export function ReportCard({ report }: { report: ReportCardData }) {
             className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
           />
         ) : (
-          <span className="bg-brand-gradient flex size-full items-center justify-center opacity-80">
-            <MapPin className="size-10 text-white/80" aria-hidden />
-          </span>
+          <CategoryTile category={report.category} />
         )}
         {/* readability scrim for the chips */}
         <span

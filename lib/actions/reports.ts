@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { reportSchema } from "@/lib/validations";
 import { resolveAuthorityKey } from "@/lib/routing";
+import { getClassifier } from "@/lib/classifier";
 
 export type CreateReportResult =
   | { ok: true; reportId: number; autoPublished: boolean }
@@ -78,6 +79,22 @@ export async function createReport(
       // Report exists; media metadata failed. Surface but don't lose the report.
       return { ok: true, reportId: report.id, autoPublished: report.auto_published };
     }
+  }
+
+  // Suggest a category. The suggestion is stored beside the report and changes
+  // nothing until an admin accepts it — see supabase/migrations/…_classifier_suggestions.
+  try {
+    const suggestion = await getClassifier().classify({
+      title: d.title,
+      description: d.description,
+      cityCorporation: d.cityCorporation,
+    });
+    await supabase.rpc("set_report_suggestion", {
+      p_report_id: report.id,
+      p_suggestion: suggestion,
+    });
+  } catch {
+    // A classifier that is down must never cost a citizen their report.
   }
 
   // Group this with an existing report of the same problem, if there is one.

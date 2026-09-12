@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getGrsAdapter } from "@/lib/grs/adapter";
 import { createClient } from "@/lib/supabase/server";
 import { getSlaState, isEscalationEligible } from "@/lib/sla";
-import { resolveAuthority } from "@/lib/routing";
+import { authorityFromKey } from "@/lib/routing";
 import {
   generate333Script,
   generateGrsComplaint,
@@ -75,7 +76,11 @@ export async function createEscalation(
     .single();
 
   const sla = getSlaState(report.sla_due_at, report.status);
-  const authority = resolveAuthority(report.category, report.city_corporation);
+  const authority = authorityFromKey(
+    report.routed_authority_key,
+    report.category,
+    report.city_corporation
+  );
   const input = {
     reportId: report.id,
     reportTitle: report.title,
@@ -167,5 +172,102 @@ export async function setEscalationOutcome(
     .single();
   if (error || !data) return { ok: false, error: "Could not save the outcome" };
   revalidatePath(`/reports/${data.report_id}`);
+  return { ok: true };
+}
+
+/**
+ * File the complaint through the configured channel and record what came back.
+ *
+ * Replaces asking the citizen to copy a reference number out of another website
+ * by hand. The adapter behind this is selected by env var; by default it is a
+ * local mock that contacts nothing, so the whole workflow runs offline. See
+ * lib/grs/adapter.ts.
+ */
+export async function submitEscalation(id: number): Promise<Result> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "You must be signed in" };
+
+  const { data: escalation } = await supabase
+    .from("report_escalations")
+    .select("id, report_id, user_id, channel, complaint_body, reference_no")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!escalation) return { ok: false, error: "Escalation not found" };
+  if (escalation.user_id !== user.id) return { ok: false, error: "Not your escalation" };
+  if (escalation.reference_no) return { ok: false, error: "Already filed" };
+
+  const { data: report } = await supabase
+    .from("reports")
+    .select("id, title, category, city_corporation, routed_authority_key")
+    .eq("id", escalation.report_id)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const result = await getGrsAdapter().file({
+    channel: escalation.channel as "grs" | "helpline_333" | "written",
+    reportId: escalation.report_id,
+    reportTitle: report?.title ?? "",
+    complaintBody: escalation.complaint_body,
+    authorityName: report
+      ? authorityFromKey(
+          report.routed_authority_key,
+          report.category,
+          report.city_corporation
+        ).name
+      : "",
+    applicantName: profile?.display_name ?? "Citizen",
+  });
+
+  const { error } = await supabase
+    .from("report_escalations")
+    .update({
+      reference_no: result.referenceNo,
+      outcome: result.outcome,
+      filed_at: result.filedAt,
+    })
+    .eq("id", id);
+
+  if (error) return { ok: false, error: "Could not record the filing" };
+
+  revalidatePath(`/reports/${escalation.report_id}`);
+  return { ok: true };
+}
+
+/** Ask the channel where the complaint has got to, and record the answer. */
+export async function refreshEscalationStatus(id: number): Promise<Result> {
+  const supabase = await createClient();
+
+  const { data: escalation } = await supabase
+    .from("report_escalations")
+    .select("id, report_id, reference_no, filed_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!escalation?.reference_no || !escalation.filed_at) {
+    return { ok: false, error: "File the complaint first" };
+  }
+
+  const status = await getGrsAdapter().checkStatus(
+    escalation.reference_no,
+    escalation.filed_at
+  );
+
+  const { error } = await supabase
+    .from("report_escalations")
+    .update({ outcome: status.outcome })
+    .eq("id", id);
+
+  if (error) return { ok: false, error: "Could not save the status" };
+
+  revalidatePath(`/reports/${escalation.report_id}`);
   return { ok: true };
 }

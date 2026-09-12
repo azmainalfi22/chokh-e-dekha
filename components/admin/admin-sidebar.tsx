@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Map,
   MessageSquarePlus,
+  Sparkles,
   Users,
 } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
@@ -18,6 +19,7 @@ const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/reports", label: "Reports", icon: ClipboardList },
   { href: "/admin/map", label: "Map", icon: Map },
+  { href: "/admin/suggestions", label: "Suggestions", icon: Sparkles },
   { href: "/admin/surveys", label: "Surveys", icon: MessageSquarePlus },
   { href: "/admin/users", label: "Users", icon: Users },
 ];

@@ -434,6 +434,22 @@ export function resolveAuthorityKey(
 }
 
 /** Convenience: resolve straight to the Authority record. */
+/**
+ * The authority a report was routed to when it was filed.
+ *
+ * reports.routed_authority_key is pinned at creation precisely so the answer
+ * cannot drift if the category is edited or the routing table changes. Prefer
+ * this over recomputing; fall back only for rows that predate the column.
+ */
+export function authorityFromKey(
+  key: string | null | undefined,
+  category: Category | string,
+  city: City | string
+): Authority {
+  if (key && AUTHORITIES[key]) return AUTHORITIES[key];
+  return resolveAuthority(category, city);
+}
+
 export function resolveAuthority(
   category: Category | string,
   city: City | string

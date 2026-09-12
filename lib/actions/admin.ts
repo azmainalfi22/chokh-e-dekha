@@ -216,3 +216,30 @@ export async function setUserRole(
   revalidatePath("/admin/users");
   return { ok: true };
 }
+
+/**
+ * Accept or reject a category suggestion.
+ *
+ * Accepting copies the suggested category and priority onto the report.
+ * Rejecting records only that a human looked and disagreed, which is the more
+ * useful of the two signals. Either way the report stops appearing in the
+ * "needs review" list.
+ */
+export async function resolveSuggestion(
+  reportId: number,
+  accept: boolean
+): Promise<Result> {
+  const { supabase, isAdmin } = await requireAdmin();
+  if (!isAdmin) return { ok: false, error: "Admin access required" };
+
+  const { error } = await supabase.rpc("resolve_report_suggestion", {
+    p_report_id: reportId,
+    p_accept: accept,
+  });
+
+  if (error) return { ok: false, error: "Could not save that decision" };
+
+  revalidateAdmin();
+  revalidatePath(`/reports/${reportId}`);
+  return { ok: true };
+}
