@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test \"lib/**/*.test.ts\""
+    "test": "node --import ./scripts/register-alias.mjs --experimental-strip-types --test \"lib/**/*.test.ts\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

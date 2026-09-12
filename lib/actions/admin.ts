@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { computeSlaDueAt } from "@/lib/sla";
 import { sendStatusChangeEmail } from "@/lib/email";
 import { STATUSES, type Status } from "@/lib/constants";
 
@@ -41,7 +40,11 @@ export async function approveReports(ids: number[]): Promise<Result> {
     .update({
       is_approved: true,
       approved_at: now.toISOString(),
-      sla_due_at: computeSlaDueAt(now).toISOString(),
+      // sla_due_at is deliberately absent. reports_sla_on_approval_trg computes
+      // it from the report's priority, so a high-priority report gets three days
+      // and a low-priority one fourteen -- and both publication paths, admin
+      // approval and trusted-reporter auto-publish, get the same answer from the
+      // same place. Read back below for the notification.
       // Approval has to move the report off 'pending' as well. The owner-edit
       // RLS policy keys on status, so an approved report left pending stayed
       // editable by its author after it had gone public -- they could rewrite
@@ -50,7 +53,7 @@ export async function approveReports(ids: number[]): Promise<Result> {
     })
     .in("id", ids)
     .eq("is_approved", false)
-    .select("id, user_id, title");
+    .select("id, user_id, title, sla_due_at");
 
   if (error) return { ok: false, error: "Approval failed" };
 
@@ -67,7 +70,11 @@ export async function approveReports(ids: number[]): Promise<Result> {
         report_id: r.id,
         type: "approved",
         title: "Report approved",
-        body: `Your report "${r.title}" is approved and now public. Resolution is due by ${computeSlaDueAt(now).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`,
+        body: `Your report "${r.title}" is approved and now public.${
+          r.sla_due_at
+            ? ` Resolution is due by ${new Date(r.sla_due_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.`
+            : ""
+        }`,
       }))
     );
   }

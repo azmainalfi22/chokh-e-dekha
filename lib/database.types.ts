@@ -403,6 +403,8 @@ export type Database = {
           routed_authority_key: string | null
           share_count: number
           sla_due_at: string | null
+          escalation_level: number
+          escalated_at: string | null
           status: string
           status_updated_at: string | null
           title: string
@@ -435,6 +437,8 @@ export type Database = {
           routed_authority_key?: string | null
           share_count?: number
           sla_due_at?: string | null
+          escalation_level?: number
+          escalated_at?: string | null
           status?: string
           status_updated_at?: string | null
           title: string
@@ -467,6 +471,8 @@ export type Database = {
           routed_authority_key?: string | null
           share_count?: number
           sla_due_at?: string | null
+          escalation_level?: number
+          escalated_at?: string | null
           status?: string
           status_updated_at?: string | null
           title?: string
@@ -642,6 +648,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      // Added by hand alongside the migrations that introduce them. Regenerate
+      // with the Supabase CLI when you next have the project linked.
+      sweep_sla_breaches: {
+        Args: never
+        Returns: {
+          escalated_to_1: number
+          escalated_to_2: number
+        }[]
+      }
+      priority_for_category: {
+        Args: { p_category: string }
+        Returns: string
+      }
+      sla_days_for_priority: {
+        Args: { p_priority: string }
+        Returns: number
+      }
       confirm_resolution: {
         Args: { p_report_id: number }
         Returns: undefined
