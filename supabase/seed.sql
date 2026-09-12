@@ -220,6 +220,54 @@ begin
      now() - interval '2 days', 'সরেজমিন পরিদর্শন সম্পন্ন হয়েছে।', v_officer,
      0, null, 'dscc', 57, 7, 318, 3, null, null, now() - interval '4 days');
 
+  -- A live outage cluster.
+  --
+  -- active_outages() only counts approved utility reports from the last 48
+  -- hours, and needs several before it treats them as one outage rather than
+  -- separate complaints. Without a cluster the Outages board is permanently
+  -- empty, which is the one screen where empty means "nothing works" rather
+  -- than "nothing is wrong".
+  insert into public.reports
+    (user_id, title, description, category, city_corporation, territory_id, location_text,
+     latitude, longitude, status, priority, is_approved, approved_at, sla_due_at,
+     routed_authority_key, endorse_count, view_count, created_at)
+  values
+    (v_citizen, 'No water since morning in Mirpur 10',
+     'Taps have been dry since about 7am across our building. Neighbours on the next road say the same.',
+     'Water Supply', 'Dhaka North City Corporation', v_ward2, 'Mirpur 10 roundabout',
+     23.8069, 90.3687, 'pending', 'high', true, now() - interval '9 hours',
+     now() + interval '2 days', 'wasa', 31, 210, now() - interval '9 hours'),
+
+    (v_citizen2, 'মিরপুরে পানি নেই দুই দিন ধরে',
+     'মিরপুর ১১ নম্বরে গত দুই দিন ধরে পানি আসছে না। ওয়াসায় ফোন করেও কোনো সাড়া পাওয়া যায়নি।',
+     'Water Supply', 'Dhaka North City Corporation', v_ward2, 'মিরপুর ১১, ঢাকা',
+     23.8103, 90.3654, 'pending', 'high', true, now() - interval '20 hours',
+     now() + interval '2 days', 'wasa', 44, 288, now() - interval '20 hours'),
+
+    (v_citizen, 'Water supply cut across Mirpur 12',
+     'Third day with no supply in the mornings. Families are buying jars and the pressure never returns before evening.',
+     'Water Supply', 'Dhaka North City Corporation', v_ward1, 'Mirpur 12, block C',
+     23.8223, 90.3654, 'in_progress', 'high', true, now() - interval '30 hours',
+     now() + interval '1 day', 'wasa', 58, 371, now() - interval '30 hours'),
+
+    (v_citizen2, 'Power out in Bashundhara block B since last night',
+     'The whole block has been without electricity since around 11pm. No notice from DPDC and no crew has come.',
+     'Electricity', 'Dhaka North City Corporation', v_ward3, 'Bashundhara R/A, block B',
+     23.8203, 90.4257, 'pending', 'high', true, now() - interval '11 hours',
+     now() + interval '2 days', 'dpdc', 37, 254, now() - interval '11 hours'),
+
+    (v_citizen, 'No electricity in Bashundhara block C',
+     'Same as the neighbouring block — out since late last night, nothing restored, and the helpline is engaged.',
+     'Electricity', 'Dhaka North City Corporation', v_ward3, 'Bashundhara R/A, block C',
+     23.8188, 90.4288, 'pending', 'high', true, now() - interval '10 hours',
+     now() + interval '2 days', 'dpdc', 29, 198, now() - interval '10 hours'),
+
+    (v_citizen2, 'Power cut continuing in Bashundhara block D',
+     'Third block reporting the same outage. Shops have shut and the lifts are out in the taller buildings.',
+     'Electricity', 'Dhaka North City Corporation', v_ward3, 'Bashundhara R/A, block D',
+     23.8170, 90.4310, 'pending', 'high', true, now() - interval '8 hours',
+     now() + interval '2 days', 'dpdc', 22, 164, now() - interval '8 hours');
+
   -- A duplicate pair, so the grouping is visible rather than theoretical.
   select id into v_id from public.reports where title = 'Rubbish piled outside Karwan Bazar kitchen market';
 
